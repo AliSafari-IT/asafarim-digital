@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  portal:
+    build:
+      context: ./apps/portal
+      dockerfile: Dockerfile
+    container_name: asafarim-portal
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORTAL_URL=https://portal-qa.asafarim.com
+    networks:
+      - asafarim-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Future services go here:
+  # api-gateway:
+  #   build: ./services/api-gateway
+  #   ...
+  # identity-service:
+  #   build: ./services/identity-service
+  #   ...
+
+networks:
+  asafarim-net:
+    driver: bridge
