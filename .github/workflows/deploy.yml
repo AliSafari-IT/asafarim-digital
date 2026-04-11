@@ -8,7 +8,7 @@ on:
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
-  DEPLOY_PATH: /opt/asafarim-digital
+  DEPLOY_PATH: /var/repos/asafarim-digital
 
 jobs:
   build-and-deploy:
@@ -39,7 +39,7 @@ jobs:
 
           # Build and restart on VPS
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
-            cd /opt/asafarim-digital
+            cd /var/repos/asafarim-digital
             docker compose down
             docker compose build --no-cache portal
             docker compose up -d portal
