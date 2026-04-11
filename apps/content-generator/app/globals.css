@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --color-midnight: #0d0d0f;
+  --color-azure: #3a7bff;
+  --color-slate: #a3a9b7;
+  --color-mint: #4ff2c9;
+
+  --color-primary: var(--color-azure);
+  --color-primary-dark: #2f66d6;
+  --color-surface: #0d0d0f;
+  --color-surface-elevated: #14161c;
+  --color-surface-glass: rgba(18, 23, 33, 0.72);
+  --color-border: #2a2f3b;
+  --color-text: #f5f7fb;
+  --color-text-secondary: #a3a9b7;
+  --color-success: #4ff2c9;
+  --color-warning: #ffbe5b;
+  --color-danger: #ff6b7a;
+
+  --gradient-brand: linear-gradient(135deg, #3a7bff 0%, #4ff2c9 100%);
+  --shadow-card: 0 16px 50px -28px rgba(58, 123, 255, 0.5);
+  --radius-card: 1rem;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  font-family: "Geist", "Inter Tight", "Inter", "Segoe UI", sans-serif;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
