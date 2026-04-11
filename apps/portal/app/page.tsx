@@ -79,7 +79,7 @@ export default function PortalHome() {
         {/* Welcome */}
         <section className="mb-12">
           <h2 className="text-3xl font-bold tracking-tight mb-2">
-            Welcome to the Portal
+            Welcome to the Portal v0.1.0
           </h2>
           <p className="text-[var(--color-text-secondary)] text-lg max-w-2xl">
             Your central hub for the ASafariM Digital ecosystem. Access
