@@ -1,0 +1,21 @@
+<svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="240" rx="24" fill="#0D0D0F"/>
+  <rect x="1" y="1" width="638" height="238" rx="23" stroke="#2A2F3B"/>
+  <defs>
+    <linearGradient id="g1" x1="120" y1="40" x2="240" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF"/>
+      <stop offset="1" stop-color="#4FF2C9"/>
+    </linearGradient>
+  </defs>
+  <circle cx="140" cy="120" r="54" stroke="url(#g1)" stroke-width="12"/>
+  <circle cx="140" cy="120" r="12" fill="#4FF2C9"/>
+  <circle cx="92" cy="90" r="6" fill="#3A7BFF"/>
+  <circle cx="187" cy="89" r="6" fill="#3A7BFF"/>
+  <circle cx="94" cy="149" r="6" fill="#4FF2C9"/>
+  <circle cx="186" cy="151" r="6" fill="#4FF2C9"/>
+  <path d="M98 92L133 116L184 90" stroke="#3A7BFF" stroke-opacity="0.7" stroke-width="2"/>
+  <path d="M96 147L132 123L184 150" stroke="#4FF2C9" stroke-opacity="0.7" stroke-width="2"/>
+  <text x="240" y="108" fill="#F5F7FB" font-size="36" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="240" y="142" fill="#A3A9B7" font-size="16" font-family="Inter, Arial, sans-serif" letter-spacing="2">AI-EMPOWERED SAAS &amp; WEB INNOVATION</text>
+  <text x="34" y="214" fill="#A3A9B7" font-size="12" font-family="Inter, Arial, sans-serif">Logo Concept A — Neural Ring</text>
+</svg>

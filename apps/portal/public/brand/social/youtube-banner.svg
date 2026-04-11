@@ -1,0 +1,15 @@
+<svg width="2560" height="1440" viewBox="0 0 2560 1440" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="2560" height="1440" fill="#0D0D0F"/>
+  <defs>
+    <linearGradient id="ytG" x1="220" y1="140" x2="2360" y2="1260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#4FF2C9" stop-opacity="0.14"/>
+    </linearGradient>
+  </defs>
+  <rect x="120" y="290" width="2320" height="860" rx="36" fill="#14161C" stroke="#2A2F3B"/>
+  <rect x="120" y="290" width="2320" height="860" rx="36" fill="url(#ytG)"/>
+  <text x="250" y="650" fill="#F5F7FB" font-size="128" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="254" y="760" fill="#A3A9B7" font-size="54" font-family="Inter, Arial, sans-serif">AI-Empowered SaaS &amp; Web Innovation</text>
+  <text x="254" y="850" fill="#4FF2C9" font-size="40" font-family="Inter, Arial, sans-serif">Architecture • Automation • AI Agents • Product Strategy</text>
+  <text x="254" y="1040" fill="#A3A9B7" font-size="30" font-family="Inter, Arial, sans-serif">YouTube Channel Art (safe center composition)</text>
+</svg>

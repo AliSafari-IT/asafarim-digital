@@ -1,0 +1,18 @@
+<svg width="640" height="240" viewBox="0 0 640 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="640" height="240" rx="24" fill="#0D0D0F"/>
+  <rect x="1" y="1" width="638" height="238" rx="23" stroke="#2A2F3B"/>
+  <defs>
+    <linearGradient id="g3" x1="70" y1="58" x2="200" y2="188" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF"/>
+      <stop offset="1" stop-color="#4FF2C9"/>
+    </linearGradient>
+  </defs>
+  <circle cx="132" cy="120" r="54" stroke="url(#g3)" stroke-width="8"/>
+  <ellipse cx="132" cy="120" rx="70" ry="26" stroke="#3A7BFF" stroke-opacity="0.7" stroke-width="3"/>
+  <ellipse cx="132" cy="120" rx="70" ry="26" transform="rotate(-60 132 120)" stroke="#4FF2C9" stroke-opacity="0.65" stroke-width="3"/>
+  <ellipse cx="132" cy="120" rx="70" ry="26" transform="rotate(60 132 120)" stroke="#3A7BFF" stroke-opacity="0.45" stroke-width="3"/>
+  <circle cx="201" cy="120" r="6" fill="#4FF2C9"/>
+  <text x="240" y="108" fill="#F5F7FB" font-size="36" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="240" y="142" fill="#A3A9B7" font-size="16" font-family="Inter, Arial, sans-serif" letter-spacing="2">AI-EMPOWERED SAAS &amp; WEB INNOVATION</text>
+  <text x="34" y="214" fill="#A3A9B7" font-size="12" font-family="Inter, Arial, sans-serif">Logo Concept C — Orbit Node</text>
+</svg>

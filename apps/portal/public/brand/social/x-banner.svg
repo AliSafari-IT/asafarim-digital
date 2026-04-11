@@ -1,0 +1,15 @@
+<svg width="1500" height="500" viewBox="0 0 1500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1500" height="500" fill="#0D0D0F"/>
+  <defs>
+    <linearGradient id="xG" x1="140" y1="50" x2="1380" y2="460" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#4FF2C9" stop-opacity="0.12"/>
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="1452" height="452" rx="26" fill="#14161C" stroke="#2A2F3B"/>
+  <rect x="24" y="24" width="1452" height="452" rx="26" fill="url(#xG)"/>
+  <text x="86" y="210" fill="#F5F7FB" font-size="64" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="86" y="258" fill="#A3A9B7" font-size="28" font-family="Inter, Arial, sans-serif">AI-Empowered SaaS &amp; Web Innovation</text>
+  <text x="86" y="306" fill="#4FF2C9" font-size="20" font-family="Inter, Arial, sans-serif">Full-stack product craft for AI-first founders</text>
+  <text x="86" y="430" fill="#A3A9B7" font-size="16" font-family="Inter, Arial, sans-serif">X Header • 1500x500</text>
+</svg>

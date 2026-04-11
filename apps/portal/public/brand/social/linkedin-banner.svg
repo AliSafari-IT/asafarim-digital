@@ -1,0 +1,15 @@
+<svg width="1584" height="396" viewBox="0 0 1584 396" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1584" height="396" fill="#0D0D0F"/>
+  <defs>
+    <linearGradient id="liG" x1="126" y1="20" x2="1482" y2="372" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#4FF2C9" stop-opacity="0.14"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="1548" height="360" rx="26" fill="#14161C" stroke="#2A2F3B"/>
+  <rect x="18" y="18" width="1548" height="360" rx="26" fill="url(#liG)"/>
+  <text x="74" y="170" fill="#F5F7FB" font-size="56" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="74" y="218" fill="#A3A9B7" font-size="24" font-family="Inter, Arial, sans-serif">AI-Empowered SaaS &amp; Web Innovation</text>
+  <text x="74" y="264" fill="#4FF2C9" font-size="20" font-family="Inter, Arial, sans-serif">Building future-ready products with AI agents, automation, and scalable architecture</text>
+  <text x="74" y="332" fill="#A3A9B7" font-size="16" font-family="Inter, Arial, sans-serif">LinkedIn Header • 1584x396</text>
+</svg>

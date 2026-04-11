@@ -1,0 +1,17 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="640" fill="#0D0D0F"/>
+  <defs>
+    <linearGradient id="bgGit" x1="170" y1="60" x2="1110" y2="580" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#4FF2C9" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+  <rect x="36" y="36" width="1208" height="568" rx="28" fill="#14161C" stroke="#2A2F3B"/>
+  <rect x="36" y="36" width="1208" height="568" rx="28" fill="url(#bgGit)"/>
+  <text x="102" y="262" fill="#F5F7FB" font-size="68" font-family="Inter, Arial, sans-serif" font-weight="700">asafarim-digital</text>
+  <text x="104" y="316" fill="#A3A9B7" font-size="28" font-family="Inter, Arial, sans-serif">AI-Empowered SaaS &amp; Web Innovation</text>
+  <text x="104" y="370" fill="#4FF2C9" font-size="22" font-family="Inter, Arial, sans-serif">Full-Stack AI SaaS Architecture • Next.js • .NET • PostgreSQL • RAG</text>
+  <circle cx="1116" cy="156" r="56" fill="#0D0D0F" stroke="#3A7BFF" stroke-width="4"/>
+  <text x="1088" y="168" fill="#4FF2C9" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700">AD</text>
+  <text x="102" y="548" fill="#A3A9B7" font-size="18" font-family="Inter, Arial, sans-serif">GitHub Banner • 1280x640</text>
+</svg>

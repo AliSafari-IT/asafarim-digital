@@ -1,0 +1,17 @@
+<svg width="1200" height="480" viewBox="0 0 1200 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="480" fill="#0D0D0F"/>
+  <rect x="26" y="26" width="1148" height="428" rx="22" fill="#14161C" stroke="#2A2F3B"/>
+  <circle cx="210" cy="232" r="118" fill="url(#s1)" fill-opacity="0.22"/>
+  <rect x="412" y="134" width="420" height="22" rx="11" fill="#3A7BFF" fill-opacity="0.65"/>
+  <rect x="412" y="174" width="354" height="16" rx="8" fill="#A3A9B7" fill-opacity="0.6"/>
+  <rect x="412" y="203" width="300" height="16" rx="8" fill="#A3A9B7" fill-opacity="0.45"/>
+  <rect x="412" y="262" width="160" height="42" rx="21" fill="#3A7BFF"/>
+  <text x="448" y="289" fill="#F5F7FB" font-size="16" font-family="Inter, Arial, sans-serif">Launch AI Flow</text>
+  <text x="78" y="408" fill="#A3A9B7" font-size="20" font-family="Inter, Arial, sans-serif">AI Studio Placeholder</text>
+  <defs>
+    <linearGradient id="s1" x1="92" y1="96" x2="312" y2="344" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3A7BFF"/>
+      <stop offset="1" stop-color="#4FF2C9"/>
+    </linearGradient>
+  </defs>
+</svg>
