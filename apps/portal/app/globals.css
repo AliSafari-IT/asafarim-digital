@@ -23,6 +23,23 @@
   --radius-card: 1rem;
 }
 
+html[data-theme="light"] {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fafc;
+  --color-surface-glass: rgba(255, 255, 255, 0.78);
+  --color-border: #dbe3ef;
+  --color-text: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #14b8a6 100%);
+  --shadow-card: 0 18px 50px -34px rgba(37, 99, 235, 0.38);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --color-surface: #0d0d0f;
@@ -41,4 +58,5 @@ body {
   font-family: "Geist", "Inter Tight", "Inter", "Segoe UI", sans-serif;
   background: var(--color-surface);
   color: var(--color-text);
+  transition: background-color 220ms ease, color 220ms ease;
 }
