@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 
 param(
-    [Parameter(ValueFromRemainingArguments=$true)]
+    [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Commands
 )
 
