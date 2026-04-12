@@ -43,6 +43,16 @@ jobs:
             --exclude='node_modules' \
             --exclude='.next' \
             --exclude='.turbo' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='*/.env' \
+            --exclude='*/.env.*' \
+            --exclude='apps/*/.env' \
+            --exclude='apps/*/.env.*' \
+            --filter='P .env' \
+            --filter='P .env.*' \
+            --filter='P */.env' \
+            --filter='P */.env.*' \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.DEPLOY_PATH }}/
 
           # Build and restart on VPS
