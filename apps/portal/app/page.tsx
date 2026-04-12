@@ -24,22 +24,31 @@ const services = [
 
 const showcases = [
   {
-    name: "AI Studio",
-    type: "Prompting, evaluation, and model routing",
+    name: "Content Generator",
+    type: "Live AI writing workspace",
     summary:
-      "An internal workspace for creating AI assistants, testing prompts, and shipping reusable agent workflows.",
+      "Generate blog drafts, product copy, emails, social captions, and summaries from a single prompt-driven interface.",
+    href: "/showcase/content-generator",
+    cta: "Open App",
+    isLive: true,
   },
   {
     name: "SaaS Operations Hub",
     type: "Admin analytics and automations",
     summary:
       "A management dashboard for billing, feature flags, user lifecycle insights, and workflow automation control.",
+    href: "#contact",
+    cta: "Discuss Build",
+    isLive: false,
   },
   {
     name: "Marketing + Content Engine",
     type: "SEO pages, blog pipeline, and lead flows",
     summary:
       "A conversion-focused website stack with structured content generation, lead qualification, and campaign automation.",
+    href: "#contact",
+    cta: "Request Similar System",
+    isLive: false,
   },
 ];
 
@@ -230,19 +239,37 @@ export default function PortalHome() {
           </p>
           <div className="mt-8 grid gap-5 lg:grid-cols-3">
             {showcases.map((item, index) => (
-              <article key={item.name} className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
+              <a
+                key={item.name}
+                href={item.href}
+                className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[var(--shadow-card)]"
+              >
                 <img
                   src={`/brand/showcase-${index + 1}.svg`}
                   alt={`${item.name} visual placeholder`}
                   className="h-36 w-full object-cover"
                 />
                 <div className="p-6">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">Project 0{index + 1}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">Project 0{index + 1}</p>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
+                        item.isLive
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-[var(--color-surface-glass)] text-[var(--color-text-secondary)]"
+                      }`}
+                    >
+                      {item.isLive ? "Live app" : "Concept"}
+                    </span>
+                  </div>
                   <h3 className="mt-2 text-xl font-semibold">{item.name}</h3>
                   <p className="mt-2 text-sm font-medium text-[var(--color-text-secondary)]">{item.type}</p>
                   <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.summary}</p>
+                  <span className="mt-5 inline-flex items-center text-sm font-semibold text-[var(--color-primary)]">
+                    {item.cta}
+                  </span>
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         </section>

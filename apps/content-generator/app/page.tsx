@@ -34,6 +34,8 @@ const quickPrompts: Array<{ label: string; type: ContentType; prompt: string }> 
   },
 ];
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export default function ContentGeneratorPage() {
   const [type, setType] = useState<ContentType>("blog");
   const [input, setInput] = useState("");
@@ -48,7 +50,7 @@ export default function ContentGeneratorPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/generate", {
+      const response = await fetch(`${basePath}/api/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -107,7 +109,7 @@ export default function ContentGeneratorPage() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(58,123,255,0.22),transparent_36%),radial-gradient(circle_at_90%_10%,rgba(79,242,201,0.15),transparent_34%)]"
       />
       <img
-        src="/brand/mesh-bg.svg"
+        src={`${basePath}/brand/mesh-bg.svg`}
         alt=""
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] w-full object-cover opacity-45"
@@ -127,12 +129,20 @@ export default function ContentGeneratorPage() {
             </p>
           </div>
 
-          <a
-            href="https://github.com/AliSafari-IT/asafarim-digital"
-            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
-          >
-            View Monorepo
-          </a>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="/"
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+            >
+              Back to Portal
+            </a>
+            <a
+              href="https://github.com/AliSafari-IT/asafarim-digital"
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+            >
+              View Monorepo
+            </a>
+          </div>
         </div>
 
         <div className="mb-6 flex flex-wrap gap-2">

@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   portal:
     build:
@@ -16,6 +14,31 @@ services:
       - asafarim-net
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  content-generator:
+    build:
+      context: .
+      dockerfile: ./apps/content-generator/Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_PATH: /showcase/content-generator
+    container_name: asafarim-content-generator
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BASE_PATH=/showcase/content-generator
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
+    networks:
+      - asafarim-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/showcase/content-generator"]
       interval: 30s
       timeout: 10s
       retries: 3

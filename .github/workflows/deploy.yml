@@ -41,8 +41,8 @@ jobs:
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             cd /var/repos/asafarim-digital
             docker compose down
-            docker compose build --no-cache portal
-            docker compose up -d portal
+            docker compose build --no-cache portal content-generator
+            docker compose up -d portal content-generator
             docker system prune -f
             echo "Deployment complete!"
             docker compose ps
@@ -52,4 +52,4 @@ jobs:
         run: |
           sleep 10
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "curl -sf http://localhost:3000 > /dev/null && echo 'Portal is healthy' || echo 'Portal health check failed'"
+            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3001/showcase/content-generator > /dev/null && echo 'Portal and content generator are healthy' || echo 'Deployment health check failed'"
