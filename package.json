@@ -1,11 +1,6 @@
 {
   "name": "asafarim-digital",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*",
-    "services/*"
-  ],
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
