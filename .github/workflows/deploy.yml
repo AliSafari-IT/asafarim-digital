@@ -40,6 +40,10 @@ jobs:
           # Build and restart on VPS
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             cd /var/repos/asafarim-digital
+            sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
+            sudo ln -sf /etc/nginx/sites-available/portal-qa.asafarim.com.conf /etc/nginx/sites-enabled/portal-qa.asafarim.com.conf
+            sudo nginx -t
+            sudo systemctl reload nginx
             docker compose down
             docker compose build --no-cache portal content-generator
             docker compose up -d portal content-generator
