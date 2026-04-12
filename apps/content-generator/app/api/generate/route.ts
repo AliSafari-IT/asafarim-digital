@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 
 const VALID_TYPES = new Set(["blog", "product", "email", "social", "summary"]);
 
+const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest";
+
 type GenerateRequest = {
   type?: string;
   input?: string;
+};
+
+type ProviderResult = {
+  output?: string;
+  error?: string;
 };
 
 function extractOutputText(payload: unknown): string | null {
@@ -31,6 +39,112 @@ function extractOutputText(payload: unknown): string | null {
   return text || null;
 }
 
+function extractAnthropicText(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const data = payload as {
+    content?: Array<{ type?: string; text?: string }>;
+  };
+
+  const text = data.content
+    ?.filter((chunk) => chunk.type === "text" && typeof chunk.text === "string")
+    .map((chunk) => chunk.text)
+    .join("\n")
+    .trim();
+
+  return text || null;
+}
+
+function getProviderError(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || !("error" in payload)) {
+    return undefined;
+  }
+
+  const errorData = (payload as { error?: { message?: string } }).error;
+  return typeof errorData?.message === "string" ? errorData.message : undefined;
+}
+
+async function generateWithOpenAI(systemPrompt: string, modelInput: string): Promise<ProviderResult> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return { error: "OPENAI_API_KEY is not configured." };
+  }
+
+  const upstream = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      input: [
+        {
+          role: "system",
+          content: [{ type: "input_text", text: systemPrompt }],
+        },
+        {
+          role: "user",
+          content: [{ type: "input_text", text: modelInput }],
+        },
+      ],
+    }),
+  });
+
+  const payload = (await upstream.json()) as unknown;
+  if (!upstream.ok) {
+    return { error: getProviderError(payload) ?? "OpenAI request failed." };
+  }
+
+  const output = extractOutputText(payload);
+  if (!output) {
+    return { error: "OpenAI returned an empty response." };
+  }
+
+  return { output };
+}
+
+async function generateWithAnthropic(systemPrompt: string, modelInput: string): Promise<ProviderResult> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { error: "ANTHROPIC_API_KEY is not configured." };
+  }
+
+  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1200,
+      system: systemPrompt,
+      messages: [
+        {
+          role: "user",
+          content: modelInput,
+        },
+      ],
+    }),
+  });
+
+  const payload = (await upstream.json()) as unknown;
+  if (!upstream.ok) {
+    return { error: getProviderError(payload) ?? "Anthropic request failed." };
+  }
+
+  const output = extractAnthropicText(payload);
+  if (!output) {
+    return { error: "Anthropic returned an empty response." };
+  }
+
+  return { output };
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateRequest;
@@ -49,11 +163,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         {
           error:
-            "OPENAI_API_KEY is not configured. Add it to your environment variables to enable generation.",
+            "No AI provider key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY to enable generation.",
         },
         { status: 500 },
       );
@@ -64,49 +178,29 @@ export async function POST(request: Request) {
 
     const modelInput = `Content type: ${type}\n\nUser prompt:\n${input}\n\nRequirements:\n- Deliver production-ready copy\n- Keep structure readable\n- Avoid filler and generic claims\n- Use strong, outcome-oriented language`;
 
-    const upstream = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: [
-          {
-            role: "system",
-            content: [{ type: "input_text", text: systemPrompt }],
-          },
-          {
-            role: "user",
-            content: [{ type: "input_text", text: modelInput }],
-          },
-        ],
-      }),
-    });
+    const providerErrors: string[] = [];
 
-    const payload = (await upstream.json()) as unknown;
-
-    if (!upstream.ok) {
-      const fallbackMessage = "Failed to generate content from the AI provider.";
-      const providerMessage =
-        payload && typeof payload === "object" && "error" in payload
-          ? (payload as { error?: { message?: string } }).error?.message
-          : undefined;
-
-      return NextResponse.json({ error: providerMessage ?? fallbackMessage }, { status: 502 });
+    const openAIResult = await generateWithOpenAI(systemPrompt, modelInput);
+    if (openAIResult.output) {
+      return NextResponse.json({ output: openAIResult.output });
+    }
+    if (openAIResult.error) {
+      providerErrors.push(`OpenAI: ${openAIResult.error}`);
     }
 
-    const output = extractOutputText(payload);
-
-    if (!output) {
-      return NextResponse.json(
-        { error: "The AI provider returned an empty response. Please try again." },
-        { status: 502 },
-      );
+    const anthropicResult = await generateWithAnthropic(systemPrompt, modelInput);
+    if (anthropicResult.output) {
+      return NextResponse.json({ output: anthropicResult.output });
+    }
+    if (anthropicResult.error) {
+      providerErrors.push(`Anthropic: ${anthropicResult.error}`);
     }
 
-    return NextResponse.json({ output });
+    const fallbackMessage = "Failed to generate content from all configured AI providers.";
+    return NextResponse.json(
+      { error: providerErrors.length > 0 ? providerErrors.join(" | ") : fallbackMessage },
+      { status: 502 },
+    );
   } catch {
     return NextResponse.json(
       { error: "Unexpected server error while generating content." },
