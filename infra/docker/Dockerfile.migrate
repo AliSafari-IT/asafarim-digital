@@ -1,0 +1,15 @@
+# Lightweight container that runs Prisma migrations on startup.
+# Used as a one-shot init container in docker-compose.
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy only what Prisma needs
+COPY packages/db/package.json packages/db/
+COPY packages/db/prisma/ packages/db/prisma/
+
+WORKDIR /app/packages/db
+
+RUN npm install --ignore-scripts && npx prisma generate
+
+CMD ["npx", "prisma", "migrate", "deploy"]

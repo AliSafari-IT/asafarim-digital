@@ -1,4 +1,41 @@
 services:
+  # ─── Database ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: asafarim-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-asafarim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asafarim_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-asafarim}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - asafarim-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-asafarim}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Database Migrations ────────────────────────────────────
+  db-migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.migrate
+    container_name: asafarim-db-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - asafarim-net
+    restart: "no"
+
+  # ─── Portal ─────────────────────────────────────────────────
   portal:
     build:
       context: ./apps/portal
@@ -12,46 +49,59 @@ services:
       - PORTAL_URL=https://portal-qa.asafarim.com
       - CONTENT_GENERATOR_URL=${CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
       - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+      # Auth
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=https://portal-qa.asafarim.com
+      - AUTH_TRUST_HOST=true
+      - AUTH_COOKIE_DOMAIN=.asafarim.com
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - asafarim-net
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
-      retries: 3
 
+  # ─── Content Generator ─────────────────────────────────────
   content-generator:
     build:
-      context: .
-      dockerfile: ./apps/content-generator/Dockerfile
-      args:
-        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-}
+      context: ./apps/content-generator
+      dockerfile: Dockerfile
     container_name: asafarim-content-generator
     restart: unless-stopped
     ports:
-      - "3002:3001"
+      - "3001:3001"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_BASE_PATH=${NEXT_PUBLIC_BASE_PATH:-}
+      - PORTAL_URL=https://portal-qa.asafarim.com
+      # Auth (same DB and secrets — shared SSO)
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=https://content-generator-qa.asafarim.com
+      - AUTH_TRUST_HOST=true
+      - AUTH_COOKIE_DOMAIN=.asafarim.com
+      - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+      - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
+      # OpenAI
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - asafarim-net
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001"]
       interval: 30s
       timeout: 10s
-      retries: 3
 
-  # Future services go here:
-  # api-gateway:
-  #   build: ./services/api-gateway
-  #   ...
-  # identity-service:
-  #   build: ./services/identity-service
-  #   ...
+volumes:
+  postgres_data:
 
 networks:
   asafarim-net:

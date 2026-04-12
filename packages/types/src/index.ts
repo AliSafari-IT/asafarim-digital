@@ -19,17 +19,27 @@ export interface AppInfo {
   icon: string;
 }
 
+// ─── Auth & Multi-Tenant Types ─────────────────────────────
+// These mirror the Prisma schema enums in @asafarim/db.
+// For database operations, use the Prisma-generated types directly.
+// These are for UI/API contracts that don't depend on Prisma.
+
+export type UserRole = "ADMIN" | "DEVELOPER" | "VIEWER";
+
+export type TenantPlan = "FREE" | "PRO" | "ENTERPRISE";
+
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: "admin" | "developer" | "viewer";
-  tenantId: string;
+  name: string | null;
+  image: string | null;
+  role: UserRole;
+  tenantId: string | null;
 }
 
 export interface Tenant {
   id: string;
   name: string;
   slug: string;
-  plan: "free" | "pro" | "enterprise";
+  plan: TenantPlan;
 }

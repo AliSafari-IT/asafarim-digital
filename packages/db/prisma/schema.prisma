@@ -1,0 +1,112 @@
+// ASafariM Digital — Prisma Schema
+// Auth.js v5 required tables + multi-tenant extensions
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth.js Required Models ───────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials (email/password) provider
+
+  // Multi-tenant & RBAC
+  role     Role    @default(VIEWER)
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id])
+
+  // Auth.js relations
+  accounts Account[]
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Multi-Tenant Models ───────────────────────────────────────
+
+model Tenant {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+  plan Plan   @default(FREE)
+
+  users User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+}
+
+// ─── Enums ─────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  DEVELOPER
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}

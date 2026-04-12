@@ -10,7 +10,10 @@
     "clean": "rm -rf .next .turbo node_modules"
   },
   "dependencies": {
+    "@asafarim/auth": "workspace:*",
+    "@asafarim/db": "workspace:*",
     "next": "^15.3.0",
+    "next-auth": "^5.0.0-beta.28",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
