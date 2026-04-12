@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@asafarim/db";
 import { googleProvider, credentialsProvider } from "./providers";
+import "./types";
 
 /**
  * Determine cookie domain for cross-subdomain SSO.

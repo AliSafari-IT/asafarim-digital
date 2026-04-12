@@ -1,4 +1,4 @@
-import type { DefaultSession, DefaultJWT } from "next-auth";
+import type { DefaultSession } from "next-auth";
 
 /**
  * Extend Auth.js types to include role and tenant.
@@ -20,13 +20,6 @@ declare module "next-auth" {
   }
 
   interface User {
-    role?: string;
-    tenantId?: string | null;
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
     role?: string;
     tenantId?: string | null;
   }

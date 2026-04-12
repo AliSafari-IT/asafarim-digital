@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 
 export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInPageContent />
+    </Suspense>
+  );
+}
+
+function SignInPageContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const error = searchParams.get("error");
@@ -26,11 +34,13 @@ export default function SignInPage() {
         email,
         password,
         callbackUrl,
-        redirect: true,
+        redirect: false,
       });
 
       if (result?.error) {
         setErrorMessage("Invalid email or password");
+      } else if (result?.url) {
+        window.location.href = result.url;
       }
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
