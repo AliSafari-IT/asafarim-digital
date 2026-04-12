@@ -22,15 +22,23 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
+      - name: Validate deployment secrets
+        run: |
+          test -n "${{ secrets.VPS_HOST }}" || (echo "VPS_HOST is not set" && exit 1)
+          test -n "${{ secrets.VPS_USER }}" || (echo "VPS_USER is not set" && exit 1)
+          test -n "${{ secrets.VPS_SSH_KEY }}" || (echo "VPS_SSH_KEY is not set" && exit 1)
+
       - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -T 15 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
         run: |
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+
           # Sync files to VPS
-          rsync -avz --delete \
+          rsync -e "ssh ${SSH_OPTS}" -avz --delete \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='.next' \
@@ -38,7 +46,7 @@ jobs:
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.DEPLOY_PATH }}/
 
           # Build and restart on VPS
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
             cd /var/repos/asafarim-digital
             sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
@@ -57,5 +65,6 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 10
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3001 > /dev/null && echo 'Portal and content generator are healthy' || echo 'Deployment health check failed'"
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3002 > /dev/null && echo 'Portal and content generator are healthy' || echo 'Deployment health check failed'"
