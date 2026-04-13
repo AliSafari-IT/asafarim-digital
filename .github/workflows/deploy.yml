@@ -66,8 +66,11 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf /etc/nginx/sites-enabled/content-generator-qa.asafarim.com.conf
             sudo nginx -t
             sudo systemctl reload nginx
-            docker compose down
+            docker compose up -d postgres
+            docker compose stop portal content-generator db-migrate || true
+            docker compose rm -f portal content-generator db-migrate || true
             docker compose build portal content-generator
+            docker compose up -d db-migrate
             docker compose up -d portal content-generator
             docker system prune -f
             echo "Deployment complete!"
