@@ -16,6 +16,7 @@ COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
 
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter content-generator build
 
 FROM node:20-alpine AS runner
