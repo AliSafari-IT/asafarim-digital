@@ -12,4 +12,4 @@ WORKDIR /app/packages/db
 
 RUN npm install --ignore-scripts && npx prisma generate
 
-CMD ["npx", "prisma", "migrate", "deploy"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db push"]
