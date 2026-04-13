@@ -5,6 +5,22 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
+function normalizeCallbackUrl(raw: string | null): string {
+  if (!raw) return "/";
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+
+  try {
+    const parsed = new URL(raw);
+    if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/";
+    }
+  } catch {
+    // Ignore malformed callback URLs and fall back to root.
+  }
+
+  return "/";
+}
+
 export default function SignUpPage() {
   return (
     <Suspense fallback={null}>
@@ -17,10 +33,7 @@ function SignUpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { status } = useSession();
-  const callbackUrl = useMemo(
-    () => searchParams.get("callbackUrl") || "/",
-    [searchParams]
-  );
+  const callbackUrl = useMemo(() => normalizeCallbackUrl(searchParams.get("callbackUrl")), [searchParams]);
   const signInHref = useMemo(() => {
     const params = new URLSearchParams({ callbackUrl });
     return `/sign-in?${params.toString()}`;
@@ -88,9 +101,9 @@ function SignUpPageContent() {
         // Registration succeeded but auto-login failed — redirect to sign-in with callback
         router.push(signInHref);
       } else if (result?.url) {
-        router.push(result.url);
+        window.location.href = result.url;
       } else {
-        router.push(callbackUrl);
+        router.replace(callbackUrl);
       }
     } catch {
       setErrorMessage("Something went wrong. Please try again.");
