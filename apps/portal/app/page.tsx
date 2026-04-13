@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
 
 type Theme = "dark" | "light";
 
@@ -60,6 +62,99 @@ const stack = [
   "AI agents & RAG pipelines",
   "Workflow automation",
 ];
+
+function UserMenu() {
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  if (status === "loading") {
+    return <div className="h-8 w-8 animate-pulse rounded-full bg-[var(--color-border)]" />;
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Link
+          href="/sign-in"
+          className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+        >
+          Sign in
+        </Link>
+        <Link
+          href="/sign-up"
+          className="rounded-lg bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
+        >
+          Sign up
+        </Link>
+      </div>
+    );
+  }
+
+  const initials = session.user.name
+    ? session.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    : session.user.email?.[0]?.toUpperCase() ?? "?";
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-primary)]"
+      >
+        {session.user.image ? (
+          <img
+            src={session.user.image}
+            alt={session.user.name ?? "User"}
+            width={24}
+            height={24}
+            referrerPolicy="no-referrer"
+            className="rounded-full"
+          />
+        ) : (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-primary)] text-[10px] font-bold text-white">
+            {initials}
+          </span>
+        )}
+        <span className="hidden max-w-[120px] truncate sm:block">{session.user.name ?? session.user.email}</span>
+        <svg viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3 text-[var(--color-text-secondary)]" aria-hidden="true">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 min-w-[200px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-1 shadow-[var(--shadow-card)]">
+          <div className="border-b border-[var(--color-border)] px-3 py-2.5">
+            <p className="text-sm font-semibold">{session.user.name ?? "User"}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{session.user.email}</p>
+            {session.user.role && (
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+                {session.user.role}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-[var(--color-danger)] transition hover:bg-[var(--color-surface)]"
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PortalHome() {
   const [isCopied, setIsCopied] = useState(false);
@@ -158,12 +253,7 @@ export default function PortalHome() {
               )}
             </button>
 
-            <a
-              href="#contact"
-              className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
-            >
-              Book a Call
-            </a>
+            <UserMenu />
           </div>
         </div>
       </header>
