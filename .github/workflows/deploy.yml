@@ -71,6 +71,14 @@ jobs:
             docker compose rm -f portal content-generator db-migrate || true
             docker compose build portal content-generator
             docker compose up -d db-migrate
+            echo "Waiting for db-migrate to complete..."
+            timeout 120 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
+            MIGRATE_EXIT=$(docker inspect --format={{.State.ExitCode}} asafarim-db-migrate 2>/dev/null || echo 1)
+            if [ "$MIGRATE_EXIT" != "0" ]; then
+              echo "db-migrate failed!"
+              docker logs asafarim-db-migrate --tail=50
+              exit 1
+            fi
             docker compose up -d portal content-generator
             docker system prune -f
             echo "Deployment complete!"
@@ -80,7 +88,26 @@ jobs:
       - name: Verify deployment
         run: |
           set -euo pipefail
-          sleep 10
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
-          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3002 > /dev/null && echo 'Portal and content generator are healthy'"
+          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDVERIFY'
+            echo "Waiting for portal and content-generator to become healthy..."
+            RETRIES=18
+            for i in $(seq 1 $RETRIES); do
+              PORTAL_OK=false
+              CG_OK=false
+              curl -sf http://localhost:3000 > /dev/null 2>&1 && PORTAL_OK=true
+              curl -sf http://localhost:3002 > /dev/null 2>&1 && CG_OK=true
+              if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ]; then
+                echo "Both services healthy after ${i}x5s"
+                exit 0
+              fi
+              echo "Attempt $i/$RETRIES: portal=$PORTAL_OK cg=$CG_OK — waiting 5s..."
+              sleep 5
+            done
+            echo "=== Portal logs ==="
+            docker logs asafarim-portal --tail=50
+            echo "=== Content-generator logs ==="
+            docker logs asafarim-content-generator --tail=50
+            echo "Health check failed after 90s"
+            exit 1
+          ENDVERIFY
