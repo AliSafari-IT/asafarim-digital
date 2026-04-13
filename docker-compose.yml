@@ -75,7 +75,7 @@ services:
     container_name: asafarim-content-generator
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3002:3001"
     environment:
       - NODE_ENV=production
       - PORTAL_URL=https://portal-qa.asafarim.com
