@@ -38,8 +38,8 @@ services:
   # ─── Portal ─────────────────────────────────────────────────
   portal:
     build:
-      context: ./apps/portal
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/portal/Dockerfile
     container_name: asafarim-portal
     restart: unless-stopped
     ports:
@@ -70,8 +70,8 @@ services:
   # ─── Content Generator ─────────────────────────────────────
   content-generator:
     build:
-      context: ./apps/content-generator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/content-generator/Dockerfile
     container_name: asafarim-content-generator
     restart: unless-stopped
     ports:

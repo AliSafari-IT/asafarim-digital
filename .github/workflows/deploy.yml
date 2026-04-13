@@ -35,6 +35,7 @@ jobs:
 
       - name: Deploy to VPS
         run: |
+          set -euo pipefail
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
 
           # Sync files to VPS
@@ -57,6 +58,7 @@ jobs:
 
           # Build and restart on VPS
           ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+            set -euo pipefail
             cd /var/repos/asafarim-digital
             sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
@@ -74,7 +76,8 @@ jobs:
 
       - name: Verify deployment
         run: |
+          set -euo pipefail
           sleep 10
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
           ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3002 > /dev/null && echo 'Portal and content generator are healthy' || echo 'Deployment health check failed'"
+            "curl -sf http://localhost:3000 > /dev/null && curl -sf http://localhost:3002 > /dev/null && echo 'Portal and content generator are healthy'"

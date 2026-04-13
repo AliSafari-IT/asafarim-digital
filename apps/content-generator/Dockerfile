@@ -12,6 +12,8 @@ ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/content-generator ./apps/content-generator
 COPY packages/ui ./packages/ui
+COPY packages/auth ./packages/auth
+COPY packages/db ./packages/db
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter content-generator build
