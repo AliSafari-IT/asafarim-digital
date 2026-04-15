@@ -1,6 +1,8 @@
 import { prisma } from "@asafarim/db";
 import { HomeContent } from "./home-content";
 
+export const dynamic = "force-dynamic";
+
 export default async function PortalHome() {
   const sections = await prisma.siteContent.findMany({
     where: { isPublished: true },
