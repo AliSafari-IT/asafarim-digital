@@ -95,8 +95,8 @@ jobs:
             for i in $(seq 1 $RETRIES); do
               PORTAL_OK=false
               CG_OK=false
-              curl -sf http://localhost:3000 > /dev/null 2>&1 && PORTAL_OK=true
-              curl -sf http://localhost:3002 > /dev/null 2>&1 && CG_OK=true
+              curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && PORTAL_OK=true
+              curl -sf http://localhost:3002/api/health > /dev/null 2>&1 && CG_OK=true
               if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ]; then
                 echo "Both services healthy after ${i}x5s"
                 exit 0
