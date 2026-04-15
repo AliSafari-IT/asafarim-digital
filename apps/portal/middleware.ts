@@ -7,6 +7,10 @@ export const middleware = createAuthMiddleware({
     "/showcase",
     "/sign-in",
     "/sign-up",
+    "/forgot-password",
+    "/reset-password",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
     "/api/health",
   ],
   roleRoutes: {

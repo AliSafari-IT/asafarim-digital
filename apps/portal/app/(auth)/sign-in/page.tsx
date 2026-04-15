@@ -46,6 +46,10 @@ function SignInPageContent() {
     const params = new URLSearchParams({ callbackUrl });
     return `/sign-up?${params.toString()}`;
   }, [callbackUrl]);
+  const forgotPasswordHref = useMemo(() => {
+    const params = new URLSearchParams({ callbackUrl });
+    return `/forgot-password?${params.toString()}`;
+  }, [callbackUrl]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -171,9 +175,17 @@ function SignInPageContent() {
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-medium">
-                Password
-              </label>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <label htmlFor="password" className="block text-sm font-medium">
+                  Password
+                </label>
+                <Link
+                  href={forgotPasswordHref}
+                  className="text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <input
                 id="password"
                 type="password"
