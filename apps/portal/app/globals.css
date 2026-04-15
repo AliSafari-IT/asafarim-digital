@@ -66,6 +66,21 @@ select {
     transform 180ms ease;
 }
 
+select,
+select option,
+select optgroup {
+  color: var(--color-text);
+  background-color: color-mix(in srgb, var(--color-surface-soft) 92%, black 8%);
+}
+
+/* Native dropdown popups ignore many custom styles in Chromium/Windows.
+   Force high-contrast menu colors so options stay readable across pages. */
+select option,
+select optgroup {
+  color: #111827;
+  background-color: #ffffff;
+}
+
 .font-mono {
   font-family: var(--font-mono), "Consolas", monospace;
 }
