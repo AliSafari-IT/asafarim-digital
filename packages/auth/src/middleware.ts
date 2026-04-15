@@ -28,7 +28,7 @@ interface AuthMiddlewareOptions {
   publicRoutes?: string[];
   /** URL to redirect unauthenticated users to (defaults to /sign-in) */
   signInUrl?: string;
-  /** Routes that require specific roles */
+  /** Routes that require specific roles (user must have at least one) */
   roleRoutes?: Record<string, string[]>;
 }
 
@@ -54,24 +54,33 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     // Check authentication
     const token = await getToken({ req, secret: process.env.AUTH_SECRET });
     if (!token?.sub) {
-      // Redirect to sign-in (on portal, or current app's /sign-in)
       const redirectUrl = signInUrl
         ? new URL(signInUrl)
         : new URL("/sign-in", req.nextUrl.origin);
 
-      // Pass the callback URL so user returns after sign-in
       redirectUrl.searchParams.set("callbackUrl", req.nextUrl.href);
       return NextResponse.redirect(redirectUrl);
     }
 
+    // Block deactivated users
+    if (token.isActive === false) {
+      return NextResponse.json(
+        { error: "Account deactivated" },
+        { status: 403 }
+      );
+    }
+
     // Check role-based access
+    const userRoles: string[] = Array.isArray(token.roles) ? token.roles : [];
+    const isSuperAdmin = userRoles.includes("superadmin");
+
     for (const [route, allowedRoles] of Object.entries(roleRoutes)) {
-      if (
-        pathname === route ||
-        pathname.startsWith(route + "/")
-      ) {
-        const userRole = typeof token.role === "string" ? token.role : undefined;
-        if (!userRole || !allowedRoles.includes(userRole)) {
+      if (pathname === route || pathname.startsWith(route + "/")) {
+        // Superadmin always passes
+        if (isSuperAdmin) continue;
+
+        const hasRole = userRoles.some((r) => allowedRoles.includes(r));
+        if (!hasRole) {
           return NextResponse.json(
             { error: "Forbidden" },
             { status: 403 }

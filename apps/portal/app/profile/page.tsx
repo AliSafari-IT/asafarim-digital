@@ -11,7 +11,7 @@ export default async function ProfilePage() {
     redirect("/sign-in?callbackUrl=/profile");
   }
 
-  const user = await prisma.user.findUnique({
+  const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
       id: true,
@@ -20,7 +20,6 @@ export default async function ProfilePage() {
       email: true,
       emailVerified: true,
       image: true,
-      role: true,
       jobTitle: true,
       company: true,
       website: true,
@@ -28,12 +27,19 @@ export default async function ProfilePage() {
       bio: true,
       createdAt: true,
       updatedAt: true,
+      userRoles: { select: { role: { select: { displayName: true } } } },
     },
   });
 
-  if (!user) {
+  if (!dbUser) {
     redirect("/sign-in");
   }
+
+  const { userRoles, ...rest } = dbUser;
+  const user = {
+    ...rest,
+    roles: userRoles.map((ur) => ur.role.displayName),
+  };
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[var(--color-surface)] text-[var(--color-text)]">

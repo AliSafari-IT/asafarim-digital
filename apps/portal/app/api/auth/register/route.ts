@@ -66,12 +66,18 @@ export async function POST(request: Request) {
 
     const hashedPassword = await hashPassword(password);
 
+    // Find default role (guest)
+    const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
+
     const user = await prisma.user.create({
       data: {
         name: name?.trim() || null,
         username: normalizedUsername,
         email: normalizedEmail,
         password: hashedPassword,
+        ...(defaultRole
+          ? { userRoles: { create: { roleId: defaultRole.id } } }
+          : {}),
       },
       select: {
         id: true,

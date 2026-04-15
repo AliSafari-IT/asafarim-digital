@@ -51,14 +51,15 @@ export async function GET() {
       email: true,
       emailVerified: true,
       image: true,
-      role: true,
       jobTitle: true,
       company: true,
       website: true,
       location: true,
       bio: true,
+      isActive: true,
       createdAt: true,
       updatedAt: true,
+      userRoles: { select: { role: { select: { name: true, displayName: true } } } },
     },
   });
 
@@ -66,7 +67,11 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ user });
+  // Map to flat roles array for the client
+  const { userRoles, ...rest } = user;
+  const roles = userRoles.map((ur: { role: { name: string; displayName: string } }) => ur.role.displayName);
+
+  return NextResponse.json({ user: { ...rest, roles } });
 }
 
 export async function PATCH(request: Request) {
@@ -157,15 +162,19 @@ export async function PATCH(request: Request) {
       email: true,
       emailVerified: true,
       image: true,
-      role: true,
       jobTitle: true,
       company: true,
       website: true,
       location: true,
       bio: true,
+      isActive: true,
       updatedAt: true,
+      userRoles: { select: { role: { select: { name: true, displayName: true } } } },
     },
   });
 
-  return NextResponse.json({ user: updatedUser });
+  const { userRoles: updatedRoles, ...updatedRest } = updatedUser;
+  const roles = updatedRoles.map((ur: { role: { name: string; displayName: string } }) => ur.role.displayName);
+
+  return NextResponse.json({ user: { ...updatedRest, roles } });
 }

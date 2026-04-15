@@ -1,7 +1,7 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
-import { HomeContent } from "./home-content";
 
-export default async function PortalHome() {
+export async function GET() {
   const sections = await prisma.siteContent.findMany({
     where: { isPublished: true },
     orderBy: { position: "asc" },
@@ -15,11 +15,10 @@ export default async function PortalHome() {
     },
   });
 
-  // Build a section-keyed map for the client component
-  const content: Record<string, (typeof sections)[number]> = {};
+  const contentMap: Record<string, typeof sections[number]> = {};
   for (const s of sections) {
-    content[s.section] = s;
+    contentMap[s.section] = s;
   }
 
-  return <HomeContent content={content} />;
+  return NextResponse.json({ content: contentMap });
 }

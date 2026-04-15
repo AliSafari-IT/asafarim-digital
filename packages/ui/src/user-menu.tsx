@@ -53,7 +53,7 @@ export function UserMenu({ signInUrl }: UserMenuProps) {
   const initials = session.user.name
     ? session.user.name
         .split(" ")
-        .map((n) => n[0])
+        .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
@@ -138,7 +138,7 @@ export function UserMenu({ signInUrl }: UserMenuProps) {
             >
               {session.user.email}
             </div>
-            {session.user.role && (
+            {session.user.roles && session.user.roles.length > 0 && (
               <div
                 style={{
                   fontSize: "0.625rem",
@@ -148,7 +148,7 @@ export function UserMenu({ signInUrl }: UserMenuProps) {
                   marginTop: "0.25rem",
                 }}
               >
-                {session.user.role}
+                {session.user.roles.join(", ")}
               </div>
             )}
           </div>

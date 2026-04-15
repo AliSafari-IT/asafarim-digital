@@ -1,5 +1,5 @@
 // ASafariM Digital — Prisma Schema
-// Auth.js v5 required tables + multi-tenant extensions
+// Auth.js v5 required tables + full RBAC + CMS + admin panel
 
 generator client {
   provider = "prisma-client-js"
@@ -19,15 +19,17 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  password      String?   // For credentials (email/password) provider
+  password      String?
   jobTitle      String?
   company       String?
   website       String?
   location      String?
   bio           String?   @db.Text
 
-  // Multi-tenant & RBAC
-  role     Role    @default(VIEWER)
+  isActive      Boolean   @default(true)
+  deactivatedAt DateTime?
+
+  // Multi-tenant
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
 
@@ -35,12 +37,19 @@ model User {
   accounts Account[]
   sessions Session[]
 
+  // RBAC: many-to-many roles
+  userRoles UserRole[]
+
+  // Audit trail
+  auditLogs AuditLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([tenantId])
   @@index([email])
   @@index([username])
+  @@index([isActive])
 }
 
 model Account {
@@ -88,13 +97,160 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ─── RBAC Models ───────────────────────────────────────────────
+
+model Role {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  displayName String
+  description String? @db.Text
+  isSystem    Boolean @default(false)
+  isDefault   Boolean @default(false)
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([isDefault])
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  displayName String
+  description String?
+  group       String
+
+  rolePermissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([group])
+}
+
+model UserRole {
+  id         String   @id @default(cuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+}
+
+// ─── CMS Models ────────────────────────────────────────────────
+
+model SiteContent {
+  id          String  @id @default(cuid())
+  section     String  @unique
+  title       String?
+  subtitle    String?
+  eyebrow     String?
+  body        Json?
+  metadata    Json?
+  position    Int     @default(0)
+  isPublished Boolean @default(true)
+  updatedBy   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([section])
+  @@index([position])
+  @@index([isPublished])
+}
+
+model NavItem {
+  id           String  @id @default(cuid())
+  label        String
+  href         String
+  position     Int     @default(0)
+  visibility   String  @default("public")
+  requiredRole String?
+  parentId     String?
+  isActive     Boolean @default(true)
+  icon         String?
+  target       String? @default("_self")
+  group        String  @default("main")
+
+  parent   NavItem?  @relation("NavItemTree", fields: [parentId], references: [id])
+  children NavItem[] @relation("NavItemTree")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group])
+  @@index([position])
+  @@index([visibility])
+  @@index([parentId])
+}
+
+model SiteSetting {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  value       Json
+  group       String  @default("general")
+  displayName String?
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([group])
+}
+
+// ─── Audit Log ─────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([action])
+  @@index([createdAt])
+}
+
 // ─── Multi-Tenant Models ───────────────────────────────────────
 
 model Tenant {
   id   String @id @default(cuid())
   name String
   slug String @unique
-  plan Plan   @default(FREE)
+  plan String @default("free")
 
   users User[]
 
@@ -102,18 +258,4 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   @@index([slug])
-}
-
-// ─── Enums ─────────────────────────────────────────────────────
-
-enum Role {
-  ADMIN
-  DEVELOPER
-  VIEWER
-}
-
-enum Plan {
-  FREE
-  PRO
-  ENTERPRISE
 }

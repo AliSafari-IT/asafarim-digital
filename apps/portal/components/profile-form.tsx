@@ -10,7 +10,7 @@ type ProfileData = {
   email: string;
   emailVerified: string | Date | null;
   image: string | null;
-  role: string;
+  roles: string[];
   jobTitle: string | null;
   company: string | null;
   website: string | null;
@@ -90,7 +90,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em]">Your account profile</h1>
           </div>
           <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-            {user.role}
+            {user.roles?.join(", ") || "—"}
           </span>
         </div>
 

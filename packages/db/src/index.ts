@@ -23,5 +23,12 @@ export type {
   Session,
   Tenant,
   VerificationToken,
+  Role,
+  Permission,
+  UserRole,
+  RolePermission,
+  SiteContent,
+  NavItem,
+  SiteSetting,
+  AuditLog,
 } from "@prisma/client";
-export { Role, Plan } from "@prisma/client";

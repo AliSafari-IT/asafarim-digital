@@ -19,6 +19,10 @@ const defaultNavItems: NavItem[] = [
   { href: "/#contact", label: "Contact" },
 ];
 
+function canAccessAdmin(roles?: string[]) {
+  return Boolean(roles?.includes("admin") || roles?.includes("superadmin"));
+}
+
 function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
@@ -117,6 +121,7 @@ function UserMenu() {
         .toUpperCase()
         .slice(0, 2)
     : session.user.email?.[0]?.toUpperCase() ?? "?";
+  const showAdminLink = canAccessAdmin(session.user.roles);
 
   return (
     <div ref={ref} className="relative">
@@ -171,6 +176,15 @@ function UserMenu() {
           </div>
 
           <div className="mt-2 grid gap-1">
+            {showAdminLink && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
+              >
+                Admin panel
+              </Link>
+            )}
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
@@ -218,6 +232,11 @@ export function SiteHeader({
 }: {
   navItems?: NavItem[];
 }) {
+  const { data: session } = useSession();
+  const resolvedNavItems = canAccessAdmin(session?.user?.roles)
+    ? [...navItems, { href: "/admin", label: "Admin" }]
+    : navItems;
+
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_82%,transparent)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-4">
@@ -234,7 +253,7 @@ export function SiteHeader({
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 text-sm text-[var(--color-text-muted)] lg:flex">
-          {navItems.map((item) => (
+          {resolvedNavItems.map((item) => (
             <Link key={item.href} href={item.href} className="transition hover:text-[var(--color-text)]">
               {item.label}
             </Link>

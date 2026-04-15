@@ -103,18 +103,20 @@ export const authConfig: NextAuthConfig = {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
           select: {
-            role: true,
             tenantId: true,
             username: true,
             emailVerified: true,
+            isActive: true,
+            userRoles: { select: { role: { select: { name: true } } } },
           },
         });
 
         if (dbUser) {
-          token.role = dbUser.role;
+          token.roles = dbUser.userRoles.map((ur) => ur.role.name);
           token.tenantId = dbUser.tenantId;
           token.username = dbUser.username;
           token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
+          token.isActive = dbUser.isActive;
         }
       }
 
@@ -122,22 +124,24 @@ export const authConfig: NextAuthConfig = {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub! },
           select: {
-            role: true,
             tenantId: true,
             name: true,
             image: true,
             username: true,
             emailVerified: true,
+            isActive: true,
+            userRoles: { select: { role: { select: { name: true } } } },
           },
         });
 
         if (dbUser) {
-          token.role = dbUser.role;
+          token.roles = dbUser.userRoles.map((ur) => ur.role.name);
           token.tenantId = dbUser.tenantId;
           token.name = dbUser.name;
           token.picture = dbUser.image;
           token.username = dbUser.username;
           token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
+          token.isActive = dbUser.isActive;
         }
       }
 
@@ -147,12 +151,13 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.sub!;
-        session.user.role = token.role as string;
-        session.user.tenantId = token.tenantId as string | null;
+        session.user.roles = (token.roles as string[]) ?? [];
+        session.user.tenantId = (token.tenantId as string | null) ?? null;
         session.user.username = (token.username as string | null) ?? null;
         session.user.emailVerified = (
           token.emailVerified ? new Date(token.emailVerified as string) : null
         ) as typeof session.user.emailVerified;
+        session.user.isActive = token.isActive as boolean;
       }
       return session;
     },
@@ -167,21 +172,38 @@ export const authConfig: NextAuthConfig = {
               emailVerified: true,
               email: true,
               name: true,
+              isActive: true,
+              userRoles: { select: { id: true } },
             },
           });
 
-          if (dbUser && (!dbUser.username || !dbUser.emailVerified)) {
-            await prisma.user.update({
-              where: { id: user.id },
-              data: {
-                username:
-                  dbUser.username ??
-                  (await generateUniqueUsername(
-                    dbUser.name || dbUser.email?.split("@")[0] || "user"
-                  )),
-                emailVerified: dbUser.emailVerified ?? new Date(),
-              },
-            });
+          if (dbUser && !dbUser.isActive) {
+            return false; // Block deactivated users
+          }
+
+          if (dbUser) {
+            const updates: Record<string, unknown> = {};
+            if (!dbUser.username) {
+              updates.username = await generateUniqueUsername(
+                dbUser.name || dbUser.email?.split("@")[0] || "user"
+              );
+            }
+            if (!dbUser.emailVerified) {
+              updates.emailVerified = new Date();
+            }
+            if (Object.keys(updates).length > 0) {
+              await prisma.user.update({ where: { id: user.id }, data: updates });
+            }
+
+            // Assign default role if user has none
+            if (dbUser.userRoles.length === 0) {
+              const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
+              if (defaultRole) {
+                await prisma.userRole.create({
+                  data: { userId: user.id, roleId: defaultRole.id },
+                });
+              }
+            }
           }
         }
 
@@ -189,6 +211,15 @@ export const authConfig: NextAuthConfig = {
       }
 
       if (!user) return false;
+
+      // Block deactivated credential users
+      if (user.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { isActive: true },
+        });
+        if (dbUser && !dbUser.isActive) return false;
+      }
 
       return true;
     },
