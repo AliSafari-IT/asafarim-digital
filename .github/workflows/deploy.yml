@@ -38,24 +38,55 @@ jobs:
           set -euo pipefail
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
 
+          echo "Checking SSH connectivity to VPS..."
+          SSH_READY=false
+          for attempt in 1 2 3; do
+            if ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo ssh-ok" > /dev/null 2>&1; then
+              SSH_READY=true
+              echo "SSH connectivity confirmed on attempt ${attempt}."
+              break
+            fi
+            echo "SSH preflight failed (attempt ${attempt}/3). Retrying in 10s..."
+            sleep 10
+          done
+
+          if [ "$SSH_READY" != "true" ]; then
+            echo "Unable to reach VPS over SSH after 3 attempts. Check VPS status/firewall/network."
+            exit 1
+          fi
+
           # Sync files to VPS
-          rsync -e "ssh ${SSH_OPTS}" -avz --delete \
-            --exclude='.git' \
-            --exclude='node_modules' \
-            --exclude='.next' \
-            --exclude='.turbo' \
-            --exclude='docker-compose.override.yml' \
-            --exclude='.env' \
-            --exclude='.env.*' \
-            --exclude='*/.env' \
-            --exclude='*/.env.*' \
-            --exclude='apps/*/.env' \
-            --exclude='apps/*/.env.*' \
-            --filter='P .env' \
-            --filter='P .env.*' \
-            --filter='P */.env' \
-            --filter='P */.env.*' \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.DEPLOY_PATH }}/
+          RSYNC_DONE=false
+          for attempt in 1 2 3; do
+            if rsync -e "ssh ${SSH_OPTS}" -avz --delete \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='.next' \
+              --exclude='.turbo' \
+              --exclude='docker-compose.override.yml' \
+              --exclude='.env' \
+              --exclude='.env.*' \
+              --exclude='*/.env' \
+              --exclude='*/.env.*' \
+              --exclude='apps/*/.env' \
+              --exclude='apps/*/.env.*' \
+              --filter='P .env' \
+              --filter='P .env.*' \
+              --filter='P */.env' \
+              --filter='P */.env.*' \
+              ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.DEPLOY_PATH }}/; then
+              RSYNC_DONE=true
+              echo "Rsync completed on attempt ${attempt}."
+              break
+            fi
+            echo "Rsync failed (attempt ${attempt}/3). Retrying in 10s..."
+            sleep 10
+          done
+
+          if [ "$RSYNC_DONE" != "true" ]; then
+            echo "Rsync failed after 3 attempts. Check VPS SSH reachability and disk/network status."
+            exit 1
+          fi
 
           # Build and restart on VPS
           ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
