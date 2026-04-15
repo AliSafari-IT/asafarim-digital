@@ -79,6 +79,16 @@ jobs:
               docker logs asafarim-db-migrate --tail=50
               exit 1
             fi
+
+            echo "Checking whether initial seed is required..."
+            SITE_CONTENT_COUNT=$(docker compose run --rm db-migrate sh -lc 'node -e '\''const { PrismaClient } = require("@prisma/client"); const prisma = new PrismaClient(); (async () => { const count = await prisma.siteContent.count(); console.log(count); await prisma.$disconnect(); })().catch(async (error) => { console.error(error); try { await prisma.$disconnect(); } catch {} process.exit(1); });'\''' | tr -d '[:space:]')
+            if [ "${SITE_CONTENT_COUNT:-0}" = "0" ]; then
+              echo "SiteContent is empty. Running initial seed..."
+              docker compose run --rm db-migrate sh -lc "npm run db:seed"
+            else
+              echo "SiteContent already present (${SITE_CONTENT_COUNT}). Skipping seed."
+            fi
+
             docker compose up -d --force-recreate portal content-generator
             docker system prune -f
             echo "Deployment complete!"
