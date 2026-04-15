@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "./index";
+import { getToken } from "next-auth/jwt";
 
 /**
  * Configurable auth middleware for any app in the monorepo.
@@ -39,7 +39,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     roleRoutes = {},
   } = options;
 
-  return auth((req) => {
+  return async (req: NextRequest) => {
     const { pathname } = req.nextUrl;
 
     // Allow public routes
@@ -52,8 +52,8 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     if (pathname.startsWith("/api/auth")) return NextResponse.next();
 
     // Check authentication
-    const session = req.auth;
-    if (!session?.user) {
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+    if (!token?.sub) {
       // Redirect to sign-in (on portal, or current app's /sign-in)
       const redirectUrl = signInUrl
         ? new URL(signInUrl)
@@ -70,7 +70,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
         pathname === route ||
         pathname.startsWith(route + "/")
       ) {
-        const userRole = session.user.role;
+        const userRole = typeof token.role === "string" ? token.role : undefined;
         if (!userRole || !allowedRoles.includes(userRole)) {
           return NextResponse.json(
             { error: "Forbidden" },
@@ -81,7 +81,7 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     }
 
     return NextResponse.next();
-  });
+  };
 }
 
 /**
