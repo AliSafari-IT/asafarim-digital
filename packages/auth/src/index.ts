@@ -5,32 +5,50 @@ import { prisma } from "@asafarim/db";
 import { googleProvider, credentialsProvider } from "./providers";
 import "./types";
 
-/**
- * Determine cookie domain for cross-subdomain SSO.
- * - Production/QA: ".asafarim.com" → shared across all subdomains
- * - Development: undefined → defaults to current hostname (localhost)
- */
 function getCookieDomain(): string | undefined {
   const domain = process.env.AUTH_COOKIE_DOMAIN;
   if (domain) return domain;
   if (process.env.NODE_ENV === "production") return ".asafarim.com";
-  return undefined; // localhost in dev
+  return undefined;
 }
 
-/**
- * Shared Auth.js configuration — imported by every app's route handler.
- *
- * Key SSO mechanism: the session cookie is scoped to `.asafarim.com`,
- * so all subdomains (portal, content-generator, etc.) share one session.
- */
+function slugifyUsername(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 24);
+}
+
+async function generateUniqueUsername(seed: string): Promise<string> {
+  const base = slugifyUsername(seed) || "user";
+  let candidate = base;
+  let counter = 1;
+
+  while (true) {
+    const existing = await prisma.user.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return candidate;
+    }
+
+    counter += 1;
+    candidate = `${base.slice(0, Math.max(1, 24 - String(counter).length - 1))}_${counter}`;
+  }
+}
+
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
 
   providers: [googleProvider, credentialsProvider],
 
   session: {
-    strategy: "jwt", // JWT strategy required for credentials provider
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   cookies: {
@@ -70,41 +88,47 @@ export const authConfig: NextAuthConfig = {
         sameSite: "lax",
         path: "/",
         secure: process.env.NODE_ENV === "production",
-        // Note: __Host- cookies cannot have a domain set
       },
     },
   },
 
   pages: {
     signIn: "/sign-in",
-    // signUp is not a built-in Auth.js page; we handle it manually
-    error: "/sign-in", // Redirect auth errors to sign-in page
+    error: "/sign-in",
   },
 
   callbacks: {
-    /**
-     * Enrich the JWT with user role and tenant info.
-     * This runs every time a JWT is created or updated.
-     */
     async jwt({ token, user, trigger }) {
       if (user) {
-        // Initial sign-in — fetch full user data
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { role: true, tenantId: true },
+          select: {
+            role: true,
+            tenantId: true,
+            username: true,
+            emailVerified: true,
+          },
         });
 
         if (dbUser) {
           token.role = dbUser.role;
           token.tenantId = dbUser.tenantId;
+          token.username = dbUser.username;
+          token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
         }
       }
 
-      // Handle session updates (e.g., after role change)
       if (trigger === "update") {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.sub! },
-          select: { role: true, tenantId: true, name: true, image: true },
+          select: {
+            role: true,
+            tenantId: true,
+            name: true,
+            image: true,
+            username: true,
+            emailVerified: true,
+          },
         });
 
         if (dbUser) {
@@ -112,53 +136,70 @@ export const authConfig: NextAuthConfig = {
           token.tenantId = dbUser.tenantId;
           token.name = dbUser.name;
           token.picture = dbUser.image;
+          token.username = dbUser.username;
+          token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
         }
       }
 
       return token;
     },
 
-    /**
-     * Expose role and tenant in the client-side session.
-     */
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.sub!;
         session.user.role = token.role as string;
         session.user.tenantId = token.tenantId as string | null;
+        session.user.username = (token.username as string | null) ?? null;
+        session.user.emailVerified = (
+          token.emailVerified ? new Date(token.emailVerified as string) : null
+        ) as typeof session.user.emailVerified;
       }
       return session;
     },
 
-    /**
-     * Control which sign-in attempts are allowed.
-     */
     async signIn({ user, account }) {
-      // Allow OAuth sign-ins
-      if (account?.provider !== "credentials") return true;
+      if (account?.provider !== "credentials") {
+        if (user.id) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+              username: true,
+              emailVerified: true,
+              email: true,
+              name: true,
+            },
+          });
 
-      // For credentials, user must exist (authorize already validated)
+          if (dbUser && (!dbUser.username || !dbUser.emailVerified)) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                username:
+                  dbUser.username ??
+                  (await generateUniqueUsername(
+                    dbUser.name || dbUser.email?.split("@")[0] || "user"
+                  )),
+                emailVerified: dbUser.emailVerified ?? new Date(),
+              },
+            });
+          }
+        }
+
+        return true;
+      }
+
       if (!user) return false;
 
       return true;
     },
   },
 
-  // Trust the reverse proxy (Nginx)
   trustHost: true,
 
   debug: process.env.NODE_ENV === "development",
 };
 
-// Create the Auth.js handler and helpers
-const {
-  handlers,
-  auth,
-  signIn,
-  signOut,
-} = NextAuth(authConfig);
+const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
 
 export { handlers, auth, signIn, signOut };
-
-// Re-export utilities
 export { hashPassword, verifyPassword } from "./providers";

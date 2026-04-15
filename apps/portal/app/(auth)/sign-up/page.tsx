@@ -46,6 +46,7 @@ function SignUpPageContent() {
   }, [callbackUrl]);
 
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -68,6 +69,12 @@ function SignUpPageContent() {
     setIsLoading(true);
     setErrorMessage("");
 
+    if (!username.trim()) {
+      setErrorMessage("Username is required");
+      setIsLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match");
       setIsLoading(false);
@@ -84,7 +91,7 @@ function SignUpPageContent() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, username, email, password }),
       });
 
       const data = await response.json();
@@ -188,6 +195,25 @@ function SignUpPageContent() {
                 placeholder="Your name"
                 className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
               />
+            </div>
+
+            <div>
+              <label htmlFor="username" className="mb-2 block text-sm font-medium">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                required
+                placeholder="your_unique_name"
+                className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
+              />
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                This becomes your permanent platform identifier and cannot be changed later.
+              </p>
             </div>
 
             <div>

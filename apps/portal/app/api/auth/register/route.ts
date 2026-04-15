@@ -2,14 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { hashPassword } from "@asafarim/auth";
 
+function normalizeUsername(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
 export async function POST(request: Request) {
   try {
-    const { name, email, password } = await request.json();
+    const { name, username, email, password } = await request.json();
 
-    // Validation
-    if (!email || !password) {
+    if (!email || !password || !username) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Username, email, and password are required" },
         { status: 400 }
       );
     }
@@ -21,36 +29,64 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-    });
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedUsername = normalizeUsername(username);
 
-    if (existingUser) {
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 24) {
+      return NextResponse.json(
+        { error: "Username must be between 3 and 24 characters" },
+        { status: 400 }
+      );
+    }
+
+    const [existingEmail, existingUsername] = await Promise.all([
+      prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        select: { id: true },
+      }),
+      prisma.user.findUnique({
+        where: { username: normalizedUsername },
+        select: { id: true },
+      }),
+    ]);
+
+    if (existingEmail) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 409 }
       );
     }
 
-    // Hash password and create user
+    if (existingUsername) {
+      return NextResponse.json(
+        { error: "This username is already taken" },
+        { status: 409 }
+      );
+    }
+
     const hashedPassword = await hashPassword(password);
 
     const user = await prisma.user.create({
       data: {
         name: name?.trim() || null,
-        email: email.toLowerCase().trim(),
+        username: normalizedUsername,
+        email: normalizedEmail,
         password: hashedPassword,
       },
       select: {
         id: true,
         email: true,
         name: true,
+        username: true,
+        emailVerified: true,
       },
     });
 
     return NextResponse.json(
-      { message: "Account created successfully", user },
+      {
+        message: "Account created successfully",
+        user,
+      },
       { status: 201 }
     );
   } catch (error) {

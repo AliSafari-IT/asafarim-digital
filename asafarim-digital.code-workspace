@@ -3,5 +3,21 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 55432,
+				"driver": "PostgreSQL",
+				"name": "asafarim",
+				"database": "asafarim",
+				"password": "${env:POSTGRES_PASSWORD}",
+				"username": "asafarim",
+				"group": "ASM"
+			}
+		]
+	}
 }
