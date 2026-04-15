@@ -12,9 +12,8 @@
 				"server": "localhost",
 				"port": 55432,
 				"driver": "PostgreSQL",
-				"name": "asafarim",
+				"name": "ASafariM",
 				"database": "asafarim",
-				"password": "${env:POSTGRES_PASSWORD}",
 				"username": "asafarim",
 				"group": "ASM"
 			}
