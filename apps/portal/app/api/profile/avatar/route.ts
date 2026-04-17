@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   const target = path.join(uploadsDir, filename);
   await writeFile(target, bytes);
 
-  const publicUrl = `/uploads/avatars/${filename}`;
+  const publicUrl = `/api/uploads/avatars/${filename}`;
 
   const updated = await prisma.user.update({
     where: { id: currentUser.id },

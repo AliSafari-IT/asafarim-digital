@@ -65,6 +65,8 @@ services:
         condition: service_completed_successfully
     networks:
       - asafarim-net
+    volumes:
+      - portal_uploads:/app/apps/portal/public/uploads
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
       interval: 30s
@@ -109,6 +111,7 @@ services:
 
 volumes:
   postgres_data:
+  portal_uploads:
 
 networks:
   asafarim-net:
