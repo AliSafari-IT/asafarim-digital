@@ -247,15 +247,197 @@ model AuditLog {
 // ─── Multi-Tenant Models ───────────────────────────────────────
 
 model Tenant {
-  id   String @id @default(cuid())
-  name String
-  slug String @unique
-  plan String @default("free")
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  plan     String  @default("free")
+  status   String  @default("active") // active, trial, past_due, churned, suspended
+  mrrCents Int     @default(0)
+  seats    Int     @default(1)
+  region   String  @default("EU")
+  industry String?
+  primaryContactId String?
+  trialEndsAt DateTime?
+  churnedAt   DateTime?
 
-  users User[]
+  users            User[]
+  subscriptions    Subscription[]
+  featureOverrides FeatureFlagOverride[]
+  lifecycleEvents  LifecycleEvent[]
+  usageMetrics     UsageMetric[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([slug])
+  @@index([status])
+  @@index([plan])
+}
+
+// ─── SaaS Operations Hub ───────────────────────────────────────
+
+model Plan {
+  id         String  @id @default(cuid())
+  code       String  @unique // free, starter, pro, enterprise
+  name       String
+  priceCents Int     @default(0)
+  currency   String  @default("USD")
+  interval   String  @default("month") // month, year
+  seatLimit  Int?
+  features   Json? // array of feature flag codes included
+  isActive   Boolean @default(true)
+  sortOrder  Int     @default(0)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+}
+
+model Subscription {
+  id          String    @id @default(cuid())
+  tenantId    String
+  planId      String
+  status      String    @default("active") // active, trialing, past_due, canceled, paused
+  startedAt   DateTime  @default(now())
+  renewsAt    DateTime?
+  canceledAt  DateTime?
+  trialEndsAt DateTime?
+  seats       Int       @default(1)
+  mrrCents    Int       @default(0)
+  externalId  String? // e.g. Stripe subscription id
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([planId])
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  subscriptionId String
+  number         String    @unique
+  amountCents    Int
+  currency       String    @default("USD")
+  status         String    @default("paid") // paid, open, void, uncollectible, failed
+  issuedAt       DateTime  @default(now())
+  paidAt         DateTime?
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([issuedAt])
+}
+
+model FeatureFlag {
+  id             String  @id @default(cuid())
+  code           String  @unique // e.g. "advanced_analytics"
+  name           String
+  description    String? @db.Text
+  category       String  @default("general") // general, beta, experimental, killswitch
+  defaultEnabled Boolean @default(false)
+  rolloutPercent Int     @default(0) // 0-100
+
+  overrides FeatureFlagOverride[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+}
+
+model FeatureFlagOverride {
+  id       String  @id @default(cuid())
+  flagId   String
+  tenantId String
+  enabled  Boolean
+  note     String?
+
+  flag   FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([flagId, tenantId])
+  @@index([tenantId])
+}
+
+model LifecycleEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  kind       String // signup, activated, upgraded, downgraded, churn_risk, churned, recovered, expansion, support_ticket
+  title      String
+  details    String?  @db.Text
+  severity   String   @default("info") // info, success, warning, danger
+  occurredAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([kind])
+  @@index([occurredAt])
+}
+
+model UsageMetric {
+  id          String   @id @default(cuid())
+  tenantId    String
+  metric      String // api_calls, active_users, storage_mb, seats_used
+  value       Int
+  periodStart DateTime
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metric, periodStart])
+  @@index([metric])
+  @@index([periodStart])
+}
+
+model Automation {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  description String?   @db.Text
+  trigger     String // schedule, event
+  schedule    String? // cron expression
+  eventType   String? // e.g. "tenant.churn_risk"
+  action      String // notify, tag, email, run_webhook
+  config      Json?
+  isEnabled   Boolean   @default(true)
+  lastRunAt   DateTime?
+  lastStatus  String?
+
+  runs AutomationRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trigger])
+  @@index([isEnabled])
+}
+
+model AutomationRun {
+  id           String    @id @default(cuid())
+  automationId String
+  status       String // success, failed, skipped
+  output       String?   @db.Text
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId])
+  @@index([status])
+  @@index([startedAt])
 }

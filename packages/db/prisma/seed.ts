@@ -34,6 +34,17 @@ const defaultPermissions = [
   { name: "audit.view", displayName: "View Audit Log", group: "audit", description: "View the audit log" },
   // Profile
   { name: "profile.edit", displayName: "Edit Own Profile", group: "profile", description: "Edit own profile details" },
+  // Ops Hub
+  { name: "ops.overview", displayName: "View Ops Overview", group: "ops", description: "View the ops hub KPI dashboard" },
+  { name: "ops.tenants.view", displayName: "View Tenants", group: "ops", description: "List and inspect tenants" },
+  { name: "ops.tenants.manage", displayName: "Manage Tenants", group: "ops", description: "Change tenant plan, status, seats" },
+  { name: "ops.billing.view", displayName: "View Billing", group: "ops", description: "View subscriptions and invoices" },
+  { name: "ops.billing.manage", displayName: "Manage Billing", group: "ops", description: "Edit subscriptions, refund, retry" },
+  { name: "ops.flags.view", displayName: "View Feature Flags", group: "ops", description: "View feature flags and overrides" },
+  { name: "ops.flags.manage", displayName: "Manage Feature Flags", group: "ops", description: "Toggle flags and create overrides" },
+  { name: "ops.lifecycle.view", displayName: "View Lifecycle", group: "ops", description: "View lifecycle events timeline" },
+  { name: "ops.automations.view", displayName: "View Automations", group: "ops", description: "List ops automations and runs" },
+  { name: "ops.automations.manage", displayName: "Manage Automations", group: "ops", description: "Enable/disable automations" },
 ];
 
 // ─── Default Roles ───────────────────────────────────────────
@@ -70,6 +81,40 @@ const defaultRoles = [
     isSystem: true,
     isDefault: false,
     permissions: ["profile.edit", "content.view"],
+  },
+  {
+    name: "ops_admin",
+    displayName: "Ops Admin",
+    description: "Full access to the SaaS Operations Hub.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "ops.overview",
+      "ops.tenants.view", "ops.tenants.manage",
+      "ops.billing.view", "ops.billing.manage",
+      "ops.flags.view", "ops.flags.manage",
+      "ops.lifecycle.view",
+      "ops.automations.view", "ops.automations.manage",
+      "audit.view", "users.list", "users.view",
+      "profile.edit",
+    ],
+  },
+  {
+    name: "ops_viewer",
+    displayName: "Ops Viewer",
+    description: "Read-only access to the SaaS Operations Hub.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "ops.overview",
+      "ops.tenants.view",
+      "ops.billing.view",
+      "ops.flags.view",
+      "ops.lifecycle.view",
+      "ops.automations.view",
+      "audit.view",
+      "profile.edit",
+    ],
   },
   {
     name: "guest",
@@ -254,6 +299,262 @@ const defaultSiteSettings = [
   { key: "footer.subtitle", value: "Premium SaaS delivery across frontend, backend, and AI systems", group: "footer", displayName: "Footer Subtitle", description: "Subtitle in the footer" },
 ];
 
+// ─── SaaS Ops Hub demo data ──────────────────────────────────
+
+const demoPlans = [
+  { code: "free", name: "Free", priceCents: 0, seatLimit: 2, sortOrder: 0, features: ["basic_analytics"] },
+  { code: "starter", name: "Starter", priceCents: 4900, seatLimit: 10, sortOrder: 1, features: ["basic_analytics", "email_support"] },
+  { code: "pro", name: "Pro", priceCents: 19900, seatLimit: 50, sortOrder: 2, features: ["basic_analytics", "advanced_analytics", "sso", "priority_support"] },
+  { code: "enterprise", name: "Enterprise", priceCents: 99900, seatLimit: null as number | null, sortOrder: 3, features: ["basic_analytics", "advanced_analytics", "sso", "priority_support", "audit_export", "custom_roles", "sandbox"] },
+];
+
+const demoFlags = [
+  { code: "basic_analytics", name: "Basic Analytics", category: "general", description: "Standard usage dashboards for all tenants.", defaultEnabled: true, rolloutPercent: 100 },
+  { code: "advanced_analytics", name: "Advanced Analytics", category: "general", description: "Cohort analysis, retention, funnel breakdowns.", defaultEnabled: false, rolloutPercent: 40 },
+  { code: "sso", name: "Single Sign-On", category: "general", description: "SAML / OIDC SSO for enterprise identity providers.", defaultEnabled: false, rolloutPercent: 20 },
+  { code: "priority_support", name: "Priority Support", category: "general", description: "Guaranteed first-response SLA.", defaultEnabled: false, rolloutPercent: 15 },
+  { code: "audit_export", name: "Audit Export", category: "general", description: "Export audit log as CSV/JSON.", defaultEnabled: false, rolloutPercent: 10 },
+  { code: "custom_roles", name: "Custom Roles", category: "general", description: "Tenant-defined RBAC roles.", defaultEnabled: false, rolloutPercent: 5 },
+  { code: "sandbox", name: "Sandbox Environment", category: "beta", description: "Isolated tenant sandbox for testing integrations.", defaultEnabled: false, rolloutPercent: 8 },
+  { code: "ai_copilot", name: "AI Copilot", category: "experimental", description: "In-product AI assistant. Early access only.", defaultEnabled: false, rolloutPercent: 3 },
+  { code: "new_billing_engine", name: "New Billing Engine", category: "beta", description: "Migrating from legacy billing pipeline.", defaultEnabled: false, rolloutPercent: 25 },
+  { code: "legacy_api_v1", name: "Legacy API v1", category: "killswitch", description: "Master switch to deprecate the old public API.", defaultEnabled: true, rolloutPercent: 100 },
+];
+
+const demoTenants = [
+  { slug: "acme-corp", name: "Acme Corp", plan: "enterprise", status: "active", seats: 42, region: "EU", industry: "Manufacturing", monthsActive: 18 },
+  { slug: "northwind", name: "Northwind Traders", plan: "pro", status: "active", seats: 18, region: "EU", industry: "Logistics", monthsActive: 12 },
+  { slug: "contoso-labs", name: "Contoso Labs", plan: "pro", status: "active", seats: 24, region: "US", industry: "SaaS", monthsActive: 9 },
+  { slug: "fabrikam", name: "Fabrikam Inc", plan: "starter", status: "past_due", seats: 8, region: "US", industry: "Retail", monthsActive: 6 },
+  { slug: "initech", name: "Initech Holdings", plan: "starter", status: "trial", seats: 3, region: "EU", industry: "Finance", monthsActive: 0 },
+  { slug: "umbrella", name: "Umbrella Research", plan: "enterprise", status: "active", seats: 85, region: "EU", industry: "Pharma", monthsActive: 24 },
+  { slug: "globex", name: "Globex Ventures", plan: "pro", status: "active", seats: 14, region: "US", industry: "Media", monthsActive: 4 },
+  { slug: "hooli", name: "Hooli GmbH", plan: "starter", status: "churned", seats: 5, region: "EU", industry: "Tech", monthsActive: 3 },
+  { slug: "wayne-enterprises", name: "Wayne Enterprises", plan: "enterprise", status: "active", seats: 120, region: "US", industry: "Conglomerate", monthsActive: 36 },
+  { slug: "stark-industries", name: "Stark Industries", plan: "pro", status: "active", seats: 32, region: "US", industry: "Aerospace", monthsActive: 15 },
+  { slug: "soylent", name: "Soylent Biotech", plan: "free", status: "active", seats: 2, region: "EU", industry: "Biotech", monthsActive: 2 },
+  { slug: "cyberdyne", name: "Cyberdyne Systems", plan: "pro", status: "active", seats: 22, region: "US", industry: "AI/ML", monthsActive: 7 },
+];
+
+const demoAutomations = [
+  { code: "churn_risk_alert", name: "Churn risk alert", trigger: "event", eventType: "tenant.churn_risk", action: "notify", description: "Post to #ops-alerts when a tenant shows churn signals (login drop, failed payment, NPS decline).", isEnabled: true, lastStatus: "success" },
+  { code: "past_due_dunning", name: "Past-due dunning sequence", trigger: "schedule", schedule: "0 9 * * *", action: "email", description: "Daily email sequence to tenants with past_due invoices (day 1, 3, 7, 14).", isEnabled: true, lastStatus: "success" },
+  { code: "trial_ending_nudge", name: "Trial-ending nudge", trigger: "schedule", schedule: "0 10 * * *", action: "email", description: "Email tenant primary contact 3 days before trial end with upgrade CTA.", isEnabled: true, lastStatus: "success" },
+  { code: "expansion_candidate", name: "Expansion candidate flag", trigger: "schedule", schedule: "0 8 * * 1", action: "tag", description: "Weekly scan: tag tenants using >80% of seat cap as expansion candidates.", isEnabled: true, lastStatus: "success" },
+  { code: "legacy_api_deprecation", name: "Legacy API deprecation notice", trigger: "event", eventType: "api.v1.call", action: "run_webhook", description: "Notify tenants still using Legacy API v1. Paused pending migration readiness.", isEnabled: false, lastStatus: "skipped" },
+  { code: "new_signup_welcome", name: "New signup welcome", trigger: "event", eventType: "tenant.signup", action: "email", description: "Send product onboarding email 15 minutes after tenant signup.", isEnabled: true, lastStatus: "success" },
+];
+
+function daysAgo(n: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d;
+}
+
+async function seedOpsHub() {
+  console.log("  → Seeding Ops Hub plans...");
+  const planMap: Record<string, string> = {};
+  for (const p of demoPlans) {
+    const plan = await prisma.plan.upsert({
+      where: { code: p.code },
+      update: { name: p.name, priceCents: p.priceCents, seatLimit: p.seatLimit, features: p.features, sortOrder: p.sortOrder },
+      create: { code: p.code, name: p.name, priceCents: p.priceCents, seatLimit: p.seatLimit, features: p.features, sortOrder: p.sortOrder, currency: "USD", interval: "month", isActive: true },
+    });
+    planMap[p.code] = plan.id;
+  }
+  console.log(`    ✓ ${demoPlans.length} plans seeded`);
+
+  console.log("  → Seeding feature flags...");
+  const flagMap: Record<string, string> = {};
+  for (const f of demoFlags) {
+    const flag = await prisma.featureFlag.upsert({
+      where: { code: f.code },
+      update: { name: f.name, description: f.description, category: f.category, defaultEnabled: f.defaultEnabled, rolloutPercent: f.rolloutPercent },
+      create: f,
+    });
+    flagMap[f.code] = flag.id;
+  }
+  console.log(`    ✓ ${demoFlags.length} feature flags seeded`);
+
+  console.log("  → Seeding demo tenants and subscriptions...");
+  for (const t of demoTenants) {
+    const planId = planMap[t.plan];
+    const planInfo = demoPlans.find((p) => p.code === t.plan)!;
+    const mrr = planInfo.priceCents * (t.plan === "enterprise" ? Math.max(1, Math.floor(t.seats / 10)) : 1);
+
+    const tenant = await prisma.tenant.upsert({
+      where: { slug: t.slug },
+      update: {
+        name: t.name,
+        plan: t.plan,
+        status: t.status,
+        seats: t.seats,
+        region: t.region,
+        industry: t.industry,
+        mrrCents: mrr,
+        trialEndsAt: t.status === "trial" ? daysAgo(-10) : null,
+        churnedAt: t.status === "churned" ? daysAgo(20) : null,
+      },
+      create: {
+        slug: t.slug,
+        name: t.name,
+        plan: t.plan,
+        status: t.status,
+        seats: t.seats,
+        region: t.region,
+        industry: t.industry,
+        mrrCents: mrr,
+        trialEndsAt: t.status === "trial" ? daysAgo(-10) : null,
+        churnedAt: t.status === "churned" ? daysAgo(20) : null,
+      },
+    });
+
+    // Subscription (skip for free + churned)
+    if (t.plan !== "free" && t.status !== "churned") {
+      const subStatus = t.status === "trial" ? "trialing" : t.status === "past_due" ? "past_due" : "active";
+      const existing = await prisma.subscription.findFirst({ where: { tenantId: tenant.id } });
+      const sub = existing
+        ? await prisma.subscription.update({
+            where: { id: existing.id },
+            data: { planId, status: subStatus, seats: t.seats, mrrCents: mrr, renewsAt: daysAgo(-20) },
+          })
+        : await prisma.subscription.create({
+            data: {
+              tenantId: tenant.id,
+              planId,
+              status: subStatus,
+              seats: t.seats,
+              mrrCents: mrr,
+              startedAt: daysAgo(30 * t.monthsActive),
+              renewsAt: daysAgo(-20),
+              trialEndsAt: t.status === "trial" ? daysAgo(-10) : null,
+            },
+          });
+
+      // Invoices: generate up to 6 most recent monthly invoices
+      const invoiceCount = Math.min(6, t.monthsActive);
+      for (let i = 0; i < invoiceCount; i++) {
+        const issued = daysAgo(30 * i + 5);
+        const number = `INV-${t.slug.toUpperCase()}-${String(i + 1).padStart(4, "0")}`;
+        const isLatestPastDue = i === 0 && t.status === "past_due";
+        await prisma.invoice.upsert({
+          where: { number },
+          update: {},
+          create: {
+            subscriptionId: sub.id,
+            number,
+            amountCents: mrr,
+            currency: "USD",
+            status: isLatestPastDue ? "open" : "paid",
+            issuedAt: issued,
+            paidAt: isLatestPastDue ? null : new Date(issued.getTime() + 2 * 86400000),
+          },
+        });
+      }
+    }
+
+    // Lifecycle events — seed a storyline
+    const events: { kind: string; title: string; severity: string; details?: string; when: Date }[] = [];
+    events.push({ kind: "signup", title: "Tenant signed up", severity: "info", when: daysAgo(30 * t.monthsActive + 1) });
+    if (t.monthsActive > 0) events.push({ kind: "activated", title: "Activated within first 7 days", severity: "success", when: daysAgo(30 * t.monthsActive - 6) });
+    if (t.plan === "pro" || t.plan === "enterprise") events.push({ kind: "upgraded", title: `Upgraded to ${t.plan}`, severity: "success", when: daysAgo(30 * Math.max(1, t.monthsActive - 2)) });
+    if (t.status === "past_due") events.push({ kind: "churn_risk", title: "Payment failed — churn risk", severity: "warning", details: "Last invoice marked open. Dunning sequence active.", when: daysAgo(5) });
+    if (t.status === "churned") events.push({ kind: "churned", title: "Tenant churned", severity: "danger", details: "Canceled after trial-to-paid conversion failure.", when: daysAgo(20) });
+    if (t.seats >= 30) events.push({ kind: "expansion", title: `Expanded to ${t.seats} seats`, severity: "success", when: daysAgo(15) });
+    if (t.slug === "stark-industries") events.push({ kind: "support_ticket", title: "High-severity support ticket opened", severity: "warning", details: "SSO login latency above SLA.", when: daysAgo(2) });
+
+    for (const e of events) {
+      const exists = await prisma.lifecycleEvent.findFirst({
+        where: { tenantId: tenant.id, kind: e.kind, occurredAt: e.when },
+      });
+      if (!exists) {
+        await prisma.lifecycleEvent.create({
+          data: { tenantId: tenant.id, kind: e.kind, title: e.title, severity: e.severity, details: e.details, occurredAt: e.when },
+        });
+      }
+    }
+
+    // Usage metrics — last 6 weeks
+    for (let w = 0; w < 6; w++) {
+      const periodStart = daysAgo(w * 7 + 7);
+      periodStart.setHours(0, 0, 0, 0);
+      const growth = t.status === "churned" ? 0.3 : t.status === "past_due" ? 0.6 : 1 + (5 - w) * 0.05;
+      const baseCalls = 1500 + t.seats * 120;
+      await prisma.usageMetric.upsert({
+        where: { tenantId_metric_periodStart: { tenantId: tenant.id, metric: "api_calls", periodStart } },
+        update: { value: Math.round(baseCalls * growth) },
+        create: { tenantId: tenant.id, metric: "api_calls", periodStart, value: Math.round(baseCalls * growth) },
+      });
+      await prisma.usageMetric.upsert({
+        where: { tenantId_metric_periodStart: { tenantId: tenant.id, metric: "active_users", periodStart } },
+        update: { value: Math.max(1, Math.round(t.seats * 0.7 * growth)) },
+        create: { tenantId: tenant.id, metric: "active_users", periodStart, value: Math.max(1, Math.round(t.seats * 0.7 * growth)) },
+      });
+    }
+  }
+  console.log(`    ✓ ${demoTenants.length} tenants + subscriptions + invoices + lifecycle + usage seeded`);
+
+  // Feature flag overrides — add a few realistic stories
+  console.log("  → Seeding feature flag overrides...");
+  const overridePlans: { tenant: string; flag: string; enabled: boolean; note?: string }[] = [
+    { tenant: "acme-corp", flag: "sandbox", enabled: true, note: "Requested by account team for QA environment." },
+    { tenant: "umbrella", flag: "ai_copilot", enabled: true, note: "Design partner for early access." },
+    { tenant: "wayne-enterprises", flag: "ai_copilot", enabled: true, note: "Executive sponsor demo." },
+    { tenant: "fabrikam", flag: "new_billing_engine", enabled: false, note: "Hold off until past-due is resolved." },
+    { tenant: "contoso-labs", flag: "audit_export", enabled: true, note: "Compliance review in progress." },
+    { tenant: "stark-industries", flag: "custom_roles", enabled: true, note: "Security review approved." },
+  ];
+  for (const o of overridePlans) {
+    const tenant = await prisma.tenant.findUnique({ where: { slug: o.tenant } });
+    const flagId = flagMap[o.flag];
+    if (tenant && flagId) {
+      await prisma.featureFlagOverride.upsert({
+        where: { flagId_tenantId: { flagId, tenantId: tenant.id } },
+        update: { enabled: o.enabled, note: o.note },
+        create: { flagId, tenantId: tenant.id, enabled: o.enabled, note: o.note },
+      });
+    }
+  }
+  console.log(`    ✓ ${overridePlans.length} overrides seeded`);
+
+  // Automations + runs
+  console.log("  → Seeding automations and runs...");
+  for (const a of demoAutomations) {
+    const automation = await prisma.automation.upsert({
+      where: { code: a.code },
+      update: {
+        name: a.name, description: a.description, trigger: a.trigger, schedule: a.schedule, eventType: a.eventType,
+        action: a.action, isEnabled: a.isEnabled, lastStatus: a.lastStatus, lastRunAt: a.isEnabled ? daysAgo(0) : daysAgo(7),
+      },
+      create: {
+        code: a.code, name: a.name, description: a.description, trigger: a.trigger, schedule: a.schedule, eventType: a.eventType,
+        action: a.action, isEnabled: a.isEnabled, lastStatus: a.lastStatus, lastRunAt: a.isEnabled ? daysAgo(0) : daysAgo(7),
+      },
+    });
+    // Add a handful of runs
+    const runCount = a.isEnabled ? 5 : 2;
+    for (let i = 0; i < runCount; i++) {
+      const started = daysAgo(i);
+      const existing = await prisma.automationRun.findFirst({
+        where: { automationId: automation.id, startedAt: started },
+      });
+      if (!existing) {
+        const status = i === 0 ? a.lastStatus ?? "success" : i === 1 && a.code === "past_due_dunning" ? "failed" : "success";
+        await prisma.automationRun.create({
+          data: {
+            automationId: automation.id,
+            status,
+            output: status === "failed" ? "SMTP timeout; retrying on next tick." : `Processed ${3 + i} tenant(s).`,
+            startedAt: started,
+            completedAt: new Date(started.getTime() + 20_000),
+          },
+        });
+      }
+    }
+  }
+  console.log(`    ✓ ${demoAutomations.length} automations seeded with runs`);
+}
+
 // ─── Seed Runner ─────────────────────────────────────────────
 
 async function main() {
@@ -363,6 +664,27 @@ async function main() {
     });
   }
   console.log(`    ✓ ${defaultSiteSettings.length} settings seeded`);
+
+  // 7. Seed Ops Hub demo data
+  await seedOpsHub();
+
+  // 8. Grant ops_admin role to superadmin users (so showcase works out of the box)
+  console.log("  → Granting ops_admin to superadmin users...");
+  const opsAdminRole = await prisma.role.findUnique({ where: { name: "ops_admin" } });
+  const superadmins = await prisma.userRole.findMany({
+    where: { role: { name: "superadmin" } },
+    select: { userId: true },
+  });
+  if (opsAdminRole) {
+    for (const sa of superadmins) {
+      await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: sa.userId, roleId: opsAdminRole.id } },
+        update: {},
+        create: { userId: sa.userId, roleId: opsAdminRole.id },
+      });
+    }
+    console.log(`    ✓ ops_admin granted to ${superadmins.length} superadmin user(s)`);
+  }
 
   console.log("\n✅ Seed complete!");
 }
