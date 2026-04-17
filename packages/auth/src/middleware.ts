@@ -51,8 +51,26 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     // Allow Auth.js API routes
     if (pathname.startsWith("/api/auth")) return NextResponse.next();
 
-    // Check authentication
-    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+    // Check authentication.
+    //
+    // We pin cookieName/salt/secureCookie to match the NextAuth config in
+    // packages/auth/src/index.ts. This is important in production where
+    // nginx terminates TLS and forwards HTTP to Next.js: `getToken`'s
+    // auto-detection would otherwise pick the non-secure cookie name
+    // (`authjs.session-token`) while the browser actually holds
+    // `__Secure-authjs.session-token`, so the token would never be found
+    // and every request would be redirected to sign-in.
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieName = isProd
+      ? "__Secure-authjs.session-token"
+      : "authjs.session-token";
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+      cookieName,
+      salt: cookieName,
+      secureCookie: isProd,
+    });
     if (!token?.sub) {
       // Never redirect API calls — return 401 JSON so fetch() callers can handle it
       if (pathname.startsWith("/api/")) {
