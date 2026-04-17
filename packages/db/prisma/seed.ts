@@ -217,12 +217,12 @@ const defaultSiteContent = [
         },
         {
           name: "SaaS Operations Hub",
-          label: "Backend-heavy concept",
+          label: "Live SaaS tool",
           type: "Admin analytics + lifecycle controls",
           summary: "Billing, feature access, metrics, and workflow controls designed as one operator surface rather than disconnected tools.",
           href: "/showcase/ops-hub",
-          cta: "Discuss build",
-          isLive: false,
+          cta: "View live",
+          isLive: true,
         },
         {
           name: "Marketing + Content Engine",
