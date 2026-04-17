@@ -193,7 +193,7 @@ function UserMenu() {
                 setOpen(false);
                 router.push("/profile");
               }}
-              className="rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
+              className="cursor-pointer rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
             >
               Profile settings
             </button>
@@ -207,7 +207,7 @@ function UserMenu() {
                   console.error("Session refresh error:", error);
                 }
               }}
-              className="rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
+              className="cursor-pointer rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
             >
               Refresh session
             </button>
@@ -221,7 +221,7 @@ function UserMenu() {
                   window.location.href = "/";
                 }
               }}
-              className="rounded-2xl px-4 py-3 text-left text-sm font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-panel)]"
+              className="cursor-pointer rounded-2xl px-4 py-3 text-left text-sm font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-panel)]"
             >
               Sign out
             </button>
