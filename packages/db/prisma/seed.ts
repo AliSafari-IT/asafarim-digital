@@ -668,6 +668,34 @@ async function main() {
   // 7. Seed Ops Hub demo data
   await seedOpsHub();
 
+  // 7b. Bootstrap superadmin(s) from SUPERADMIN_EMAILS env (comma-separated)
+  const bootstrapEmails = (process.env.SUPERADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (bootstrapEmails.length > 0) {
+    console.log(`  → Bootstrapping superadmin role for: ${bootstrapEmails.join(", ")}`);
+    const superadminRole = await prisma.role.findUnique({ where: { name: "superadmin" } });
+    if (superadminRole) {
+      for (const email of bootstrapEmails) {
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+          select: { id: true, email: true },
+        });
+        if (!user) {
+          console.log(`    ⚠ no user found for ${email} (will apply next time they sign in)`);
+          continue;
+        }
+        await prisma.userRole.upsert({
+          where: { userId_roleId: { userId: user.id, roleId: superadminRole.id } },
+          update: {},
+          create: { userId: user.id, roleId: superadminRole.id },
+        });
+        console.log(`    ✓ superadmin granted to ${user.email}`);
+      }
+    }
+  }
+
   // 8. Grant ops_admin role to superadmin users (so showcase works out of the box)
   console.log("  → Granting ops_admin to superadmin users...");
   const opsAdminRole = await prisma.role.findUnique({ where: { name: "ops_admin" } });
