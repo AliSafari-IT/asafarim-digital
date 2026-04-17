@@ -37,7 +37,7 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/static ./apps/portal/.next/static
 
 RUN mkdir -p /app/apps/portal/public/uploads/avatars \
-    && chown -R nextjs:nodejs /app/apps/portal/public/uploads
+    && chown -R nextjs:nodejs /apps/portal/public/uploads
 
 USER nextjs
 EXPOSE 3000
