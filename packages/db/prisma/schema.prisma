@@ -2,7 +2,8 @@
 // Auth.js v5 required tables + full RBAC + CMS + admin panel
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
