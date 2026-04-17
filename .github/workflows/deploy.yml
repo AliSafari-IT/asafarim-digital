@@ -9,6 +9,7 @@ env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
   DEPLOY_PATH: /var/repos/asafarim-digital
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   build-and-deploy:
@@ -112,7 +113,14 @@ jobs:
             fi
 
             echo "Checking whether initial seed is required..."
-            SITE_CONTENT_COUNT=$(docker compose run --rm db-migrate sh -lc 'node -e '\''const { PrismaClient } = require("@prisma/client"); const prisma = new PrismaClient(); (async () => { const count = await prisma.siteContent.count(); console.log(count); await prisma.$disconnect(); })().catch(async (error) => { console.error(error); try { await prisma.$disconnect(); } catch {} process.exit(1); });'\''' | tr -d '[:space:]')
+            SITE_CONTENT_COUNT=$(docker compose run --rm db-migrate sh -lc 'node -e '\''const { PrismaClient } = require("@prisma/client"); const prisma = new PrismaClient(); (async () => { const count = await prisma.siteContent.count(); console.log(count); await prisma.$disconnect(); })().catch(async (error) => { console.error(error); try { await prisma.$disconnect(); } catch {} process.exit(1); });'\''' 2>/tmp/site-content-count.err | tr -d '[:space:]' || true)
+            if ! [[ "$SITE_CONTENT_COUNT" =~ ^[0-9]+$ ]]; then
+              echo "Could not determine SiteContent count. Skipping seed check."
+              if [ -s /tmp/site-content-count.err ]; then
+                tail -n 50 /tmp/site-content-count.err
+              fi
+              SITE_CONTENT_COUNT=1
+            fi
             if [ "${SITE_CONTENT_COUNT:-0}" = "0" ]; then
               echo "SiteContent is empty. Running initial seed..."
               docker compose run --rm db-migrate sh -lc "npm run db:seed"
