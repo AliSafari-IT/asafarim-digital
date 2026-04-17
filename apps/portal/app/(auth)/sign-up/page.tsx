@@ -11,14 +11,47 @@ const accountNotes = [
   "Structured to scale from solo product work to team-facing platforms.",
 ];
 
+function isTrustedCallbackOrigin(origin: string): boolean {
+  if (typeof window !== "undefined" && origin === window.location.origin) {
+    return true;
+  }
+  const allowList = [
+    process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL,
+    process.env.NEXT_PUBLIC_PORTAL_URL,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => {
+      try {
+        return new URL(value).origin;
+      } catch {
+        return null;
+      }
+    })
+    .filter((value): value is string => Boolean(value));
+
+  if (allowList.includes(origin)) return true;
+
+  try {
+    const host = new URL(origin).hostname;
+    if (host.endsWith(".asafarim.com") || host === "asafarim.com") return true;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 function normalizeCallbackUrl(raw: string | null): string {
   if (!raw) return "/";
   if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
 
   try {
     const parsed = new URL(raw);
-    if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/";
+    if (isTrustedCallbackOrigin(parsed.origin)) {
+      if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
+        return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/";
+      }
+      return parsed.toString();
     }
   } catch {
     // Ignore malformed callback URLs and fall back to root.
@@ -55,7 +88,11 @@ function SignUpPageContent() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace(callbackUrl);
+      if (/^https?:\/\//.test(callbackUrl)) {
+        window.location.href = callbackUrl;
+      } else {
+        router.replace(callbackUrl);
+      }
     }
   }, [status, callbackUrl, router]);
 
@@ -113,6 +150,8 @@ function SignUpPageContent() {
         router.push(signInHref);
       } else if (result?.url) {
         window.location.href = result.url;
+      } else if (/^https?:\/\//.test(callbackUrl)) {
+        window.location.href = callbackUrl;
       } else {
         router.replace(callbackUrl);
       }

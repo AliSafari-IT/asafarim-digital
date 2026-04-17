@@ -79,6 +79,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORTAL_URL=https://portal-qa.asafarim.com
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
       # Auth (same DB and secrets — shared SSO)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}

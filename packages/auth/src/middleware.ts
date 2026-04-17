@@ -81,8 +81,15 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
         ? new URL(signInUrl)
         : new URL("/sign-in", req.nextUrl.origin);
 
+      // If the sign-in page lives on a different origin (centralized SSO),
+      // send an absolute callback URL so the sign-in app can bounce the
+      // user back to the app they originally tried to access.
       const relativeCallbackUrl = `${req.nextUrl.pathname}${req.nextUrl.search}` || "/";
-      redirectUrl.searchParams.set("callbackUrl", relativeCallbackUrl);
+      const callbackUrl =
+        redirectUrl.origin === req.nextUrl.origin
+          ? relativeCallbackUrl
+          : new URL(relativeCallbackUrl, req.nextUrl.origin).toString();
+      redirectUrl.searchParams.set("callbackUrl", callbackUrl);
       return NextResponse.redirect(redirectUrl);
     }
 

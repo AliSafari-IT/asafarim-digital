@@ -7,6 +7,8 @@ import { asafarimBrandTokens } from "@asafarim/ui";
 import { ContentForm } from "@/components/ContentForm";
 import { OutputCard } from "@/components/OutputCard";
 import { ContentType } from "@/components/TypeSelector";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 type GeneratePayload = {
   type: ContentType;
@@ -102,50 +104,102 @@ export default function ContentGeneratorPage() {
     window.setTimeout(() => setIsCopied(false), 1600);
   };
 
+  const features = [
+    {
+      title: "Multi-provider fallback",
+      description: "OpenAI first, Anthropic as a safety net — zero downtime in drafts.",
+      accent: "from-[#3a7bff] to-[#4ff2c9]",
+    },
+    {
+      title: "Format-aware prompts",
+      description: "Blog, product, email, social, summary — tuned for each surface.",
+      accent: "from-[#4ff2c9] to-[#c084fc]",
+    },
+    {
+      title: "Portal-connected",
+      description: "Single sign-on with the ASafariM portal. Secure by default.",
+      accent: "from-[#c084fc] to-[#f472b6]",
+    },
+  ];
+
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[var(--color-surface)] text-[var(--color-text)]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(58,123,255,0.22),transparent_36%),radial-gradient(circle_at_90%_10%,rgba(79,242,201,0.15),transparent_34%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(58,123,255,0.25),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(79,242,201,0.18),transparent_38%),radial-gradient(circle_at_50%_85%,rgba(192,132,252,0.12),transparent_40%)]"
       />
       <img
         src={`${basePath}/brand/mesh-bg.svg`}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] w-full object-cover opacity-45"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] w-full object-cover opacity-50"
       />
 
-      <section className="mx-auto w-full max-w-7xl px-6 pb-16 pt-14 sm:pt-16">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <p className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-[var(--color-text-secondary)]">
-              AI Content Generator
-            </p>
-            <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
-              Generate premium content across blog, product, email, social, and summary formats.
-            </h1>
-            <p className="mt-4 max-w-2xl text-base text-[var(--color-text-secondary)] sm:text-lg">
-              Built for fast ideation now, scalable orchestration later. Powered by the {asafarimBrandTokens.essence.toLowerCase()} system.
-            </p>
-          </div>
+      <Header />
 
-          <div className="flex flex-wrap items-center gap-3">
+      <section className="mx-auto w-full max-w-7xl px-6 pt-14 sm:pt-20">
+        <div className="flex flex-col items-start gap-6 sm:items-center sm:text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--color-success)]" />
+            AI Content Generator · Live
+          </span>
+          <h1 className="max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">
+            Generate{" "}
+            <span className="bg-gradient-to-r from-[#3a7bff] via-[#4ff2c9] to-[#c084fc] bg-clip-text text-transparent">
+              premium content
+            </span>{" "}
+            across every format your team ships.
+          </h1>
+          <p className="max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
+            Blog, product, email, social, and summary drafts — orchestrated by the{" "}
+            {asafarimBrandTokens.essence.toLowerCase()} system. Fast ideation now, durable
+            workflows later.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <a
-              href="/"
-              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+              href="#generator"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-12px_rgba(58,123,255,0.8)] transition hover:bg-[var(--color-primary-dark)]"
             >
-              Back to Portal
+              Start generating
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
             </a>
             <a
-              href="https://github.com/AliSafari-IT/asafarim-digital"
-              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+              href="#features"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-5 py-2.5 text-sm font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
             >
-              View Monorepo
+              Explore capabilities
             </a>
           </div>
         </div>
+      </section>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+      <section id="features" className="mx-auto mt-20 grid w-full max-w-7xl gap-4 px-6 sm:grid-cols-3">
+        {features.map((feature) => (
+          <article
+            key={feature.title}
+            className="group relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-glass)] p-6 transition hover:-translate-y-0.5 hover:border-[var(--color-primary)]"
+          >
+            <div
+              className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${feature.accent} opacity-80`}
+            />
+            <h3 className="text-base font-semibold tracking-tight">{feature.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+              {feature.description}
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section id="prompts" className="mx-auto mt-16 w-full max-w-7xl px-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
+            Quick-start prompts
+          </h2>
+          <span className="text-xs text-[var(--color-text-secondary)]">Click to autofill</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {quickPrompts.map((item) => (
             <button
               key={item.label}
@@ -154,33 +208,38 @@ export default function ContentGeneratorPage() {
                 setType(item.type);
                 setInput(item.prompt);
               }}
-              className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+              className="cursor-pointer rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
             >
               {item.label}
             </button>
           ))}
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-[0.95fr,1.05fr] lg:items-start">
-          <ContentForm
-            input={input}
-            type={type}
-            isLoading={isLoading}
-            onInputChange={setInput}
-            onTypeChange={setType}
-            onSubmit={handleSubmit}
-          />
-
-          <OutputCard
-            output={output}
-            isLoading={isLoading}
-            isCopied={isCopied}
-            error={error}
-            onCopy={handleCopy}
-            onRegenerate={handleRegenerate}
-          />
-        </div>
       </section>
+
+      <section
+        id="generator"
+        className="mx-auto mt-8 grid w-full max-w-7xl gap-6 px-6 pb-8 lg:grid-cols-[0.95fr,1.05fr] lg:items-start"
+      >
+        <ContentForm
+          input={input}
+          type={type}
+          isLoading={isLoading}
+          onInputChange={setInput}
+          onTypeChange={setType}
+          onSubmit={handleSubmit}
+        />
+
+        <OutputCard
+          output={output}
+          isLoading={isLoading}
+          isCopied={isCopied}
+          error={error}
+          onCopy={handleCopy}
+          onRegenerate={handleRegenerate}
+        />
+      </section>
+
+      <Footer />
     </main>
   );
 }
