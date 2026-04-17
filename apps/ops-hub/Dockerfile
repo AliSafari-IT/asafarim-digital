@@ -28,6 +28,8 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+COPY --from=builder /repo/node_modules ./node_modules
+COPY --from=builder /repo/apps/ops-hub/public ./apps/ops-hub/public
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/ops-hub/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/ops-hub/.next/static ./apps/ops-hub/.next/static
 

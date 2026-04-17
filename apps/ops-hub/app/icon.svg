@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="ohGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <radialGradient id="ohGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#22D3EE" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Glow halo -->
+  <circle cx="32" cy="32" r="30" fill="url(#ohGlow)"/>
+
+  <!-- Outer dashed orbit -->
+  <circle cx="32" cy="32" r="27" fill="none" stroke="url(#ohGrad)" stroke-width="1.5" stroke-dasharray="2 4" opacity="0.55"/>
+
+  <!-- Mid orbit -->
+  <circle cx="32" cy="32" r="17" fill="none" stroke="url(#ohGrad)" stroke-width="1.5" opacity="0.75"/>
+
+  <!-- Spokes -->
+  <g stroke="url(#ohGrad)" stroke-width="2" stroke-linecap="round" opacity="0.9">
+    <line x1="32" y1="14" x2="32" y2="23"/>
+    <line x1="50" y1="32" x2="41" y2="32"/>
+    <line x1="32" y1="50" x2="32" y2="41"/>
+    <line x1="14" y1="32" x2="23" y2="32"/>
+  </g>
+
+  <!-- Satellite nodes -->
+  <g fill="url(#ohGrad)">
+    <circle cx="32" cy="8"  r="3.2"/>
+    <circle cx="56" cy="32" r="3.2"/>
+    <circle cx="32" cy="56" r="3.2"/>
+    <circle cx="8"  cy="32" r="3.2"/>
+  </g>
+
+  <!-- Central hub -->
+  <circle cx="32" cy="32" r="8.5" fill="url(#ohGrad)"/>
+  <circle cx="32" cy="32" r="3.2" fill="#0B1020"/>
+</svg>

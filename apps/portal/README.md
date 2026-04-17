@@ -37,6 +37,10 @@ pnpm --filter portal clean
   - Redirect handler is implemented in:
     - `app/showcase/content-generator/page.tsx`
 
+- Card route: `/showcase/ops-hub/`
+  - Redirect handler is implemented in:
+    - `app/showcase/ops-hub/page.tsx`
+
 ## Content Generator Redirect Behavior
 
 Redirect target order:

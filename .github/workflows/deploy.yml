@@ -4,6 +4,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_seed:
+        description: "Re-run DB seed even if SiteContent is already populated"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -35,6 +44,8 @@ jobs:
           ssh-keyscan -T 15 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
+        env:
+          FORCE_SEED: ${{ github.event.inputs.force_seed || 'false' }}
         run: |
           set -euo pipefail
           SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
@@ -89,9 +100,10 @@ jobs:
             exit 1
           fi
 
-          # Build and restart on VPS
-          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDSSH'
+          # Build and restart on VPS (FORCE_SEED passed as positional arg $1)
+          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "bash -s ${FORCE_SEED}" << 'ENDSSH'
             set -euo pipefail
+            FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
             sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
@@ -123,11 +135,15 @@ jobs:
               fi
               SITE_CONTENT_COUNT=1
             fi
-            if [ "${SITE_CONTENT_COUNT:-0}" = "0" ]; then
-              echo "SiteContent is empty. Running initial seed..."
+            if [ "${SITE_CONTENT_COUNT:-0}" = "0" ] || [ "${FORCE_SEED}" = "true" ]; then
+              if [ "${FORCE_SEED}" = "true" ]; then
+                echo "FORCE_SEED=true. Re-running seed (upserts will refresh content)..."
+              else
+                echo "SiteContent is empty. Running initial seed..."
+              fi
               docker compose run --rm db-migrate sh -lc "npm run db:seed"
             else
-              echo "SiteContent already present (${SITE_CONTENT_COUNT}). Skipping seed."
+              echo "SiteContent already present (${SITE_CONTENT_COUNT}). Skipping seed. (Use workflow_dispatch with force_seed=true to override.)"
             fi
 
             docker compose up -d --force-recreate portal content-generator ops-hub

@@ -220,7 +220,7 @@ const defaultSiteContent = [
           label: "Backend-heavy concept",
           type: "Admin analytics + lifecycle controls",
           summary: "Billing, feature access, metrics, and workflow controls designed as one operator surface rather than disconnected tools.",
-          href: "#contact",
+          href: "/showcase/ops-hub",
           cta: "Discuss build",
           isLive: false,
         },
