@@ -32,11 +32,20 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /repo/node_modules ./node_modules
+COPY --from=builder /repo/packages/db ./packages/db
 COPY --from=builder /repo/apps/portal/public ./apps/portal/public
 RUN mkdir -p ./apps/portal/public/uploads/avatars \
     && chown -R nextjs:nodejs ./apps/portal/public/uploads
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/static ./apps/portal/.next/static
+
+# Regenerate Prisma client for Alpine (musl) runtime
+RUN cd packages/db && npx prisma generate
+
+# Copy Prisma client to location expected by Next.js standalone
+RUN mkdir -p /app/node_modules/.prisma && \
+    cp -r /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client /app/node_modules/.prisma/client && \
+    chown -R nextjs:nodejs /app/node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000
