@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
 type ProfileData = {
@@ -36,6 +36,10 @@ export function ProfileForm({ user }: { user: ProfileData }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [verifyStatus, setVerifyStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [verifyMessage, setVerifyMessage] = useState("");
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "error">("idle");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isVerified = Boolean(user.emailVerified);
   const usernameLocked = Boolean(user.username);
@@ -59,6 +63,80 @@ export function ProfileForm({ user }: { user: ProfileData }) {
     }
   }
 
+  async function uploadAvatarFile(file: File) {
+    if (!isVerified) {
+      setUploadStatus("error");
+      setUploadMessage("Verify your email before uploading an avatar.");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setUploadStatus("error");
+      setUploadMessage("Only image files are allowed.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setUploadStatus("error");
+      setUploadMessage("Image exceeds the 2MB limit.");
+      return;
+    }
+
+    setUploadStatus("uploading");
+    setUploadMessage("");
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch("/api/profile/avatar", { method: "POST", body });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setUploadStatus("error");
+        setUploadMessage(data.error || "Could not upload image.");
+        return;
+      }
+      setField("image", data.image);
+      setUploadStatus("idle");
+      setUploadMessage("");
+      await update({ image: data.image });
+    } catch {
+      setUploadStatus("error");
+      setUploadMessage("Network error while uploading.");
+    }
+  }
+
+  function handleFileInputChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file) void uploadAvatarFile(file);
+    event.target.value = "";
+  }
+
+  async function handleRemoveAvatar() {
+    if (!isVerified) return;
+    setUploadStatus("uploading");
+    setUploadMessage("");
+    try {
+      const response = await fetch("/api/profile/avatar", { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setUploadStatus("error");
+        setUploadMessage(data.error || "Could not remove image.");
+        return;
+      }
+      setField("image", "");
+      setUploadStatus("idle");
+      await update({ image: null });
+    } catch {
+      setUploadStatus("error");
+      setUploadMessage("Network error while removing image.");
+    }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file) void uploadAvatarFile(file);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setStatus("saving");
@@ -79,7 +157,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
         return;
       }
 
-      await update();
+      await update({ image: data.user.image, name: data.user.name });
       setStatus("saved");
       setForm({
         name: data.user.name ?? "",
@@ -284,7 +362,74 @@ export function ProfileForm({ user }: { user: ProfileData }) {
           </div>
 
           <div>
-            <label htmlFor="image" className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block text-sm font-medium">Avatar</label>
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                if (isVerified) setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition ${
+                isDragging
+                  ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10"
+                  : "border-[var(--color-border-strong)] bg-[var(--color-surface-soft)]"
+              } ${!isVerified ? "cursor-not-allowed opacity-60" : ""}`}
+            >
+              {form.image ? (
+                <img
+                  src={form.image}
+                  alt="Avatar preview"
+                  className="h-20 w-20 rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--color-primary),var(--color-accent))] text-xl font-semibold text-white">
+                  {(form.name || user.email).slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Drag and drop an image here, or pick a file. PNG, JPEG, WEBP, GIF, SVG up to 2MB.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!isVerified || uploadStatus === "uploading"}
+                  className="rounded-full bg-[var(--color-primary)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {uploadStatus === "uploading" ? "Uploading..." : "Choose image"}
+                </button>
+                {form.image && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    disabled={!isVerified || uploadStatus === "uploading"}
+                    className="rounded-full border border-[var(--color-border-strong)] px-5 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                className="hidden"
+                onChange={handleFileInputChange}
+                disabled={!isVerified}
+              />
+              {uploadMessage && (
+                <p
+                  className={`text-xs ${
+                    uploadStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  {uploadMessage}
+                </p>
+              )}
+            </div>
+
+            <label htmlFor="image" className="mt-4 mb-2 block text-sm font-medium">
               Avatar URL
             </label>
             <input
@@ -292,9 +437,12 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               value={form.image}
               onChange={(event) => setField("image", event.target.value)}
               disabled={!isVerified}
-              placeholder="https://..."
+              placeholder="https://... or /uploads/avatars/..."
               className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
             />
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+              You can still paste an external URL. Uploading a file replaces this value automatically.
+            </p>
           </div>
 
           <div>

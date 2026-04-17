@@ -158,6 +158,12 @@ export const authConfig: NextAuthConfig = {
           token.emailVerified ? new Date(token.emailVerified as string) : null
         ) as typeof session.user.emailVerified;
         session.user.isActive = token.isActive as boolean;
+        if (typeof token.name === "string" || token.name === null) {
+          session.user.name = (token.name as string | null) ?? null;
+        }
+        if (typeof token.picture === "string" || token.picture === null) {
+          session.user.image = (token.picture as string | null) ?? null;
+        }
       }
       return session;
     },

@@ -70,3 +70,4 @@ next-env.d.ts
 .env.production
 
 uptime-kuma/
+apps/portal/public/uploads/avatars/
