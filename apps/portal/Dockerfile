@@ -33,11 +33,10 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/apps/portal/public ./apps/portal/public
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/static ./apps/portal/.next/static
-
 RUN mkdir -p ./apps/portal/public/uploads/avatars \
     && chown -R nextjs:nodejs ./apps/portal/public/uploads
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/portal/.next/static ./apps/portal/.next/static
 
 USER nextjs
 EXPOSE 3000
