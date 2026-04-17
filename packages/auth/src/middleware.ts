@@ -58,7 +58,8 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
         ? new URL(signInUrl)
         : new URL("/sign-in", req.nextUrl.origin);
 
-      redirectUrl.searchParams.set("callbackUrl", req.nextUrl.href);
+      const relativeCallbackUrl = `${req.nextUrl.pathname}${req.nextUrl.search}` || "/";
+      redirectUrl.searchParams.set("callbackUrl", relativeCallbackUrl);
       return NextResponse.redirect(redirectUrl);
     }
 
