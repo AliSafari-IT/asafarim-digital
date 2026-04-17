@@ -6,6 +6,12 @@ RUN corepack enable
 FROM base AS builder
 WORKDIR /repo
 
+ARG NEXT_PUBLIC_PORTAL_URL="https://portal-qa.asafarim.com"
+ENV NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL
+
+ARG NEXT_PUBLIC_CONTENT_GENERATOR_URL="https://content-generator-qa.asafarim.com"
+ENV NEXT_PUBLIC_CONTENT_GENERATOR_URL=$NEXT_PUBLIC_CONTENT_GENERATOR_URL
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/portal ./apps/portal
 COPY packages/auth ./packages/auth

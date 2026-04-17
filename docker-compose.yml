@@ -40,6 +40,9 @@ services:
     build:
       context: .
       dockerfile: apps/portal/Dockerfile
+      args:
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
     container_name: asafarim-portal
     restart: unless-stopped
     ports:
@@ -72,6 +75,9 @@ services:
     build:
       context: .
       dockerfile: apps/content-generator/Dockerfile
+      args:
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
     container_name: asafarim-content-generator
     restart: unless-stopped
     ports:
