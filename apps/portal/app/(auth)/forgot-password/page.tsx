@@ -56,9 +56,12 @@ export default function ForgotPasswordPage() {
       )}
 
       {successMessage && (
-        <div className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">
-          <p className="font-semibold text-emerald-800">Reset link sent</p>
-          <p className="mt-1 text-emerald-900">{successMessage}</p>
+        <div
+          role="status"
+          className="mt-4 rounded-2xl border border-emerald-700 bg-emerald-100 px-4 py-3 text-sm text-emerald-950 shadow-sm"
+        >
+          <p className="font-semibold text-emerald-900">Reset link sent</p>
+          <p className="mt-1 font-medium text-emerald-950">{successMessage}</p>
         </div>
       )}
 
