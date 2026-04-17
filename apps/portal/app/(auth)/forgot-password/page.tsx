@@ -50,18 +50,26 @@ export default function ForgotPasswordPage() {
       </p>
 
       {errorMessage && (
-        <div className="mt-4 rounded-2xl border border-[#6c3040] bg-[#2f131c] px-4 py-3 text-sm text-[#ff9aac]">
-          {errorMessage}
+        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3.5">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-400" aria-hidden="true">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
+          </svg>
+          <p className="text-sm font-medium text-rose-300">{errorMessage}</p>
         </div>
       )}
 
       {successMessage && (
         <div
           role="status"
-          className="mt-4 rounded-2xl border border-emerald-700 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm"
+          className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-400/30 bg-emerald-100/10 px-4 py-3.5"
         >
-          <p className="font-semibold text-emerald-900">Reset link sent</p>
-          <p className="mt-1 font-medium text-emerald-900">{successMessage}</p>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" aria-hidden="true">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-emerald-400">Reset link dispatched</p>
+            <p className="mt-1 text-sm leading-6 text-emerald-600/90">{successMessage}</p>
+          </div>
         </div>
       )}
 

@@ -9,6 +9,7 @@ export const middleware = createAuthMiddleware({
     "/sign-up",
     "/forgot-password",
     "/reset-password",
+    "/verify-email",
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/health",

@@ -54,25 +54,48 @@ export function HomeContent({ content }: { content: ContentMap }) {
 
       <main id="top" className="mx-auto w-full max-w-7xl px-6 pb-20 pt-10 sm:pt-14 lg:pt-16">
         {/* Hero */}
-        <section className="grid gap-10 lg:grid-cols-[1.15fr,0.85fr] lg:items-start">
-          <div className="relative">
-            {hero?.eyebrow && (
-              <div className="inline-flex rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                {hero.eyebrow}
-              </div>
-            )}
-            {hero?.title && (
-              <h1 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.96] tracking-[-0.05em] sm:text-6xl lg:text-7xl">
-                {hero.title}
-              </h1>
-            )}
-            {hero?.subtitle && (
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--color-text-muted)] sm:text-xl">
-                {hero.subtitle}
-              </p>
-            )}
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--color-border)] bg-[var(--color-panel)] px-6 py-14 sm:px-10 sm:py-20">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 opacity-90"
+            style={{
+              background:
+                "radial-gradient(circle at 15% 20%, rgba(76,125,255,0.22), transparent 38%), radial-gradient(circle at 85% 10%, rgba(192,132,252,0.18), transparent 40%), radial-gradient(circle at 70% 90%, rgba(93,228,199,0.18), transparent 42%)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 opacity-[0.18]"
+            style={{
+              backgroundImage:
+                "linear-gradient(var(--color-border-strong) 1px, transparent 1px), linear-gradient(90deg, var(--color-border-strong) 1px, transparent 1px)",
+              backgroundSize: "48px 48px",
+              maskImage: "radial-gradient(ellipse at center, black 40%, transparent 75%)",
+              WebkitMaskImage: "radial-gradient(ellipse at center, black 40%, transparent 75%)",
+            }}
+          />
 
-            <div className="mt-8 flex flex-wrap gap-4">
+          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              Frontend · Backend · AI
+            </span>
+
+            <h1 className="mt-7 text-5xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-6xl lg:text-[5.25rem]">
+              Ship{" "}
+              <span className="bg-[linear-gradient(120deg,#6aa3ff_0%,#a78bfa_50%,#5de4c7_100%)] bg-clip-text text-transparent">
+                full-stack SaaS
+              </span>
+              <br className="hidden sm:block" /> with AI at the core.
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-base leading-7 text-[var(--color-text-muted)] sm:text-lg">
+              {hero?.subtitle?.split(".")[0] ??
+                "One partner for interface, architecture, and intelligent workflows"}
+              .
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               {hero?.body?.ctaPrimary && (
                 <a
                   href={hero.body.ctaPrimary.href}
@@ -90,64 +113,170 @@ export function HomeContent({ content }: { content: ContentMap }) {
                 </a>
               )}
             </div>
-
-            {proofPoints.length > 0 && (
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                {proofPoints.map((item) => (
-                  <div key={item.value} className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-                    <div className="font-mono text-2xl font-semibold text-[var(--color-text)]">{item.value}</div>
-                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{item.label}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          {deliverySnapshot && (
-            <aside className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6 shadow-[var(--shadow-card)] sm:p-8">
-              <div className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,var(--color-accent),transparent)]" />
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-                    Delivery Snapshot
-                  </p>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{deliverySnapshot.title}</h2>
-                </div>
-                {deliverySnapshot.badge && (
-                  <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                    {deliverySnapshot.badge}
+          {/* Expertise pillars */}
+          <div className="relative mt-14 grid gap-5 sm:grid-cols-3">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-[12%] top-1/2 hidden h-px -translate-y-1/2 bg-[linear-gradient(90deg,transparent,var(--color-border-strong),transparent)] sm:block"
+            />
+            {[
+              {
+                key: "frontend",
+                label: "Frontend",
+                tag: "Interface",
+                desc: "Design-forward UX, motion, and conversion-aware product surfaces.",
+                stack: ["Next.js", "TypeScript", "Design systems"],
+                ring: "linear-gradient(135deg,#4c7dff,#6aa3ff)",
+                glow: "rgba(76,125,255,0.35)",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="13" rx="2.4" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M3 8h18" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                ),
+              },
+              {
+                key: "backend",
+                label: "Backend",
+                tag: "Architecture",
+                desc: "Durable APIs, data models, auth, queues, and maintainable service seams.",
+                stack: ["Node.js", ".NET", "PostgreSQL"],
+                ring: "linear-gradient(135deg,#36c6a8,#5de4c7)",
+                glow: "rgba(93,228,199,0.35)",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                    <ellipse cx="12" cy="5.5" rx="7" ry="2.5" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M5 5.5v6c0 1.38 3.13 2.5 7 2.5s7-1.12 7-2.5v-6" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M5 11.5v6c0 1.38 3.13 2.5 7 2.5s7-1.12 7-2.5v-6" stroke="currentColor" strokeWidth="1.6" />
+                  </svg>
+                ),
+              },
+              {
+                key: "ai",
+                label: "AI",
+                tag: "Intelligence",
+                desc: "RAG pipelines, agents, and workflow automation wired into real products.",
+                stack: ["Agents", "RAG", "Automation"],
+                ring: "linear-gradient(135deg,#c084fc,#f472b6)",
+                glow: "rgba(192,132,252,0.35)",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" aria-hidden="true">
+                    <path
+                      d="M12 3v2M12 19v2M4.5 7.5l1.4 1.4M18.1 15.1l1.4 1.4M3 12h2M19 12h2M4.5 16.5l1.4-1.4M18.1 8.9l1.4-1.4"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.6" />
+                    <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+                  </svg>
+                ),
+              },
+            ].map((pillar) => (
+              <article
+                key={pillar.key}
+                className="group relative overflow-hidden rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6 transition hover:-translate-y-1 hover:border-[var(--color-border-strong)]"
+              >
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-px -z-10 rounded-3xl opacity-0 blur-xl transition group-hover:opacity-100"
+                  style={{ background: `radial-gradient(circle at 50% 0%, ${pillar.glow}, transparent 70%)` }}
+                />
+                <div className="flex items-center justify-between">
+                  <span
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-[var(--shadow-glow)]"
+                    style={{ background: pillar.ring }}
+                  >
+                    {pillar.icon}
                   </span>
-                )}
-              </div>
-
-              <div className="mt-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                  <span>Project model</span>
-                  <span>{deliverySnapshot.projectModel}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                    {pillar.tag}
+                  </span>
                 </div>
-                {deliverySnapshot.cards && (
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    {deliverySnapshot.cards.map((card: { label: string; text: string }) => (
-                      <div key={card.label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
-                        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{card.label}</p>
-                        <p className="mt-3 text-lg font-semibold">{card.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              {deliverySnapshot.codePreview && (
-                <div className="mt-5 rounded-3xl border border-[var(--color-border)] bg-[#081120] p-5 text-sm text-slate-200">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-sky-200/70">stack.preview.ts</div>
-                  <pre className="mt-4 overflow-x-auto font-mono text-[13px] leading-6 text-sky-100">
-                    {deliverySnapshot.codePreview}
-                  </pre>
+                <h3 className="mt-6 text-2xl font-semibold tracking-[-0.03em]">{pillar.label}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">{pillar.desc}</p>
+
+                <ul className="mt-5 flex flex-wrap gap-2">
+                  {pillar.stack.map((item) => (
+                    <li
+                      key={item}
+                      className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-muted)]"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+
+          {proofPoints.length > 0 && (
+            <div className="mt-10 grid gap-3 sm:grid-cols-3">
+              {proofPoints.map((item) => (
+                <div
+                  key={item.value}
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] px-5 py-4"
+                >
+                  <div className="font-mono text-lg font-semibold">{item.value}</div>
+                  <p className="mt-1 text-xs leading-5 text-[var(--color-text-muted)]">{item.label}</p>
                 </div>
-              )}
-            </aside>
+              ))}
+            </div>
           )}
         </section>
+
+        {deliverySnapshot && (
+          <section className="mt-14 grid gap-6 lg:grid-cols-[1.05fr,0.95fr] lg:items-start">
+            <div className="max-w-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+                Delivery Snapshot
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+                {deliverySnapshot.title}
+              </h2>
+              {deliverySnapshot.badge && (
+                <span className="mt-4 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                  {deliverySnapshot.badge}
+                </span>
+              )}
+              {deliverySnapshot.cards && (
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  {deliverySnapshot.cards.map((card: { label: string; text: string }) => (
+                    <div
+                      key={card.label}
+                      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4"
+                    >
+                      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+                        {card.label}
+                      </p>
+                      <p className="mt-2 text-sm font-medium">{card.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {deliverySnapshot.codePreview && (
+              <div className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[#081120] p-5 text-sm text-slate-200 shadow-[var(--shadow-card)]">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+                  <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.2em] text-sky-200/70">
+                    stack.preview.ts
+                  </span>
+                </div>
+                <pre className="mt-4 overflow-x-auto font-mono text-[13px] leading-6 text-sky-100">
+                  {deliverySnapshot.codePreview}
+                </pre>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Capabilities */}
         {capabilities && (

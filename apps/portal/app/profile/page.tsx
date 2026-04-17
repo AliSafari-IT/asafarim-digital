@@ -11,28 +11,33 @@ export default async function ProfilePage() {
     redirect("/sign-in?callbackUrl=/profile");
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      email: true,
-      emailVerified: true,
-      image: true,
-      jobTitle: true,
-      company: true,
-      website: true,
-      location: true,
-      bio: true,
-      createdAt: true,
-      updatedAt: true,
-      userRoles: { select: { role: { select: { displayName: true } } } },
-    },
-  });
+  const dbUser = await prisma.user
+    .findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        emailVerified: true,
+        image: true,
+        jobTitle: true,
+        company: true,
+        website: true,
+        location: true,
+        bio: true,
+        createdAt: true,
+        updatedAt: true,
+        userRoles: { select: { role: { select: { displayName: true } } } },
+      },
+    })
+    .catch((error) => {
+      console.error("Profile: failed to load user record", error);
+      return null;
+    });
 
   if (!dbUser) {
-    redirect("/sign-in");
+    redirect("/sign-in?callbackUrl=/profile");
   }
 
   const { userRoles, ...rest } = dbUser;

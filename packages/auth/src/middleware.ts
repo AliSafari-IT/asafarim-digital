@@ -54,6 +54,11 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
     // Check authentication
     const token = await getToken({ req, secret: process.env.AUTH_SECRET });
     if (!token?.sub) {
+      // Never redirect API calls — return 401 JSON so fetch() callers can handle it
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
       const redirectUrl = signInUrl
         ? new URL(signInUrl)
         : new URL("/sign-in", req.nextUrl.origin);

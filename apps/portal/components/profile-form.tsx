@@ -34,9 +34,30 @@ export function ProfileForm({ user }: { user: ProfileData }) {
   });
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [verifyMessage, setVerifyMessage] = useState("");
 
   const isVerified = Boolean(user.emailVerified);
   const usernameLocked = Boolean(user.username);
+
+  async function handleSendVerification() {
+    setVerifyStatus("sending");
+    setVerifyMessage("");
+    try {
+      const response = await fetch("/api/auth/send-verification", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setVerifyStatus("error");
+        setVerifyMessage(data.error || "Could not send verification email.");
+        return;
+      }
+      setVerifyStatus("sent");
+      setVerifyMessage(data.message || "Verification email sent. Check your inbox.");
+    } catch {
+      setVerifyStatus("error");
+      setVerifyMessage("Network error while sending verification email.");
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -119,6 +140,31 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               <p className={`mt-2 text-sm ${isVerified ? "text-emerald-300" : "text-amber-300"}`}>
                 {isVerified ? "Email verified. Profile edits are enabled." : "Verify your email before changing profile details."}
               </p>
+              {!isVerified && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSendVerification}
+                    disabled={verifyStatus === "sending" || verifyStatus === "sent"}
+                    className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {verifyStatus === "sending"
+                      ? "Sending..."
+                      : verifyStatus === "sent"
+                        ? "Verification email sent"
+                        : "Send verification email"}
+                  </button>
+                  {verifyMessage && (
+                    <p
+                      className={`text-xs ${
+                        verifyStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                      }`}
+                    >
+                      {verifyMessage}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Username policy</p>

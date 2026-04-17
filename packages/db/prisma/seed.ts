@@ -98,9 +98,9 @@ const defaultNavItems = [
 const defaultSiteContent = [
   {
     section: "hero",
-    title: "I build software that looks premium on the surface and stays reliable underneath it.",
-    subtitle: "I help founders and teams ship credible SaaS products with strong UX, disciplined backend architecture, and AI workflows that solve operational problems instead of adding complexity.",
-    eyebrow: "Backend rigor. Frontend polish. AI-ready systems.",
+    title: "Ship full-stack SaaS with AI at the core.",
+    subtitle: "One partner for interface, architecture, and intelligent workflows. Premium UX, durable backends, and AI wired into real products.",
+    eyebrow: "Frontend · Backend · AI",
     position: 0,
     body: {
       ctaPrimary: { label: "Start a build conversation", href: "#contact" },

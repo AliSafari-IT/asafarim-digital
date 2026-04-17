@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -78,6 +79,7 @@ function UserMenu() {
   const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -185,13 +187,16 @@ function UserMenu() {
                 Admin panel
               </Link>
             )}
-            <Link
-              href="/profile"
-              onClick={() => setOpen(false)}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                router.push("/profile");
+              }}
               className="rounded-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--color-panel)]"
             >
               Profile settings
-            </Link>
+            </button>
             <button
               type="button"
               onClick={async () => {
@@ -236,19 +241,47 @@ export function SiteHeader({
   const resolvedNavItems = canAccessAdmin(session?.user?.roles)
     ? [...navItems, { href: "/admin", label: "Admin" }]
     : navItems;
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile menu when viewport grows to lg
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setMobileOpen(false);
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [mobileOpen]);
+
+  // Lock body scroll when menu open
+  useEffect(() => {
+    if (mobileOpen) {
+      const previous = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = previous;
+      };
+    }
+  }, [mobileOpen]);
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_82%,transparent)] backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-4">
-        <Link href="/" className="flex items-center gap-4" aria-label="Back to home">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--color-primary),var(--color-accent))] text-sm font-bold text-white shadow-[var(--shadow-glow)]">
-            AD
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:gap-6 sm:px-6">
+        <Link
+          href="/"
+          className="flex items-center gap-3"
+          aria-label="Back to home"
+          onClick={() => setMobileOpen(false)}
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0b1324,#111d3a)] shadow-[var(--shadow-glow)] ring-1 ring-white/10">
+            <img src="/brand/logo-mark.svg" alt="" aria-hidden="true" width="28" height="28" className="h-7 w-7" />
           </span>
-          <span>
-            <span className="block text-sm font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
+          <span className="hidden sm:block">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
               ASafariM Digital
             </span>
-            <span className="block text-base font-semibold">Product engineering for AI-native SaaS</span>
+            <span className="block text-[15px] font-semibold tracking-[-0.01em]">Frontend · Backend · AI</span>
           </span>
         </Link>
 
@@ -263,8 +296,54 @@ export function SiteHeader({
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <UserMenu />
+          <button
+            type="button"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMobileOpen((current) => !current)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] lg:hidden"
+          >
+            {mobileOpen ? (
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
+
+      {mobileOpen && (
+        <>
+          <div
+            aria-hidden="true"
+            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0 top-[72px] z-20 bg-[color:color-mix(in_srgb,var(--color-surface)_70%,transparent)] backdrop-blur-sm lg:hidden"
+          />
+          <nav
+            id="mobile-nav"
+            aria-label="Mobile"
+            className="relative z-30 border-t border-[var(--color-border)] bg-[var(--color-panel-strong)] lg:hidden"
+          >
+            <div className="mx-auto grid w-full max-w-7xl gap-1 px-4 py-4 sm:px-6">
+              {resolvedNavItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-2xl px-4 py-3 text-base font-medium text-[var(--color-text)] transition hover:bg-[var(--color-panel)]"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        </>
+      )}
     </header>
   );
 }

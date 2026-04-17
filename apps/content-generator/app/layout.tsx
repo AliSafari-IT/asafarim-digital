@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   description:
     "Generate high-quality blog posts, product copy, emails, social captions, and summaries with the asafarim-digital AI Content Generator.",
   keywords: ["asafarim", "ai", "content generator", "saas", "copywriting"],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
