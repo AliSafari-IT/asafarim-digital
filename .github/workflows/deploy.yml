@@ -42,7 +42,7 @@ jobs:
           echo "Checking SSH connectivity to VPS..."
           SSH_READY=false
           for attempt in 1 2 3; do
-            if ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo ssh-ok" > /dev/null 2>&1; then
+            if ssh -v ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo ssh-ok"; then
               SSH_READY=true
               echo "SSH connectivity confirmed on attempt ${attempt}."
               break
