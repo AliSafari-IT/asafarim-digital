@@ -14,14 +14,11 @@ export async function POST(request: Request) {
     const password = body.password ?? "";
 
     if (!rawToken) {
-      return NextResponse.json({ error: "Reset token is required." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "Reset token is required." });
     }
 
     if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "Password must be at least 8 characters." });
     }
 
     const hashedToken = hashResetToken(rawToken);
@@ -40,10 +37,7 @@ export async function POST(request: Request) {
     });
 
     if (!resetToken) {
-      return NextResponse.json(
-        { error: "This reset link is invalid or has expired." },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "This reset link is invalid or has expired." });
     }
 
     const email = resetToken.identifier.replace(/^password-reset:/, "").toLowerCase();
@@ -60,10 +54,7 @@ export async function POST(request: Request) {
           identifier: resetToken.identifier,
         },
       });
-      return NextResponse.json(
-        { error: "This reset link is invalid or has expired." },
-        { status: 400 },
-      );
+      return NextResponse.json({ ok: false, error: "This reset link is invalid or has expired." });
     }
 
     await prisma.$transaction([
@@ -81,11 +72,11 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    return NextResponse.json({ message: "Password has been reset successfully." });
+    return NextResponse.json({ ok: true, message: "Password has been reset successfully." });
   } catch (error) {
     console.error("Reset password failed", error);
     return NextResponse.json(
-      { error: "Unable to reset password right now." },
+      { ok: false, error: "Unable to reset password right now." },
       { status: 500 },
     );
   }

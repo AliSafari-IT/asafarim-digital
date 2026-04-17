@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description:
     "Product engineering portal for ASafariM Digital. Premium SaaS delivery across frontend systems, backend architecture, and AI workflows.",
   keywords: ["asafarim", "developer portal", "saas", "ai platform", "next.js", "backend architecture"],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({

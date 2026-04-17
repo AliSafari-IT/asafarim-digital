@@ -51,9 +51,9 @@ function ResetPasswordPageContent() {
         body: JSON.stringify({ token, password }),
       });
 
-      const data = (await response.json()) as { error?: string; message?: string };
+      const data = (await response.json()) as { ok?: boolean; error?: string; message?: string };
 
-      if (!response.ok) {
+      if (!response.ok || data.ok === false) {
         setErrorMessage(data.error || "Unable to reset password.");
         return;
       }
