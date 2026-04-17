@@ -17,6 +17,7 @@
 				"username": "asafarim",
 				"group": "ASM"
 			}
-		]
+		],
+		"postman.settings.dotenv-detection-notification-visibility": false
 	}
 }

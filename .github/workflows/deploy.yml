@@ -115,7 +115,8 @@ jobs:
             sudo systemctl reload nginx
             docker compose up -d postgres
             docker compose rm -f db-migrate || true
-            docker compose build portal content-generator ops-hub
+            # Rebuild all images (including db-migrate so schema.prisma inside is current)
+            docker compose build --pull db-migrate portal content-generator ops-hub
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
