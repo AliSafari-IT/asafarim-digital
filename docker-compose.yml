@@ -53,6 +53,7 @@ services:
       - PORTAL_URL=https://portal-qa.asafarim.com
       - CONTENT_GENERATOR_URL=${CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
       - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+      - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       # Auth
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
@@ -89,6 +90,7 @@ services:
       - NODE_ENV=production
       - PORTAL_URL=https://portal-qa.asafarim.com
       - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       # Auth (same DB and secrets — shared SSO)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
@@ -125,6 +127,7 @@ services:
       - NODE_ENV=production
       - PORTAL_URL=${PORTAL_URL:-https://portal-qa.asafarim.com}
       - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_URL=https://ops-hub.asafarim.com
