@@ -124,8 +124,8 @@ export function AppSwitcher({ current }: { current: AppKey }) {
                     href={href}
                     className={`group relative overflow-hidden rounded-2xl border p-3 transition-all ${
                       isCurrent
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]"
-                        : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)]"
+                        ? "border-[var(--color-primary)] bg-[var(--color-surface-glass)]"
+                        : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface)]"
                     }`}
                   >
                     <div
