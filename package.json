@@ -7,8 +7,8 @@
     "lint": "turbo lint",
     "clean": "turbo clean",
     "dev:portal": "turbo dev --filter=portal",
-    "dev:ops": "turbo dev --filter=ops-hub",
-    "onVPS:dockerUp": "docker compose up -d --force-recreate portal content-generator ops-hub",
+    "dev:ops": "turbo dev --filter=ops-hub",    
+    "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content",
     "onVPS:dockerDown": "docker compose down"
   },
   "devDependencies": {
