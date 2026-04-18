@@ -105,6 +105,7 @@ jobs:
             set -euo pipefail
             FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
+            export COMPOSE_PARALLEL_LIMIT=1
             sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/ops-hub.asafarim.com.conf /etc/nginx/sites-available/ops-hub.asafarim.com.conf
@@ -117,8 +118,20 @@ jobs:
             sudo systemctl reload nginx
             docker compose up -d postgres
             docker compose rm -f db-migrate || true
-            # Rebuild all images (including db-migrate so schema.prisma inside is current)
-            docker compose build --pull db-migrate portal content-generator ops-hub marketing-content
+            echo "Docker disk usage before cleanup:"
+            docker system df || true
+            echo "Pruning unused Docker builder cache before rebuild..."
+            docker builder prune -af || true
+            docker image prune -af || true
+            docker container prune -f || true
+            echo "Docker disk usage after cleanup:"
+            docker system df || true
+            # Rebuild images sequentially to avoid ENOSPC from parallel pnpm installs
+            docker compose build --pull db-migrate
+            docker compose build --pull portal
+            docker compose build --pull content-generator
+            docker compose build --pull ops-hub
+            docker compose build --pull marketing-content
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
