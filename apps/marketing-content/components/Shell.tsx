@@ -364,6 +364,54 @@ function NotificationsBell() {
   );
 }
 
+interface AvatarProps {
+  src?: string | null;
+  alt?: string;
+  name?: string | null;
+  email?: string | null;
+  size?: number;
+  className?: string;
+}
+
+function Avatar({ src, alt, name, email, size = 28, className = "" }: AvatarProps) {
+  const initials = name
+    ? name
+        .split(" ")
+        .map((part: string) => part[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : email?.[0]?.toUpperCase() ?? "?";
+
+  // In development, use portal URL for avatars since files are stored there
+  const avatarSrc = src && process.env.NODE_ENV === "development"
+    ? `${process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000"}${src}`
+    : src;
+
+  return (
+    <div className={`relative shrink-0 ${className}`}>
+      {avatarSrc ? (
+        <img
+          src={avatarSrc}
+          alt={alt ?? name ?? "User"}
+          width={size}
+          height={size}
+          referrerPolicy="no-referrer"
+          className="rounded-full object-cover"
+          style={{ width: size, height: size }}
+        />
+      ) : (
+        <div
+          className="flex items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-amber-500 text-[11px] font-bold text-white"
+          style={{ width: size, height: size }}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UserMenu({ user }: { user: { name: string | null; email: string } }) {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -387,20 +435,13 @@ function UserMenu({ user }: { user: { name: string | null; email: string } }) {
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-0.5 pr-2.5 text-sm font-medium transition hover:border-[var(--color-accent)]"
       >
-        {session?.user?.image ? (
-          <img
-            src={session.user.image}
-            alt={user.name ?? "User"}
-            width={28}
-            height={28}
-            referrerPolicy="no-referrer"
-            className="h-7 w-7 rounded-full object-cover"
-          />
-        ) : (
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-amber-500 text-[11px] font-bold text-white">
-            {initials}
-          </span>
-        )}
+        <Avatar
+          src={session?.user?.image}
+          alt={user.name ?? "User"}
+          name={user.name}
+          email={user.email}
+          size={28}
+        />
         <span className="hidden max-w-[120px] truncate text-xs sm:block">
           {user.name ?? user.email.split("@")[0]}
         </span>
@@ -418,18 +459,14 @@ function UserMenu({ user }: { user: { name: string | null; email: string } }) {
             <div className="relative overflow-hidden border-b border-[var(--color-border)] p-4">
               <div className="pointer-events-none absolute -top-16 right-0 h-40 w-40 rounded-full bg-gradient-to-br from-rose-500/30 to-amber-500/0 blur-3xl" />
               <div className="relative flex items-center gap-3">
-                {session?.user?.image ? (
-                  <img
-                    src={session.user.image}
-                    alt={user.name ?? "User"}
-                    referrerPolicy="no-referrer"
-                    className="h-12 w-12 rounded-full object-cover ring-2 ring-rose-500/30"
-                  />
-                ) : (
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-amber-500 text-lg font-bold text-white ring-2 ring-rose-500/30">
-                    {initials}
-                  </span>
-                )}
+                <Avatar
+                  src={session?.user?.image}
+                  alt={user.name ?? "User"}
+                  name={user.name}
+                  email={user.email}
+                  size={48}
+                  className="ring-2 ring-rose-500/30"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-[var(--color-text)]">
                     {user.name ?? "User"}
