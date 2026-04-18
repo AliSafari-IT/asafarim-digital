@@ -1,6 +1,7 @@
 "use client";
 
 import { Logo } from "./Logo";
+import { AppSwitcher } from "./AppSwitcher";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
 const repoUrl = "https://github.com/AliSafari-IT/asafarim-digital";
@@ -30,6 +31,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <AppSwitcher current="content-generator" />
           <a
             href={repoUrl}
             target="_blank"

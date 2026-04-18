@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { AppSwitcher } from "./AppSwitcher";
 
 type Theme = "dark" | "light";
 
@@ -295,6 +296,7 @@ export function SiteHeader({
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <AppSwitcher current="portal" />
           <UserMenu />
           <button
             type="button"
