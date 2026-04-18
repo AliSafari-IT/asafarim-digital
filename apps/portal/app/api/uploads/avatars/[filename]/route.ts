@@ -30,6 +30,8 @@ export async function GET(
 
   const filePath = path.join(
     process.cwd(),
+    "apps",
+    "portal",
     "public",
     "uploads",
     "avatars",
