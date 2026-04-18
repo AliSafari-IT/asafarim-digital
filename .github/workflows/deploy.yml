@@ -110,6 +110,11 @@ jobs:
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/ops-hub.asafarim.com.conf /etc/nginx/sites-available/ops-hub.asafarim.com.conf
             sudo install -m 644 infra/nginx/marketing-content.asafarim.com.conf /etc/nginx/sites-available/marketing-content.asafarim.com.conf
+            # Remove old duplicate configs before creating new symlinks
+            sudo rm -f /etc/nginx/sites-enabled/portal-qa.asafarim.com
+            sudo rm -f /etc/nginx/sites-enabled/content-generator-qa.asafarim.com
+            sudo rm -f /etc/nginx/sites-enabled/ops-hub.asafarim.com
+            sudo rm -f /etc/nginx/sites-enabled/marketing-content.asafarim.com
             sudo ln -sf /etc/nginx/sites-available/portal-qa.asafarim.com.conf /etc/nginx/sites-enabled/portal-qa.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf /etc/nginx/sites-enabled/content-generator-qa.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/ops-hub.asafarim.com.conf /etc/nginx/sites-enabled/ops-hub.asafarim.com.conf
