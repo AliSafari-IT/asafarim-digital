@@ -7,8 +7,6 @@ import { asafarimBrandTokens } from "@asafarim/ui";
 import { ContentForm } from "@/components/ContentForm";
 import { OutputCard } from "@/components/OutputCard";
 import { ContentType } from "@/components/TypeSelector";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 
 type GeneratePayload = {
   type: ContentType;
@@ -123,7 +121,7 @@ export default function ContentGeneratorPage() {
   ];
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[var(--color-surface)] text-[var(--color-text)]">
+    <div className="relative overflow-x-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(58,123,255,0.25),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(79,242,201,0.18),transparent_38%),radial-gradient(circle_at_50%_85%,rgba(192,132,252,0.12),transparent_40%)]"
@@ -134,8 +132,6 @@ export default function ContentGeneratorPage() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] w-full object-cover opacity-50"
       />
-
-      <Header />
 
       <section className="mx-auto w-full max-w-7xl px-6 pt-14 sm:pt-20">
         <div className="flex flex-col items-start gap-6 sm:items-center sm:text-center">
@@ -238,8 +234,6 @@ export default function ContentGeneratorPage() {
           onRegenerate={handleRegenerate}
         />
       </section>
-
-      <Footer />
-    </main>
+    </div>
   );
 }

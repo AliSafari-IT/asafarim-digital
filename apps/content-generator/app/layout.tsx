@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { SessionProvider } from "@/components/SessionProvider";
+import { Shell } from "@/components/Shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,9 +22,28 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                function getTheme() {
+                  const stored = localStorage.getItem('asafarim-theme');
+                  if (stored) return stored;
+                  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+                }
+                const theme = getTheme();
+                document.documentElement.dataset.theme = theme;
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <Shell>{children}</Shell>
+        </SessionProvider>
       </body>
     </html>
   );

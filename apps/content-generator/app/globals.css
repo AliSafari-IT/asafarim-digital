@@ -23,6 +23,22 @@
   --radius-card: 1rem;
 }
 
+[data-theme="light"] {
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fafc;
+  --color-surface-glass: rgba(255, 255, 255, 0.8);
+  --color-border: #e2e8f0;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-primary: #3a7bff;
+  --color-primary-dark: #2563eb;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --gradient-brand: linear-gradient(135deg, #3a7bff 0%, #4ff2c9 100%);
+  --shadow-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
+}
+
 * {
   border-color: var(--color-border);
 }
