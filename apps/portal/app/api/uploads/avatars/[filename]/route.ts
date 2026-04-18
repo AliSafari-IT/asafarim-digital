@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readFile, stat } from "node:fs/promises";
-import path from "node:path";
+import { getAvatarPathCandidates } from "@/lib/avatar-storage";
 
 const MIME: Record<string, string> = {
   png: "image/png",
@@ -28,27 +28,21 @@ export async function GET(
     return NextResponse.json({ error: "Unsupported type" }, { status: 415 });
   }
 
-  const filePath = path.join(
-    process.cwd(),
-    "apps",
-    "portal",
-    "public",
-    "uploads",
-    "avatars",
-    filename
-  );
-
-  try {
-    const [buffer, stats] = await Promise.all([readFile(filePath), stat(filePath)]);
-    return new NextResponse(buffer as unknown as BodyInit, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(stats.size),
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  for (const filePath of getAvatarPathCandidates(filename)) {
+    try {
+      const [buffer, stats] = await Promise.all([readFile(filePath), stat(filePath)]);
+      return new NextResponse(buffer as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type": contentType,
+          "Content-Length": String(stats.size),
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    } catch {
+      continue;
+    }
   }
+
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
 }

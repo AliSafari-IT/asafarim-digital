@@ -20,6 +20,16 @@ type ProfileData = {
   updatedAt?: string | Date;
 };
 
+function resolvePortalAvatarSrc(src?: string | null) {
+  if (!src) return null;
+  if (/^https?:\/\//i.test(src)) return src;
+  if (src.startsWith("/api/uploads/avatars/")) return src;
+  if (src.startsWith("/uploads/avatars/")) {
+    return src.replace("/uploads/avatars/", "/api/uploads/avatars/");
+  }
+  return src;
+}
+
 export function ProfileForm({ user }: { user: ProfileData }) {
   const { update } = useSession();
   const [form, setForm] = useState({
@@ -195,8 +205,8 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
         <div className="mt-8 rounded-3xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
           <div className="flex items-center gap-4">
-            {form.image ? (
-              <img src={form.image} alt={form.name || user.email} className="h-18 w-18 rounded-2xl object-cover" />
+            {resolvePortalAvatarSrc(form.image) ? (
+              <img src={resolvePortalAvatarSrc(form.image) ?? undefined} alt={form.name || user.email} className="h-18 w-18 rounded-2xl object-cover" />
             ) : (
               <div className="flex h-18 w-18 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--color-primary),var(--color-accent))] text-xl font-semibold text-white">
                 {(form.name || user.email).slice(0, 1).toUpperCase()}
@@ -378,7 +388,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
             >
               {form.image ? (
                 <img
-                  src={form.image}
+                  src={resolvePortalAvatarSrc(form.image) ?? undefined}
                   alt="Avatar preview"
                   className="h-20 w-20 rounded-2xl object-cover"
                 />
@@ -437,7 +447,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               value={form.image}
               onChange={(event) => setField("image", event.target.value)}
               disabled={!isVerified}
-              placeholder="https://... or /uploads/avatars/..."
+              placeholder="https://... or /api/uploads/avatars/..."
               className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
             />
             <p className="mt-2 text-xs text-[var(--color-text-muted)]">

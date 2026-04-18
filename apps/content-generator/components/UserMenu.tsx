@@ -12,6 +12,23 @@ interface AvatarProps {
   size?: number;
 }
 
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+
+function resolveSharedAvatarSrc(src?: string | null) {
+  if (!src) return null;
+  if (/^https?:\/\//i.test(src)) return src;
+
+  const normalized = src.startsWith("/uploads/avatars/")
+    ? src.replace("/uploads/avatars/", "/api/uploads/avatars/")
+    : src;
+
+  if (normalized.startsWith("/api/uploads/avatars/")) {
+    return `${portalUrl}${normalized}`;
+  }
+
+  return normalized;
+}
+
 function Avatar({ src, alt, name, email, size = 28 }: AvatarProps) {
   const initials = name
     ? name
@@ -23,9 +40,7 @@ function Avatar({ src, alt, name, email, size = 28 }: AvatarProps) {
     : email?.[0]?.toUpperCase() ?? "?";
 
   // In development, use portal URL for avatars since files are stored there
-  const avatarSrc = src && process.env.NODE_ENV === "development"
-    ? `${process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000"}${src}`
-    : src;
+  const avatarSrc = resolveSharedAvatarSrc(src);
 
   return (
     <div className="relative shrink-0">

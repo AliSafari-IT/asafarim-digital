@@ -21,6 +21,16 @@ const defaultNavItems: NavItem[] = [
   { href: "/#contact", label: "Contact" },
 ];
 
+function resolvePortalAvatarSrc(src?: string | null) {
+  if (!src) return null;
+  if (/^https?:\/\//i.test(src)) return src;
+  if (src.startsWith("/api/uploads/avatars/")) return src;
+  if (src.startsWith("/uploads/avatars/")) {
+    return src.replace("/uploads/avatars/", "/api/uploads/avatars/");
+  }
+  return src;
+}
+
 function canAccessAdmin(roles?: string[]) {
   return Boolean(roles?.includes("admin") || roles?.includes("superadmin"));
 }
@@ -135,9 +145,9 @@ function UserMenu() {
         aria-expanded={open}
         className="flex items-center gap-3 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-primary)]"
       >
-        {session.user.image ? (
+        {resolvePortalAvatarSrc(session.user.image) ? (
           <img
-            src={session.user.image}
+            src={resolvePortalAvatarSrc(session.user.image) ?? undefined}
             alt={session.user.name ?? "User"}
             width={28}
             height={28}

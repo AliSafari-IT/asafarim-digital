@@ -4,6 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { auth } from "@asafarim/auth";
 import { prisma } from "@asafarim/db";
+import { getPrimaryAvatarUploadsDir } from "@/lib/avatar-storage";
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2MB
 const ALLOWED = new Map<string, string>([
@@ -67,14 +68,14 @@ export async function POST(request: Request) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", "avatars");
+  const uploadsDir = getPrimaryAvatarUploadsDir();
   await mkdir(uploadsDir, { recursive: true });
 
   const filename = `${currentUser.id}-${randomUUID()}.${ext}`;
   const target = path.join(uploadsDir, filename);
   await writeFile(target, bytes);
 
-  const publicUrl = `/uploads/avatars/${filename}`;
+  const publicUrl = `/api/uploads/avatars/${filename}`;
 
   const updated = await prisma.user.update({
     where: { id: currentUser.id },
