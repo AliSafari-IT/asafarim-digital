@@ -58,7 +58,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  apps/ops-hub:
+  apps/marketing-content:
     dependencies:
       '@asafarim/auth':
         specifier: workspace:*
@@ -71,7 +71,7 @@ importers:
         version: 15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       next-auth:
         specifier: ^5.0.0-beta.28
-        version: 5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
+        version: 5.0.0-beta.30(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
       react:
         specifier: ^19.0.0
         version: 19.2.5
@@ -107,6 +107,55 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
+  apps/ops-hub:
+    dependencies:
+      '@asafarim/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@asafarim/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      next:
+        specifier: ^15.3.0
+        version: 15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      next-auth:
+        specifier: ^5.0.0-beta.28
+        version: 5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
+    devDependencies:
+      '@tailwindcss/postcss':
+        specifier: ^4.0.0
+        version: 4.2.2
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.17
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
+      eslint:
+        specifier: ^9.39.4
+        version: 9.39.4(jiti@2.6.1)
+      eslint-config-next:
+        specifier: 16.2.3
+        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+      postcss:
+        specifier: ^8.5.0
+        version: 8.5.9
+      tailwindcss:
+        specifier: ^4.0.0
+        version: 4.2.2
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   apps/portal:
     dependencies:
       '@asafarim/auth':
@@ -120,7 +169,7 @@ importers:
         version: 15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       next-auth:
         specifier: ^5.0.0-beta.28
-        version: 5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
+        version: 5.0.0-beta.30(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
       nodemailer:
         specifier: ^6.10.1
         version: 6.10.1
@@ -151,7 +200,7 @@ importers:
         version: 9.39.4(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.3
-        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.2.3(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.0
         version: 8.5.9
@@ -175,7 +224,7 @@ importers:
         version: 2.4.3
       next-auth:
         specifier: ^5.0.0-beta.28
-        version: 5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
+        version: 5.0.0-beta.30(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.6
@@ -4546,7 +4595,13 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next-auth@5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5):
+  next-auth@5.0.0-beta.30(next@15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5):
+    dependencies:
+      '@auth/core': 0.41.0(nodemailer@6.10.1)
+      next: 15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      react: 19.2.5
+
+  next-auth@5.0.0-beta.30(next@15.5.15(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5):
     dependencies:
       '@auth/core': 0.41.0(nodemailer@6.10.1)
       next: 15.5.15(@babel/core@7.29.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

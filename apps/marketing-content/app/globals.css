@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0a0609;
+  --color-bg-soft: #120a10;
+  --color-surface: #1a0f17;
+  --color-surface-elevated: #231523;
+  --color-border: rgba(244, 114, 182, 0.12);
+  --color-border-strong: rgba(244, 114, 182, 0.22);
+  --color-text: #fbe9ee;
+  --color-text-muted: #c3a4b0;
+  --color-text-subtle: #8e6b7a;
+  --color-primary: #f43f5e;
+  --color-primary-soft: rgba(244, 63, 94, 0.16);
+  --color-accent: #f59e0b;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(244, 63, 94, 0.14), transparent 60%),
+    radial-gradient(900px 400px at 10% 0%, rgba(245, 158, 11, 0.08), transparent 55%),
+    var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="email"],
+select,
+textarea {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  width: 100%;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+select option,
+select optgroup {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.hr-soft {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-border-strong), transparent);
+  border: 0;
+}

@@ -108,15 +108,17 @@ jobs:
             sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
             sudo install -m 644 infra/nginx/ops-hub.asafarim.com.conf /etc/nginx/sites-available/ops-hub.asafarim.com.conf
+            sudo install -m 644 infra/nginx/marketing-content.asafarim.com.conf /etc/nginx/sites-available/marketing-content.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/portal-qa.asafarim.com.conf /etc/nginx/sites-enabled/portal-qa.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf /etc/nginx/sites-enabled/content-generator-qa.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/ops-hub.asafarim.com.conf /etc/nginx/sites-enabled/ops-hub.asafarim.com.conf
+            sudo ln -sf /etc/nginx/sites-available/marketing-content.asafarim.com.conf /etc/nginx/sites-enabled/marketing-content.asafarim.com.conf
             sudo nginx -t
             sudo systemctl reload nginx
             docker compose up -d postgres
             docker compose rm -f db-migrate || true
             # Rebuild all images (including db-migrate so schema.prisma inside is current)
-            docker compose build --pull db-migrate portal content-generator ops-hub
+            docker compose build --pull db-migrate portal content-generator ops-hub marketing-content
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
@@ -147,7 +149,7 @@ jobs:
               echo "SiteContent already present (${SITE_CONTENT_COUNT}). Skipping seed. (Use workflow_dispatch with force_seed=true to override.)"
             fi
 
-            docker compose up -d --force-recreate portal content-generator ops-hub
+            docker compose up -d --force-recreate portal content-generator ops-hub marketing-content
             docker system prune -f
             echo "Deployment complete!"
             docker compose ps
@@ -164,14 +166,16 @@ jobs:
               PORTAL_OK=false
               CG_OK=false
               OPS_OK=false
+              MC_OK=false
               curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && PORTAL_OK=true
               curl -sf http://localhost:3002/api/health > /dev/null 2>&1 && CG_OK=true
               curl -sf http://localhost:3003/api/health > /dev/null 2>&1 && OPS_OK=true
-              if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ] && [ "$OPS_OK" = true ]; then
+              curl -sf http://localhost:3004/api/health > /dev/null 2>&1 && MC_OK=true
+              if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ] && [ "$OPS_OK" = true ] && [ "$MC_OK" = true ]; then
                 echo "All services healthy after ${i}x5s"
                 exit 0
               fi
-              echo "Attempt $i/$RETRIES: portal=$PORTAL_OK cg=$CG_OK ops=$OPS_OK — waiting 5s..."
+              echo "Attempt $i/$RETRIES: portal=$PORTAL_OK cg=$CG_OK ops=$OPS_OK mc=$MC_OK — waiting 5s..."
               sleep 5
             done
             echo "=== Portal logs ==="
@@ -180,6 +184,8 @@ jobs:
             docker logs asafarim-content-generator --tail=50
             echo "=== Ops-hub logs ==="
             docker logs asafarim-ops-hub --tail=50
+            echo "=== Marketing-content logs ==="
+            docker logs asafarim-marketing-content --tail=50
             echo "Health check failed after 90s"
             exit 1
           ENDVERIFY

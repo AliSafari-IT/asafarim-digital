@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="mcBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#120A10"/>
+      <stop offset="100%" stop-color="#2A1222"/>
+    </linearGradient>
+    <linearGradient id="mcGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="38" fill="url(#mcBg)"/>
+  <path d="M28 30h124l-40 52v50l-44 22V82L28 30z" fill="none" stroke="url(#mcGrad)" stroke-width="6" stroke-linejoin="round"/>
+  <circle cx="90" cy="62" r="8" fill="url(#mcGrad)"/>
+  <circle cx="90" cy="94" r="6" fill="url(#mcGrad)" opacity="0.85"/>
+  <circle cx="90" cy="122" r="4.5" fill="url(#mcGrad)" opacity="0.7"/>
+</svg>
