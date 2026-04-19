@@ -21,10 +21,10 @@ export function KpiCard({ label, value, delta, hint, tone = "default" }: KpiCard
       <div className={`pointer-events-none absolute -top-24 right-0 h-48 w-48 rounded-full bg-gradient-to-br ${toneRing[tone]} blur-3xl`} />
       <div className="relative">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-subtle)]">{label}</p>
-        <div className="mt-2 flex items-baseline gap-2">
+        <div className="mt-2 flex flex-col items-start gap-1 sm:flex-row sm:items-baseline sm:gap-2">
           <p className="text-2xl font-semibold text-[var(--color-text)]">{value}</p>
           {delta && (
-            <span className={`text-xs font-medium ${delta.positive ? "text-emerald-400" : "text-rose-400"}`}>
+            <span className={`text-xs font-medium leading-tight ${delta.positive ? "text-emerald-400" : "text-rose-400"}`}>
               {delta.positive ? "▲" : "▼"} {delta.value}
             </span>
           )}

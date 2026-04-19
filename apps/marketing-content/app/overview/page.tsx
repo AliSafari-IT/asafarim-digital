@@ -32,13 +32,13 @@ export default function OverviewPage() {
         title="Growth at a glance"
         description="Cross-channel marketing system: campaigns, content, SEO, leads, and automations."
         actions={
-          <span className="text-xs text-[var(--color-text-subtle)]">
+          <span className="text-xs text-[var(--color-text-subtle)] sm:text-right">
             Updated {new Date().toLocaleTimeString()}
           </span>
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Active campaigns"
           value={formatNumber(liveCampaigns.length)}
@@ -65,7 +65,7 @@ export default function OverviewPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Content published" value={formatNumber(publishedThisMonth)} hint={`${contentAssets.length} in pipeline`} />
         <KpiCard label="Automation runs 24h" value={formatNumber(automationRuns24h)} hint={`${automations.filter((a) => a.status === "healthy").length}/${automations.length} healthy`} tone="success" />
         <KpiCard label="Conversions (live)" value={formatNumber(totalConversions)} hint="Across paid, SEO, email, social" />
@@ -81,15 +81,15 @@ export default function OverviewPage() {
             </Link>
           </div>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">Live campaigns, sorted by conversions.</p>
-          <div className="mt-4 overflow-hidden rounded-lg border border-[var(--color-border)]">
-            <table className="w-full text-left text-sm">
+          <div className="mt-4 hidden overflow-hidden rounded-lg border border-[var(--color-border)] md:block">
+            <table className="w-full table-fixed text-left text-sm">
               <thead className="bg-[var(--color-bg-soft)]/60 text-[11px] uppercase tracking-wide text-[var(--color-text-subtle)]">
                 <tr>
-                  <th className="px-4 py-2 font-semibold">Campaign</th>
-                  <th className="px-4 py-2 font-semibold">Channel</th>
-                  <th className="px-4 py-2 font-semibold text-right">Clicks</th>
-                  <th className="px-4 py-2 font-semibold text-right">Conv.</th>
-                  <th className="px-4 py-2 font-semibold text-right">Spend</th>
+                  <th className="w-[38%] px-4 py-2 font-semibold">Campaign</th>
+                  <th className="w-[17%] px-4 py-2 font-semibold">Channel</th>
+                  <th className="w-[15%] px-4 py-2 font-semibold text-right">Clicks</th>
+                  <th className="w-[15%] px-4 py-2 font-semibold text-right">Conv.</th>
+                  <th className="w-[15%] px-4 py-2 font-semibold text-right">Spend</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -99,7 +99,7 @@ export default function OverviewPage() {
                   .map((c) => (
                     <tr key={c.id} className="hover:bg-white/[0.02]">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-[var(--color-text)]">{c.name}</p>
+                        <p className="line-clamp-2 font-medium text-[var(--color-text)]">{c.name}</p>
                         <p className="text-xs text-[var(--color-text-muted)]">{c.owner}</p>
                       </td>
                       <td className="px-4 py-3"><StatusBadge value={c.channel} /></td>
@@ -110,6 +110,39 @@ export default function OverviewPage() {
                   ))}
               </tbody>
             </table>
+          </div>
+          <div className="mt-4 space-y-3 md:hidden">
+            {liveCampaigns
+              .sort((a, b) => b.conversions - a.conversions)
+              .slice(0, 5)
+              .map((c) => (
+                <article
+                  key={c.id}
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-soft)]/35 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-base font-semibold text-[var(--color-text)]">{c.name}</p>
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">{c.owner}</p>
+                    </div>
+                    <StatusBadge value={c.channel} />
+                  </div>
+                  <dl className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="min-w-0">
+                      <dt className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-subtle)]">Clicks</dt>
+                      <dd className="mt-1 text-sm font-mono text-[var(--color-text)]">{formatNumber(c.clicks)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-subtle)]">Conv.</dt>
+                      <dd className="mt-1 text-sm font-mono text-[var(--color-text)]">{formatNumber(c.conversions)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-text-subtle)]">Spend</dt>
+                      <dd className="mt-1 text-sm font-mono text-[var(--color-text)]">{formatMoney(c.spentCents)}</dd>
+                    </div>
+                  </dl>
+                </article>
+              ))}
           </div>
         </div>
 
@@ -158,7 +191,7 @@ export default function OverviewPage() {
         </div>
         <ul className="mt-4 divide-y divide-[var(--color-border)]">
           {recentActivity.map((e) => (
-            <li key={e.id} className="flex items-center justify-between gap-3 py-3">
+            <li key={e.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <ActivityDot kind={e.kind} />
                 <div className="min-w-0">
@@ -166,7 +199,7 @@ export default function OverviewPage() {
                   <p className="truncate text-xs text-[var(--color-text-muted)]">{e.detail}</p>
                 </div>
               </div>
-              <span className="shrink-0 text-xs text-[var(--color-text-subtle)]">{formatRelative(e.at)}</span>
+              <span className="pl-5 text-xs text-[var(--color-text-subtle)] sm:pl-0">{formatRelative(e.at)}</span>
             </li>
           ))}
         </ul>
