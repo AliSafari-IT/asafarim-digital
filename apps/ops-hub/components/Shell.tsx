@@ -314,8 +314,8 @@ function NotificationsBell() {
       </button>
 
       {open && (
-        <div ref={ref} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[340px] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+        <div ref={ref} className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(21.25rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] shadow-2xl">
+            <div className="flex flex-col gap-2 border-b border-[var(--color-border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-semibold text-[var(--color-text)]">Notifications</p>
               {badge > 0 && (
                 <button
@@ -329,9 +329,9 @@ function NotificationsBell() {
             <ul className="max-h-[360px] divide-y divide-[var(--color-border)] overflow-y-auto">
               {notifications.map((n) => (
                 <li key={n.id} className="px-4 py-3 hover:bg-white/[0.02]">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                     <p className="text-sm text-[var(--color-text)]">{n.text}</p>
-                    <span className="shrink-0 text-[10px] text-[var(--color-text-subtle)]">{n.when}</span>
+                    <span className="text-[10px] text-[var(--color-text-subtle)] sm:shrink-0">{n.when}</span>
                   </div>
                   <span className="mt-1 inline-block rounded-full bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
                     {n.kind}

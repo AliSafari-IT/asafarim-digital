@@ -110,8 +110,8 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
         <div
           role="dialog"
           className={isCompact
-            ? "absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[320px] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-2xl"
-            : "absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[320px] rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-3 shadow-[var(--shadow-card)]"
+            ? "absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-2xl"
+            : "absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-3 shadow-[var(--shadow-card)]"
           }
         >
             <div className="flex items-center justify-between px-2 pb-2">
@@ -122,7 +122,7 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
                 {apps.length}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
               {apps.map((a) => {
                 const isCurrent = a.key === current;
                 const href = resolveUrl(a.urlEnv, a.fallback);
@@ -146,7 +146,7 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
                       {a.mark}
                     </div>
                     <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">{a.name}</p>
-                    <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--color-text-muted)]">
+                    <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] sm:line-clamp-1">
                       {a.tagline}
                     </p>
                     <span className={`absolute right-2 top-2 rounded-full ${isCompact ? "bg-white/5" : "bg-[var(--color-panel)]"} px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${isCompact ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-muted)]"}`}>

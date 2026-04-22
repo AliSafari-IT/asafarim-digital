@@ -52,9 +52,9 @@ export function HomeContent({ content }: { content: ContentMap }) {
       <div aria-hidden="true" className="site-noise" />
       <SiteHeader />
 
-      <main id="top" className="mx-auto w-full max-w-7xl px-6 pb-20 pt-10 sm:pt-14 lg:pt-16">
+      <main id="top" className="mx-auto w-full max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pb-20 sm:pt-14 lg:pt-16">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-[2.5rem] border border-[var(--color-border)] bg-[var(--color-panel)] px-6 py-14 sm:px-10 sm:py-20">
+        <section className="relative overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-panel)] px-4 py-10 sm:rounded-[2.5rem] sm:px-10 sm:py-20">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 -z-10 opacity-90"
@@ -81,7 +81,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
               Frontend · Backend · AI
             </span>
 
-            <h1 className="mt-7 text-5xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-6xl lg:text-[5.25rem]">
+            <h1 className="mt-7 text-4xl font-semibold leading-[1.02] tracking-[-0.05em] sm:text-6xl lg:text-[5.25rem]">
               Ship{" "}
               <span className="bg-[linear-gradient(120deg,#6aa3ff_0%,#a78bfa_50%,#5de4c7_100%)] bg-clip-text text-transparent">
                 full-stack SaaS
@@ -235,7 +235,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
                 Delivery Snapshot
               </p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] sm:text-4xl">
                 {deliverySnapshot.title}
               </h2>
               {deliverySnapshot.badge && (
@@ -261,7 +261,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
             </div>
 
             {deliverySnapshot.codePreview && (
-              <div className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[#081120] p-5 text-sm text-slate-200 shadow-[var(--shadow-card)]">
+              <div className="rounded-[1.5rem] border border-[var(--color-border-strong)] bg-[#081120] p-4 text-sm text-slate-200 shadow-[var(--shadow-card)] sm:rounded-[2rem] sm:p-5">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
@@ -270,7 +270,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
                     stack.preview.ts
                   </span>
                 </div>
-                <pre className="mt-4 overflow-x-auto font-mono text-[13px] leading-6 text-sky-100">
+                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-sky-100 sm:text-[13px]">
                   {deliverySnapshot.codePreview}
                 </pre>
               </div>
@@ -323,7 +323,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
                 {showcaseItems.map((item, index) => (
                   <a key={item.name} href={item.href} className="group overflow-hidden rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-panel)] transition hover:-translate-y-1 hover:border-[var(--color-primary)] hover:shadow-[var(--shadow-card)]">
                     <div className="relative overflow-hidden border-b border-[var(--color-border)] bg-[linear-gradient(135deg,#0b1324,#10203f)] p-6">
-                      <img src={`/brand/showcase-${index + 1}.svg`} alt={`${item.name} interface preview`} className="h-44 w-full rounded-2xl border border-white/10 object-cover" />
+                      <img src={`/brand/showcase-${index + 1}.svg`} alt={`${item.name} interface preview`} className="h-32 w-full rounded-2xl border border-white/10 object-cover sm:h-44" />
                       <div className="mt-5 flex items-center justify-between gap-3">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200/75">{item.label}</span>
                         <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${item.isLive ? "bg-emerald-400/10 text-emerald-300" : "bg-white/8 text-slate-300"}`}>
@@ -399,7 +399,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
         {/* About + Contact */}
         <section className="mt-24 grid gap-6 lg:grid-cols-[0.95fr,1.05fr]">
           {about && (
-            <article className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-panel)] p-8">
+            <article className="rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-panel)] p-6 sm:p-8">
               {about.eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">{about.eyebrow}</p>}
               {about.title && <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">{about.title}</h2>}
               {about.subtitle && <p className="mt-5 text-sm leading-7 text-[var(--color-text-muted)]">{about.subtitle}</p>}
@@ -407,7 +407,7 @@ export function HomeContent({ content }: { content: ContentMap }) {
           )}
 
           {contact && (
-            <article id="contact" className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[linear-gradient(135deg,var(--color-panel-strong),var(--color-panel))] p-8 shadow-[var(--shadow-card)]">
+            <article id="contact" className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[linear-gradient(135deg,var(--color-panel-strong),var(--color-panel))] p-6 shadow-[var(--shadow-card)] sm:p-8">
               {contact.eyebrow && <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">{contact.eyebrow}</p>}
               {contact.title && <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">{contact.title}</h2>}
               {contact.subtitle && <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--color-text-muted)]">{contact.subtitle}</p>}

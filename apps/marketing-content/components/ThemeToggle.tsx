@@ -1,29 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Theme = "light" | "dark";
-
-function readTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  const saved = window.localStorage.getItem("theme");
-  if (saved === "light" || saved === "dark") return saved;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-function applyTheme(theme: Theme) {
-  if (typeof document === "undefined") return;
-  document.documentElement.dataset.theme = theme;
-}
+import { initializeTheme, persistTheme, applyTheme, type Theme } from "../../../packages/ui/src/theme";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const t = readTheme();
+    const t = initializeTheme();
     setTheme(t);
-    applyTheme(t);
     setMounted(true);
   }, []);
 
@@ -31,11 +17,7 @@ export function ThemeToggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
     applyTheme(next);
-    try {
-      window.localStorage.setItem("theme", next);
-    } catch {
-      /* ignore */
-    }
+    persistTheme(next);
   }
 
   const label = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";

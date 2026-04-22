@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { initializeTheme, persistTheme, applyTheme, type Theme } from "../../../packages/ui/src/theme";
 import { AppSwitcher } from "./AppSwitcher";
-
-type Theme = "dark" | "light";
 
 type NavItem = {
   href: string;
@@ -39,19 +38,14 @@ function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("asafarim-theme") as Theme | null;
-    const systemPrefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    const resolvedTheme: Theme = storedTheme ?? (systemPrefersLight ? "light" : "dark");
-
-    setTheme(resolvedTheme);
-    document.documentElement.dataset.theme = resolvedTheme;
+    setTheme(initializeTheme());
   }, []);
 
   const toggleTheme = () => {
     const nextTheme: Theme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("asafarim-theme", nextTheme);
+    applyTheme(nextTheme);
+    persistTheme(nextTheme);
   };
 
   return (

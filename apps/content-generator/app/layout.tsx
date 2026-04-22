@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
@@ -26,17 +27,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                function getTheme() {
-                  const stored = localStorage.getItem('asafarim-theme');
-                  if (stored) return stored;
-                  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-                }
-                const theme = getTheme();
-                document.documentElement.dataset.theme = theme;
-              })();
-            `,
+            __html: themeInitScript,
           }}
         />
       </head>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@asafarim/auth";
+import { themeInitScript } from "../../../packages/ui/src/theme";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
 
@@ -21,9 +22,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <head>
         <script
-          // Apply saved theme before paint to avoid FOUC.
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.dataset.theme=t;}catch(e){document.documentElement.dataset.theme='dark';}})();`,
+            __html: themeInitScript,
           }}
         />
       </head>

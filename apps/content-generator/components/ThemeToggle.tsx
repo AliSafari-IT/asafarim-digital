@@ -1,26 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Theme = "dark" | "light";
+import { initializeTheme, persistTheme, applyTheme, type Theme } from "../../../packages/ui/src/theme";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("asafarim-theme") as Theme | null;
-    const systemPrefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    const resolvedTheme: Theme = storedTheme ?? (systemPrefersLight ? "light" : "dark");
-
-    setTheme(resolvedTheme);
-    document.documentElement.dataset.theme = resolvedTheme;
+    setTheme(initializeTheme());
   }, []);
 
   const toggleTheme = () => {
     const nextTheme: Theme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
-    window.localStorage.setItem("asafarim-theme", nextTheme);
+    applyTheme(nextTheme);
+    persistTheme(nextTheme);
   };
 
   return (
