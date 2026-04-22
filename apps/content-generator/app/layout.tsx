@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { themeInitScript } from "../../../packages/ui/src/theme";
+import { cookies } from "next/headers";
+import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
@@ -17,13 +18,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const cookieTheme = readThemeFromCookie(cookieStore.toString());
+  const initialTheme = cookieTheme ?? "dark";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
       <head>
         <script
           dangerouslySetInnerHTML={{

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
+import { cookies } from "next/headers";
 import { auth } from "@asafarim/auth";
-import { themeInitScript } from "../../../packages/ui/src/theme";
+import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { Shell } from "@/components/Shell";
 import { ForbiddenError, requireOps } from "@/lib/rbac";
 import "./globals.css";
@@ -13,6 +14,10 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+  const cookieStore = await cookies();
+  const cookieTheme = readThemeFromCookie(cookieStore.toString());
+  const initialTheme = cookieTheme ?? "dark";
+
   let forbidden: string | null = null;
   try {
     await requireOps("read");
@@ -28,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
       <head>
         <script
           dangerouslySetInnerHTML={{

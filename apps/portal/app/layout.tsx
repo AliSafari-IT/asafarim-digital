@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
-import { themeInitScript } from "../../../packages/ui/src/theme";
+import { cookies } from "next/headers";
+import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
 import "./globals.css";
 
@@ -27,13 +28,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const cookieTheme = readThemeFromCookie(cookieStore.toString());
+  const initialTheme = cookieTheme ?? "dark";
+
   return (
-    <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${ibmPlexMono.variable}`}>
+    <html lang="en" suppressHydrationWarning data-theme={initialTheme} className={`${manrope.variable} ${ibmPlexMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
