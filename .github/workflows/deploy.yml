@@ -41,14 +41,14 @@ jobs:
       - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -T 15 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -4 -T 15 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
         env:
           FORCE_SEED: ${{ github.event.inputs.force_seed || 'false' }}
         run: |
           set -euo pipefail
-          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
 
           echo "Checking SSH connectivity to VPS..."
           SSH_READY=false
@@ -176,7 +176,7 @@ jobs:
       - name: Verify deployment
         run: |
           set -euo pipefail
-          SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
           ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDVERIFY'
             echo "Waiting for portal and content-generator to become healthy..."
             RETRIES=18
