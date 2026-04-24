@@ -20,6 +20,8 @@ COPY apps/content-generator ./apps/content-generator
 COPY packages/ui ./packages/ui
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
+COPY packages/shared-i18n ./packages/shared-i18n
+COPY packages/country-language-selector ./packages/country-language-selector
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @asafarim/db build

@@ -19,6 +19,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/portal ./apps/portal
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
+COPY packages/shared-i18n ./packages/shared-i18n
+COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
