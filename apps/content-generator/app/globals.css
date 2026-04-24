@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@asafarim/country-language-selector/styles.css";
 
 :root {
   --color-midnight: #0d0d0f;

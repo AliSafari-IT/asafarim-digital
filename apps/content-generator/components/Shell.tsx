@@ -11,11 +11,13 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsBell } from "./NotificationsBell";
 import { UserMenu } from "./UserMenu";
 import { useOutsideClick } from "@/lib/use-outside-click";
+import { useTranslation } from "@asafarim/shared-i18n";
+import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 
 const nav = [
-  { href: "/#generator", label: "Generator", icon: <GeneratorIcon /> },
-  { href: "/#features", label: "Features", icon: <FeaturesIcon /> },
-  { href: "/#prompts", label: "Prompts", icon: <PromptsIcon /> },
+  { href: "/#generator", label: "Generator", labelKey: "cg.nav.generator", icon: <GeneratorIcon /> },
+  { href: "/#features", label: "Features", labelKey: "cg.nav.templates", icon: <FeaturesIcon /> },
+  { href: "/#prompts", label: "Prompts", labelKey: "cg.nav.history", icon: <PromptsIcon /> },
 ];
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
@@ -49,6 +51,7 @@ function PromptsIcon() {
 export function Shell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -115,22 +118,25 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-2">
           <ul className="space-y-1">
-            {nav.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? "bg-[var(--color-surface-elevated)] text-[var(--color-primary)]"
-                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]"
-                  }`}
-                  title={collapsed ? item.label : undefined}
-                >
-                  {item.icon}
-                  {!collapsed && <span>{item.label}</span>}
-                </Link>
-              </li>
-            ))}
+            {nav.map((item) => {
+              const label = item.labelKey ? t(item.labelKey) : item.label;
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      isActive(item.href)
+                        ? "bg-[var(--color-surface-elevated)] text-[var(--color-primary)]"
+                        : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)]"
+                    }`}
+                    title={collapsed ? label : undefined}
+                  >
+                    {item.icon}
+                    {!collapsed && <span>{label}</span>}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -211,9 +217,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center gap-2">
             <span className="hidden items-center gap-1.5 rounded-full bg-[var(--color-surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-primary)] xl:inline-flex">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
-              AI Engine
+              {t("cg.header.aiEngine")}
             </span>
             <NotificationsBell />
+            <CountryLanguageSelector />
             <ThemeToggle />
             <AppSwitcher current="content-generator" />
             <UserMenu />

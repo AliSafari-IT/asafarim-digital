@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
 import { AttributionCapture } from "@/components/AttributionCapture";
+import { I18nProvider } from "@asafarim/shared-i18n";
+import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
+import { portalDictionaries } from "../lib/i18n-dictionaries";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -37,9 +40,10 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const cookieTheme = readThemeFromCookie(cookieStore.toString());
   const initialTheme = cookieTheme ?? "dark";
+  const initialLocale = resolveLocaleFromCookie(cookieStore.toString());
 
   return (
-    <html lang="en" suppressHydrationWarning data-theme={initialTheme} className={`${manrope.variable} ${ibmPlexMono.variable}`}>
+    <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme} className={`${manrope.variable} ${ibmPlexMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -49,7 +53,9 @@ export default async function RootLayout({
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <AttributionCapture />
-        <SessionProvider>{children}</SessionProvider>
+        <I18nProvider initialLocale={initialLocale} dictionaries={portalDictionaries}>
+          <SessionProvider>{children}</SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   );

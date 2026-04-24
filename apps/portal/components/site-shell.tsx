@@ -5,19 +5,24 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "../../../packages/ui/src/theme";
+import { useTranslation } from "@asafarim/shared-i18n";
+import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppSwitcher } from "./AppSwitcher";
 
 type NavItem = {
   href: string;
+  /** Fallback label used when no translation key matches. */
   label: string;
+  /** Optional i18n key, e.g. `portal.nav.capabilities`. */
+  labelKey?: string;
 };
 
 const defaultNavItems: NavItem[] = [
-  { href: "/#capabilities", label: "Capabilities" },
-  { href: "/#showcase", label: "Work" },
-  { href: "/#process", label: "Process" },
-  { href: "/#stack", label: "Stack" },
-  { href: "/#contact", label: "Contact" },
+  { href: "/#capabilities", label: "Capabilities", labelKey: "portal.nav.capabilities" },
+  { href: "/#showcase", label: "Work", labelKey: "portal.nav.work" },
+  { href: "/#process", label: "Process", labelKey: "portal.nav.process" },
+  { href: "/#stack", label: "Stack", labelKey: "portal.nav.stack" },
+  { href: "/#contact", label: "Contact", labelKey: "portal.nav.contact" },
 ];
 
 function resolvePortalAvatarSrc(src?: string | null) {
@@ -248,9 +253,11 @@ export function SiteHeader({
   navItems?: NavItem[];
 }) {
   const { data: session } = useSession();
+  const { t } = useTranslation();
   const resolvedNavItems = canAccessAdmin(session?.user?.roles)
-    ? [...navItems, { href: "/admin", label: "Admin" }]
+    ? [...navItems, { href: "/admin", label: "Admin", labelKey: "portal.nav.admin" }]
     : navItems;
+  const renderLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Close mobile menu when viewport grows to lg
@@ -298,12 +305,13 @@ export function SiteHeader({
         <nav aria-label="Primary" className="hidden items-center gap-6 text-sm text-[var(--color-text-muted)] lg:flex">
           {resolvedNavItems.map((item) => (
             <Link key={item.href} href={item.href} className="transition hover:text-[var(--color-text)]">
-              {item.label}
+              {renderLabel(item)}
             </Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-2">
+          <CountryLanguageSelector />
           <ThemeToggle />
           <AppSwitcher current="portal" />
           <UserMenu />
@@ -348,7 +356,7 @@ export function SiteHeader({
                   onClick={() => setMobileOpen(false)}
                   className="rounded-2xl px-4 py-3 text-base font-medium text-[var(--color-text)] transition hover:bg-[var(--color-panel)]"
                 >
-                  {item.label}
+                  {renderLabel(item)}
                 </Link>
               ))}
             </div>
