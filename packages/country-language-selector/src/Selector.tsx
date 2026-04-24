@@ -110,7 +110,7 @@ export function CountryLanguageSelector({
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-panel-strong)] shadow-2xl shadow-black/40 backdrop-blur-md"
+          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/20"
         >
           {/* Countries */}
           {!lockCountry && (
