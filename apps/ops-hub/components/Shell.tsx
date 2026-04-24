@@ -15,6 +15,7 @@ const nav = [
   { href: "/tenants",       label: "Tenants",       icon: <TenantsIcon />,     section: "Console" },
   { href: "/users",         label: "Users",         icon: <UsersIcon />,       section: "Console" },
   { href: "/billing",       label: "Billing",       icon: <BillingIcon />,     section: "Revenue" },
+  { href: "/system",        label: "System",        icon: <SystemIcon />,      section: "Platform" },
   { href: "/feature-flags", label: "Feature Flags", icon: <FlagsIcon />,       section: "Platform" },
   { href: "/lifecycle",     label: "Lifecycle",     icon: <LifecycleIcon />,   section: "Platform" },
   { href: "/automations",   label: "Automations",   icon: <AutomationsIcon />, section: "Platform" },
@@ -599,6 +600,16 @@ function AuditIcon() {
     <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
       <rect x="2" y="1" width="12" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
       <path d="M5 5h6M5 8h6M5 11h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+function SystemIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+      <rect x="1.5" y="2.5" width="13" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M5 13.5h6M8 10.5v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="4.5" cy="6.5" r="0.9" fill="currentColor" />
+      <path d="M7 6.5h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@asafarim/db";
 import { hashPassword } from "@asafarim/auth";
 
@@ -9,6 +10,39 @@ function normalizeUsername(value: string): string {
     .replace(/[^a-z0-9_]/g, "_")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+type Attribution = {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  utmTerm?: string;
+  referrer?: string;
+  landingPage?: string;
+};
+
+async function readAttribution(): Promise<Attribution> {
+  try {
+    const store = await cookies();
+    const raw = store.get("asafarim-attr")?.value;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Attribution;
+    // Whitelist fields and clip length
+    const clip = (v?: string, max = 250) =>
+      typeof v === "string" && v.length > 0 ? v.slice(0, max) : undefined;
+    return {
+      utmSource: clip(parsed.utmSource, 200),
+      utmMedium: clip(parsed.utmMedium, 200),
+      utmCampaign: clip(parsed.utmCampaign, 200),
+      utmContent: clip(parsed.utmContent, 200),
+      utmTerm: clip(parsed.utmTerm, 200),
+      referrer: clip(parsed.referrer, 500),
+      landingPage: clip(parsed.landingPage, 500),
+    };
+  } catch {
+    return {};
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,6 +99,7 @@ export async function POST(request: Request) {
     }
 
     const hashedPassword = await hashPassword(password);
+    const attribution = await readAttribution();
 
     // Find default role (guest)
     const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
@@ -75,6 +110,7 @@ export async function POST(request: Request) {
         username: normalizedUsername,
         email: normalizedEmail,
         password: hashedPassword,
+        ...attribution,
         ...(defaultRole
           ? { userRoles: { create: { roleId: defaultRole.id } } }
           : {}),

@@ -1,7 +1,9 @@
 import { prisma } from "@asafarim/db";
 import { KpiCard } from "@/components/KpiCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { SystemHealthPanel } from "@/components/SystemHealthPanel";
 import { formatMoney, formatNumber, formatRelative } from "@/lib/format";
+import { getSystemHealth } from "@/lib/system-health";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ export default async function OverviewPage() {
     openInvoicesAgg,
     paidInvoicesAgg,
     planBreakdown,
+    systemApps,
   ] = await Promise.all([
     prisma.tenant.count(),
     prisma.tenant.count({ where: { status: "active" } }),
@@ -42,6 +45,7 @@ export default async function OverviewPage() {
     prisma.invoice.aggregate({ _sum: { amountCents: true }, _count: { _all: true }, where: { status: "open" } }),
     prisma.invoice.aggregate({ _sum: { amountCents: true }, where: { status: "paid", issuedAt: { gte: new Date(Date.now() - 30 * 86400000) } } }),
     prisma.tenant.groupBy({ by: ["plan"], _count: { _all: true }, _sum: { mrrCents: true } }),
+    getSystemHealth().catch(() => []),
   ]);
 
   const mrr = mrrAgg._sum.mrrCents ?? 0;
@@ -62,6 +66,8 @@ export default async function OverviewPage() {
           Updated {new Date().toLocaleTimeString()}
         </div>
       </div>
+
+      <SystemHealthPanel apps={systemApps} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="MRR" value={formatMoney(mrr)} delta={{ value: "4.2% MoM", positive: true }} tone="accent" hint={`${formatMoney(arr)} ARR`} />

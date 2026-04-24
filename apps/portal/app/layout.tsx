@@ -3,6 +3,7 @@ import { IBM_Plex_Mono, Manrope } from "next/font/google";
 import { cookies } from "next/headers";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
+import { AttributionCapture } from "@/components/AttributionCapture";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -47,6 +48,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
+        <AttributionCapture />
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

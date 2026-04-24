@@ -30,6 +30,15 @@ model User {
   isActive      Boolean   @default(true)
   deactivatedAt DateTime?
 
+  // Marketing attribution (captured at signup)
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  utmContent   String?
+  utmTerm      String?
+  referrer     String?  @db.Text
+  landingPage  String?  @db.Text
+
   // Multi-tenant
   tenantId String?
   tenant   Tenant? @relation(fields: [tenantId], references: [id])
@@ -441,4 +450,41 @@ model AutomationRun {
   @@index([automationId])
   @@index([status])
   @@index([startedAt])
+}
+
+// ─── App Registry & System Health ──────────────────────────────
+
+model AppRegistry {
+  id             String   @id @default(cuid())
+  code           String   @unique // portal, content-generator, ops-hub, marketing-content
+  name           String
+  description    String?  @db.Text
+  url            String // public URL (prod/qa subdomain)
+  healthUrl      String // /api/health endpoint
+  environment    String   @default("qa") // dev, qa, prod
+  isEnabled      Boolean  @default(true)
+  lastDeployedAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  healthChecks HealthCheck[]
+
+  @@index([environment])
+  @@index([isEnabled])
+}
+
+model HealthCheck {
+  id             String   @id @default(cuid())
+  appId          String
+  status         String // ok, degraded, down
+  httpStatus     Int?
+  responseTimeMs Int?
+  error          String?  @db.Text
+  checkedAt      DateTime @default(now())
+
+  app AppRegistry @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@index([appId])
+  @@index([checkedAt])
+  @@index([status])
 }

@@ -714,6 +714,58 @@ async function main() {
     console.log(`    ✓ ops_admin granted to ${superadmins.length} superadmin user(s)`);
   }
 
+  // 10. Seed App Registry
+  console.log("  → Seeding app registry...");
+  const defaultApps = [
+    {
+      code: "portal",
+      name: "Portal",
+      description: "Marketing site, authentication, CMS, and admin console.",
+      url: process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal-qa.asafarim.com",
+      healthUrl: (process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal-qa.asafarim.com") + "/api/health",
+      environment: "qa",
+    },
+    {
+      code: "content-generator",
+      name: "Content Generator",
+      description: "AI-powered content generation (OpenAI with Anthropic fallback).",
+      url: process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL ?? "https://content-generator-qa.asafarim.com",
+      healthUrl: (process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL ?? "https://content-generator-qa.asafarim.com") + "/api/health",
+      environment: "qa",
+    },
+    {
+      code: "ops-hub",
+      name: "Ops Hub",
+      description: "SaaS operations: tenants, billing, lifecycle, feature flags, automations.",
+      url: process.env.NEXT_PUBLIC_OPS_HUB_URL ?? "https://ops-hub.asafarim.com",
+      healthUrl: (process.env.NEXT_PUBLIC_OPS_HUB_URL ?? "https://ops-hub.asafarim.com") + "/api/health",
+      environment: "qa",
+    },
+    {
+      code: "marketing-content",
+      name: "Marketing Content",
+      description: "Campaigns, MQLs, growth dashboards, content calendar.",
+      url: process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ?? "https://marketing-content.asafarim.com",
+      healthUrl: (process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ?? "https://marketing-content.asafarim.com") + "/api/health",
+      environment: "qa",
+    },
+  ];
+  for (const app of defaultApps) {
+    await prisma.appRegistry.upsert({
+      where: { code: app.code },
+      update: {
+        name: app.name,
+        description: app.description,
+        url: app.url,
+        healthUrl: app.healthUrl,
+        environment: app.environment,
+        isEnabled: true,
+      },
+      create: { ...app, isEnabled: true },
+    });
+  }
+  console.log(`    ✓ ${defaultApps.length} apps registered`);
+
   console.log("\n✅ Seed complete!");
 }
 
