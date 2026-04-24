@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { initializeTheme, persistTheme, applyTheme, type Theme } from "../../../packages/ui/src/theme";
+import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "../../../packages/ui/src/theme";
 import { AppSwitcher } from "./AppSwitcher";
 
 type NavItem = {
@@ -39,6 +39,11 @@ function ThemeToggle() {
 
   useEffect(() => {
     setTheme(initializeTheme());
+    const unsubscribe = subscribeThemeChanges((next) => {
+      setTheme(next);
+      applyTheme(next);
+    });
+    return unsubscribe;
   }, []);
 
   const toggleTheme = () => {

@@ -34,14 +34,69 @@ export function getSystemTheme(): Theme {
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
 }
 
+/** Read theme from document.cookie in the browser */
+function readThemeFromBrowserCookie(): Theme | null {
+  if (typeof document === "undefined") return null;
+  return readThemeFromCookie(document.cookie);
+}
+
 export function readTheme(): Theme {
   if (typeof window === "undefined") return "dark";
 
+  // 1) Prefer cookie (shared across subdomains / localhost ports)
+  const cookieTheme = readThemeFromBrowserCookie();
+  if (cookieTheme) return cookieTheme;
+
+  // 2) Fall back to localStorage (app-local)
   try {
     return getStoredTheme(window.localStorage) ?? getSystemTheme();
   } catch {
     return getSystemTheme();
   }
+}
+
+/**
+ * Subscribe to cross-app / cross-tab theme changes.
+ * Triggers `onChange` whenever the shared cookie value differs from current.
+ * Returns an unsubscribe function.
+ */
+export function subscribeThemeChanges(onChange: (theme: Theme) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  let current = readTheme();
+
+  const check = () => {
+    const next = readTheme();
+    if (next !== current) {
+      current = next;
+      onChange(next);
+    }
+  };
+
+  // Same-origin localStorage change (other tabs of same app)
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === THEME_STORAGE_KEY || e.key === "theme" || e.key === null) check();
+  };
+
+  // Cookies don't emit events — re-check on tab focus / visibility change
+  const onFocus = () => check();
+  const onVisibility = () => {
+    if (document.visibilityState === "visible") check();
+  };
+
+  window.addEventListener("storage", onStorage);
+  window.addEventListener("focus", onFocus);
+  document.addEventListener("visibilitychange", onVisibility);
+
+  // Light polling as last-resort safety net (cookies may change while tab is focused)
+  const interval = window.setInterval(check, 2000);
+
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener("focus", onFocus);
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.clearInterval(interval);
+  };
 }
 
 export function applyTheme(theme: Theme) {

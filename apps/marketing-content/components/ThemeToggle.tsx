@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { initializeTheme, persistTheme, applyTheme, type Theme } from "../../../packages/ui/src/theme";
+import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "../../../packages/ui/src/theme";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
@@ -11,6 +11,11 @@ export function ThemeToggle() {
     const t = initializeTheme();
     setTheme(t);
     setMounted(true);
+    const unsubscribe = subscribeThemeChanges((next) => {
+      setTheme(next);
+      applyTheme(next);
+    });
+    return unsubscribe;
   }, []);
 
   function toggle() {
