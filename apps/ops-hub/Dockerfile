@@ -13,6 +13,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/ops-hub ./apps/ops-hub
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
+COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @asafarim/db build
