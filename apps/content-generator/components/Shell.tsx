@@ -86,11 +86,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="flex h-14 items-center border-b border-[var(--color-border)] px-3">
           {collapsed ? (
             <Link href="/" className="mx-auto" aria-label="Content Generator home">
-              <Logo size={32} />
+              <Logo size={32} showWordmark={false} />
             </Link>
           ) : (
             <Link href="/" className="flex items-center gap-2" aria-label="Content Generator home">
-              <Logo size={32} />
+              <Logo size={32} showWordmark={false} />
               <span className="text-sm font-semibold">Content Generator</span>
             </Link>
           )}
