@@ -1,0 +1,205 @@
+name: Issue Triage - Bug Classification
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to triage'
+        required: true
+        type: string
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'triage') || github.event.action == 'opened'
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch issue details
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ github.event_name == 'workflow_dispatch' && inputs.issue_number || github.event.issue.number }};
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+            
+            const issueData = {
+              number: issue.number,
+              title: issue.title,
+              body: issue.body || '',
+              labels: issue.labels.map(l => l.name),
+              author: issue.user.login,
+              comments: comments.map(c => ({ author: c.user.login, body: c.body }))
+            };
+            
+            core.setOutput('data', JSON.stringify(issueData));
+            core.setOutput('number', issueNumber);
+
+      - name: Analyze with LLM (if API key available)
+        id: llm
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "No OPENAI_API_KEY available. Skipping LLM analysis."
+            echo "result=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # Build prompt from issue data
+          ISSUE_DATA='${{ steps.issue.outputs.data }}'
+          
+          # Create analysis prompt
+          cat > /tmp/prompt.txt << 'PROMPT_EOF'
+          You are a senior software engineer triaging GitHub issues.
+          
+          Analyze the following issue and determine if it is:
+          - A genuine bug (code not working as intended)
+          - An enhancement request (working as designed but user wants change)
+          - A question (usage clarification needed)
+          - A documentation issue (docs missing or unclear)
+          
+          Return ONLY a JSON object with this structure:
+          {
+            "classification": "bug|enhancement|question|documentation",
+            "confidence": 0-1,
+            "reasoning": "Brief explanation of why this classification was chosen",
+            "files_to_check": ["optional list of likely relevant files"],
+            "suggested_label": "bug|enhancement|question|documentation"
+          }
+          PROMPT_EOF
+          
+          echo "" >> /tmp/prompt.txt
+          echo "Issue data: $ISSUE_DATA" >> /tmp/prompt.txt
+          
+          # Call OpenAI API
+          curl -s https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @- << CURL_EOF > /tmp/llm-response.json
+          {
+            "model": "gpt-4o-mini",
+            "messages": [
+              {"role": "system", "content": "$(cat /tmp/prompt.txt | sed 's/"/\\"/g')"}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 1000
+          }
+          CURL_EOF
+          
+          cat /tmp/llm-response.json
+          
+          # Extract classification from response
+          CLASSIFICATION=$(cat /tmp/llm-response.json | jq -r '.choices[0].message.content // empty' | grep -oP '"classification":\s*"\K[^"]+' || echo "unknown")
+          REASONING=$(cat /tmp/llm-response.json | jq -r '.choices[0].message.content // empty' | grep -oP '"reasoning":\s*"\K[^"]+' || echo "")
+          
+          echo "classification=$CLASSIFICATION" >> "$GITHUB_OUTPUT"
+          echo "reasoning=$REASONING" >> "$GITHUB_OUTPUT"
+          echo "result=success" >> "$GITHUB_OUTPUT"
+
+      - name: Simple keyword triage (fallback)
+        id: keyword
+        if: steps.llm.outputs.result == 'skipped'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueData = JSON.parse('${{ steps.issue.outputs.data }}');
+            const title = issueData.title.toLowerCase();
+            const body = issueData.body.toLowerCase();
+            const combined = title + ' ' + body;
+            
+            let classification = 'bug';
+            
+            const keywords = {
+              bug: ['bug', 'error', 'crash', 'broken', 'fails', 'not working', 'unexpected', 'wrong', 'incorrect', 'throws', 'exception'],
+              enhancement: ['feature', 'request', 'add', 'support', 'would be nice', 'should support', 'could you', 'please add'],
+              question: ['how to', 'how do', 'question', 'help', 'confused', 'what is', 'why does'],
+              documentation: ['docs', 'documentation', 'readme', 'unclear', 'example', 'tutorial', 'guide']
+            };
+            
+            const scores = {};
+            for (const [label, words] of Object.entries(keywords)) {
+              scores[label] = words.filter(w => combined.includes(w)).length;
+            }
+            
+            const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+            if (best[1] > 0) classification = best[0];
+            
+            core.setOutput('classification', classification);
+            core.setOutput('reasoning', `Keyword-based triage: matched ${best[1]} keywords for '${best[0]}'.`);
+
+      - name: Apply label and comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ steps.issue.outputs.number }};
+            const llmResult = '${{ steps.llm.outputs.result }}';
+            
+            let classification, reasoning;
+            if (llmResult === 'success') {
+              classification = '${{ steps.llm.outputs.classification }}';
+              reasoning = '${{ steps.llm.outputs.reasoning }}';
+            } else {
+              classification = '${{ steps.keyword.outputs.classification }}';
+              reasoning = '${{ steps.keyword.outputs.reasoning }}';
+            }
+            
+            const validLabels = ['bug', 'enhancement', 'question', 'documentation'];
+            const labelToAdd = validLabels.includes(classification) ? classification : 'bug';
+            
+            // Remove triage label if present
+            const issueData = JSON.parse('${{ steps.issue.outputs.data }}');
+            if (issueData.labels.includes('triage')) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                name: 'triage'
+              });
+            }
+            
+            // Add classification label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: [labelToAdd]
+            });
+            
+            // Add triage comment
+            const commentBody = '## 🤖 Automated Triage\n\n' +
+              '**Classification:** `' + labelToAdd + '`\n\n' +
+              '**Reasoning:** ' + (reasoning || 'Based on issue content analysis.') + '\n\n' +
+              '_This label was applied automatically. If you believe this is incorrect, please remove the label and add the correct one._';
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: commentBody
+            });
+            
+            core.info(`Issue #${issueNumber} classified as ${labelToAdd}`);
