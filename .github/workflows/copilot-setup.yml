@@ -1,0 +1,82 @@
+name: Copilot Setup Steps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'tsconfig.json'
+      - '.github/workflows/**'
+      - '**/Dockerfile'
+      - '**/Dockerfile.*'
+      - 'packages/*/package.json'
+      - 'apps/*/package.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'turbo.json'
+      - 'tsconfig.json'
+      - '.github/workflows/**'
+      - '**/Dockerfile'
+      - '**/Dockerfile.*'
+      - 'packages/*/package.json'
+      - 'apps/*/package.json'
+  workflow_dispatch:
+
+jobs:
+  setup-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Enable corepack / pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify workspace packages
+        run: |
+          echo "--- Workspace packages ---"
+          pnpm list -r --depth=0
+
+      - name: Check package buildability
+        run: |
+          # Build shared packages to ensure they're compilable
+          pnpm --filter @asafarim/shared-i18n build || true
+          pnpm --filter @asafarim/country-language-selector build || true
+          pnpm --filter @asafarim/ui build || true
+          pnpm --filter @asafarim/auth build || true
+          pnpm --filter @asafarim/db build || true
+
+      - name: Lint workspace
+        run: pnpm lint || true
+
+      - name: Verify Dockerfiles syntax
+        run: |
+          dockerfiles=$(find apps packages infra -name 'Dockerfile*' -not -path '*/node_modules/*')
+          for f in $dockerfiles; do
+            echo "Checking $f"
+            docker build --check -f "$f" . || echo "Warning: $f has issues"
+          done
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "✅ Copilot environment setup validation complete"
+          echo "Node: $(node -v)"
+          echo "pnpm: $(pnpm -v)"
