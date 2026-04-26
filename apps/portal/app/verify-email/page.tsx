@@ -1,9 +1,18 @@
 import crypto from "node:crypto";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@asafarim/db";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Verify Email",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type Status = "success" | "expired" | "invalid" | "missing" | "error";
 

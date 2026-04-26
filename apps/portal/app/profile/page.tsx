@@ -3,6 +3,15 @@ import { auth } from "@asafarim/auth";
 import { prisma } from "@asafarim/db";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { ProfileForm } from "@/components/profile-form";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function ProfilePage() {
   const session = await auth();

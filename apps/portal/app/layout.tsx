@@ -7,6 +7,7 @@ import { AttributionCapture } from "@/components/AttributionCapture";
 import { I18nProvider } from "@asafarim/shared-i18n";
 import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { portalDictionaries } from "../lib/i18n-dictionaries";
+import { StructuredData, absoluteUrl, organizationSchema, siteDescription, siteName, websiteSchema } from "@/lib/seo";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -21,10 +22,67 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ASafariM Digital - Developer Portal",
-  description:
-    "Product engineering portal for ASafariM Digital. Premium SaaS delivery across frontend systems, backend architecture, and AI workflows.",
-  keywords: ["asafarim", "developer portal", "saas", "ai platform", "next.js", "backend architecture"],
+  metadataBase: new URL(absoluteUrl("/")),
+  title: {
+    default: `${siteName} | Full-Stack SaaS and AI Product Engineering`,
+    template: `%s | ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  authors: [{ name: "Ali Safari" }],
+  creator: "Ali Safari",
+  publisher: siteName,
+  keywords: [
+    "ASafariM Digital",
+    "SaaS product engineering",
+    "AI workflows",
+    "Next.js development",
+    "backend architecture",
+    "full-stack developer",
+  ],
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: absoluteUrl("/"),
+    siteName,
+    title: `${siteName} | Full-Stack SaaS and AI Product Engineering`,
+    description: siteDescription,
+    images: [
+      {
+        url: absoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: `${siteName} social preview`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} | Full-Stack SaaS and AI Product Engineering`,
+    description: siteDescription,
+    images: [absoluteUrl("/twitter-image")],
+    creator: "@AliSafari_IT",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: {
+      "msvalidate.01": process.env.BING_SITE_VERIFICATION ? [process.env.BING_SITE_VERIFICATION] : [],
+    },
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -50,6 +108,7 @@ export default async function RootLayout({
             __html: themeInitScript,
           }}
         />
+        <StructuredData data={[organizationSchema(), websiteSchema()]} />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <AttributionCapture />

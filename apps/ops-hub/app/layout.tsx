@@ -7,9 +7,41 @@ import { Shell } from "@/components/Shell";
 import { ForbiddenError, requireOps } from "@/lib/rbac";
 import "./globals.css";
 
+const appUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL ?? process.env.OPS_HUB_URL ?? "https://ops-hub.asafarim.com";
+const appTitle = "SaaS Operations Hub";
+const appDescription = "Private operator console for SaaS lifecycle, billing, feature access, tenant operations, and automations.";
+
 export const metadata: Metadata = {
-  title: "SaaS Operations Hub",
-  description: "Internal operator console for SaaS lifecycle, billing, feature access, and automations.",
+  metadataBase: new URL(appUrl),
+  title: {
+    default: appTitle,
+    template: `%s | ${appTitle}`,
+  },
+  description: appDescription,
+  alternates: {
+    canonical: appUrl,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: appUrl,
+    siteName: appTitle,
+    title: appTitle,
+    description: appDescription,
+  },
+  twitter: {
+    card: "summary",
+    title: appTitle,
+    description: appDescription,
+  },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

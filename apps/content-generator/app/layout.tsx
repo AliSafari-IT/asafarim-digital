@@ -7,13 +7,55 @@ import { Shell } from "@/components/Shell";
 import { I18nProvider } from "@asafarim/shared-i18n";
 import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { contentGeneratorDictionaries } from "@/lib/i18n-dictionaries";
+import { StructuredData, absoluteUrl, appDescription, appName, softwareApplicationSchema } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "asafarim-digital — AI Content Generator",
-  description:
-    "Generate high-quality blog posts, product copy, emails, social captions, and summaries with the asafarim-digital AI Content Generator.",
-  keywords: ["asafarim", "ai", "content generator", "saas", "copywriting"],
+  metadataBase: new URL(absoluteUrl("/")),
+  title: {
+    default: `${appName} | AI Copywriting Workspace`,
+    template: `%s | ${appName}`,
+  },
+  description: appDescription,
+  applicationName: appName,
+  keywords: ["ASafariM", "AI content generator", "SaaS copywriting", "blog generator", "marketing content"],
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: absoluteUrl("/"),
+    siteName: appName,
+    title: `${appName} | AI Copywriting Workspace`,
+    description: appDescription,
+    images: [
+      {
+        url: absoluteUrl("/opengraph-image"),
+        width: 1200,
+        height: 630,
+        alt: `${appName} social preview`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${appName} | AI Copywriting Workspace`,
+    description: appDescription,
+    images: [absoluteUrl("/twitter-image")],
+    creator: "@AliSafari_IT",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -39,6 +81,7 @@ export default async function RootLayout({
             __html: themeInitScript,
           }}
         />
+        <StructuredData data={softwareApplicationSchema()} />
       </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <I18nProvider initialLocale={initialLocale} dictionaries={contentGeneratorDictionaries}>
