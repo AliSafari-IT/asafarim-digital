@@ -44,6 +44,18 @@ COPY --from=builder /repo/apps/content-generator/public ./apps/content-generator
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/content-generator/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/content-generator/.next/static ./apps/content-generator/.next/static
 
+# Copy node_modules and packages needed for Prisma
+COPY --from=builder /repo/node_modules ./node_modules
+COPY --from=builder /repo/packages/db ./packages/db
+
+# Regenerate Prisma client for Alpine (musl) runtime
+RUN cd packages/db && npx prisma generate
+
+# Copy Prisma client to location expected by Next.js standalone
+RUN mkdir -p /app/node_modules/.prisma && \
+    cp -r /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client /app/node_modules/.prisma/client && \
+    chown -R nextjs:nodejs /app/node_modules/.prisma
+
 USER nextjs
 EXPOSE 3001
 
