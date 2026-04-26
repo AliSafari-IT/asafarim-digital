@@ -53,6 +53,12 @@ model User {
   // Audit trail
   auditLogs AuditLog[]
 
+  // Content generator
+  contentFolders       ContentProjectFolder[]
+  contentChatSessions  ContentChatSession[]
+  savedPrompts         SavedPrompt[]
+  contentGenerations   ContentGeneration[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -276,6 +282,12 @@ model Tenant {
   lifecycleEvents  LifecycleEvent[]
   usageMetrics     UsageMetric[]
 
+  // Content generator
+  contentFolders      ContentProjectFolder[]
+  contentChatSessions ContentChatSession[]
+  savedPrompts        SavedPrompt[]
+  contentGenerations  ContentGeneration[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -487,4 +499,144 @@ model HealthCheck {
   @@index([appId])
   @@index([checkedAt])
   @@index([status])
+}
+
+// ─── Content Generator: Project / Chat / Prompt Persistence ────
+
+model ContentProjectFolder {
+  id          String  @id @default(cuid())
+  userId      String
+  tenantId    String?
+  parentId    String?
+  name        String
+  description String? @db.Text
+  color       String?
+  icon        String?
+  position    Int     @default(0)
+  isArchived  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant   Tenant?                @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  parent   ContentProjectFolder?  @relation("ContentProjectFolderTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children ContentProjectFolder[] @relation("ContentProjectFolderTree")
+
+  chatSessions ContentChatSession[]
+  savedPrompts SavedPrompt[]
+  generations  ContentGeneration[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([parentId])
+  @@index([isArchived])
+}
+
+model ContentChatSession {
+  id            String   @id @default(cuid())
+  userId        String
+  tenantId      String?
+  folderId      String?
+  title         String
+  contentType   String?
+  status        String   @default("active")
+  lastMessageAt DateTime?
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  folder ContentProjectFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  messages    ContentChatMessage[]
+  savedPrompts SavedPrompt[]
+  generations ContentGeneration[]
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([folderId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model ContentChatMessage {
+  id          String   @id @default(cuid())
+  sessionId   String
+  role        String // system, user, assistant
+  content     String   @db.Text
+  contentType String?
+  provider    String?
+  model       String?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  session ContentChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
+model SavedPrompt {
+  id           String   @id @default(cuid())
+  userId       String
+  tenantId     String?
+  folderId     String?
+  sessionId    String?
+  title        String
+  contentType  String
+  prompt       String   @db.Text
+  systemPrompt String?  @db.Text
+  tags         String[]
+  isFavorite   Boolean  @default(false)
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  folder  ContentProjectFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  session ContentChatSession?   @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([folderId])
+  @@index([sessionId])
+  @@index([isFavorite])
+}
+
+model ContentGeneration {
+  id               String  @id @default(cuid())
+  userId           String
+  tenantId         String?
+  folderId         String?
+  sessionId        String?
+  contentType      String
+  prompt           String  @db.Text
+  output           String? @db.Text
+  provider         String?
+  model            String?
+  status           String // succeeded, failed
+  error            String? @db.Text
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  metadata         Json?
+
+  createdAt DateTime @default(now())
+
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant  Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  folder  ContentProjectFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  session ContentChatSession?   @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([folderId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([createdAt])
 }

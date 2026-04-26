@@ -6,11 +6,15 @@ import { asafarimBrandTokens } from "@asafarim/ui";
 
 import { ContentForm } from "@/components/ContentForm";
 import { OutputCard } from "@/components/OutputCard";
+import { ProjectWorkspace } from "@/components/ProjectWorkspace";
 import { ContentType } from "@/components/TypeSelector";
+import { generate, promptsApi, type SavedPromptDto } from "@/lib/client/api";
 
 type GeneratePayload = {
   type: ContentType;
   input: string;
+  folderId: string | null;
+  sessionId: string | null;
 };
 
 const quickPrompts: Array<{ label: string; type: ContentType; prompt: string }> = [
@@ -44,28 +48,27 @@ export default function ContentGeneratorPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [lastPayload, setLastPayload] = useState<GeneratePayload | null>(null);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const runGeneration = async (payload: GeneratePayload) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${basePath}/api/generate`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+      const data = await generate({
+        type: payload.type,
+        input: payload.input,
+        folderId: payload.folderId,
+        sessionId: payload.sessionId,
       });
 
-      const data = (await response.json()) as { output?: string; error?: string };
-
-      if (!response.ok || !data.output) {
-        throw new Error(data.error ?? "Generation failed. Please try again.");
-      }
-
       setOutput(data.output);
-      setLastPayload(payload);
+      setSessionId(data.sessionId);
+      setLastPayload({ ...payload, sessionId: data.sessionId });
+      setWorkspaceRefresh((value) => value + 1);
     } catch (generationError) {
       const message = generationError instanceof Error ? generationError.message : "Unexpected error while generating content.";
       setError(message);
@@ -81,7 +84,7 @@ export default function ContentGeneratorPage() {
       return;
     }
 
-    await runGeneration({ type, input: trimmed });
+    await runGeneration({ type, input: trimmed, folderId, sessionId });
   };
 
   const handleRegenerate = async () => {
@@ -89,7 +92,36 @@ export default function ContentGeneratorPage() {
       return;
     }
 
-    await runGeneration(lastPayload);
+    await runGeneration({ ...lastPayload, sessionId });
+  };
+
+  const handleApplyPrompt = (prompt: SavedPromptDto) => {
+    if ((["blog", "product", "email", "social", "summary"] as ContentType[]).includes(prompt.contentType as ContentType)) {
+      setType(prompt.contentType as ContentType);
+    }
+    setInput(prompt.prompt);
+    if (prompt.folderId) setFolderId(prompt.folderId);
+  };
+
+  const handleSavePrompt = async () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    setSaveStatus("saving");
+    try {
+      await promptsApi.create({
+        title: trimmed.slice(0, 60),
+        contentType: type,
+        prompt: trimmed,
+        folderId,
+        sessionId,
+      });
+      setSaveStatus("saved");
+      setWorkspaceRefresh((value) => value + 1);
+      window.setTimeout(() => setSaveStatus("idle"), 1600);
+    } catch {
+      setSaveStatus("error");
+      window.setTimeout(() => setSaveStatus("idle"), 2400);
+    }
   };
 
   const handleCopy = async () => {
@@ -214,16 +246,44 @@ export default function ContentGeneratorPage() {
 
       <section
         id="generator"
-        className="mx-auto mt-8 grid w-full max-w-7xl gap-6 px-6 pb-8 lg:grid-cols-[0.95fr,1.05fr] lg:items-start"
+        className="mx-auto mt-8 grid w-full max-w-7xl gap-6 px-6 pb-8 lg:grid-cols-[18rem,1fr,1fr] lg:items-start"
       >
-        <ContentForm
-          input={input}
-          type={type}
-          isLoading={isLoading}
-          onInputChange={setInput}
-          onTypeChange={setType}
-          onSubmit={handleSubmit}
+        <ProjectWorkspace
+          selectedFolderId={folderId}
+          selectedSessionId={sessionId}
+          onFolderChange={(nextFolderId) => {
+            setFolderId(nextFolderId);
+            setSessionId(null);
+          }}
+          onSessionChange={setSessionId}
+          onApplyPrompt={handleApplyPrompt}
+          refreshKey={workspaceRefresh}
         />
+
+        <div className="flex flex-col gap-3">
+          <ContentForm
+            input={input}
+            type={type}
+            isLoading={isLoading}
+            onInputChange={setInput}
+            onTypeChange={setType}
+            onSubmit={handleSubmit}
+          />
+          <button
+            type="button"
+            onClick={handleSavePrompt}
+            disabled={!input.trim() || saveStatus === "saving"}
+            className="cursor-pointer self-start rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saveStatus === "saving"
+              ? "Saving…"
+              : saveStatus === "saved"
+              ? "Saved"
+              : saveStatus === "error"
+              ? "Save failed"
+              : "Save as prompt"}
+          </button>
+        </div>
 
         <OutputCard
           output={output}

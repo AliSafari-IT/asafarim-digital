@@ -1,210 +1,204 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@asafarim/db";
 
-const VALID_TYPES = new Set(["blog", "product", "email", "social", "summary"]);
+import { badRequest, getAuthedUser, unauthorized } from "@/lib/server/auth";
+import {
+  generateWithAnthropic,
+  generateWithOpenAI,
+  buildSystemPrompt,
+  buildUserPrompt,
+} from "@/lib/server/generation";
+import {
+  assertFolderOwnership,
+  assertSessionOwnership,
+} from "@/lib/server/ownership";
+import {
+  MAX_PROMPT_LENGTH,
+  MIN_PROMPT_LENGTH,
+  VALID_CONTENT_TYPES,
+  sanitizeName,
+} from "@/lib/server/validation";
 
-const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest";
-
-type GenerateRequest = {
+type GenerateBody = {
   type?: string;
   input?: string;
+  folderId?: string | null;
+  sessionId?: string | null;
 };
 
-type ProviderResult = {
-  output?: string;
-  error?: string;
-};
-
-function extractOutputText(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-
-  const data = payload as {
-    output_text?: string;
-    output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
-  };
-
-  if (typeof data.output_text === "string" && data.output_text.trim()) {
-    return data.output_text.trim();
-  }
-
-  const contentChunks = data.output?.flatMap((item) => item.content ?? []) ?? [];
-  const text = contentChunks
-    .filter((chunk) => chunk.type === "output_text" && typeof chunk.text === "string")
-    .map((chunk) => chunk.text)
-    .join("\n")
-    .trim();
-
-  return text || null;
-}
-
-function extractAnthropicText(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-
-  const data = payload as {
-    content?: Array<{ type?: string; text?: string }>;
-  };
-
-  const text = data.content
-    ?.filter((chunk) => chunk.type === "text" && typeof chunk.text === "string")
-    .map((chunk) => chunk.text)
-    .join("\n")
-    .trim();
-
-  return text || null;
-}
-
-function getProviderError(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== "object" || !("error" in payload)) {
-    return undefined;
-  }
-
-  const errorData = (payload as { error?: { message?: string } }).error;
-  return typeof errorData?.message === "string" ? errorData.message : undefined;
-}
-
-async function generateWithOpenAI(systemPrompt: string, modelInput: string): Promise<ProviderResult> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return { error: "OPENAI_API_KEY is not configured." };
-  }
-
-  const upstream = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      input: [
-        {
-          role: "system",
-          content: [{ type: "input_text", text: systemPrompt }],
-        },
-        {
-          role: "user",
-          content: [{ type: "input_text", text: modelInput }],
-        },
-      ],
-    }),
-  });
-
-  const payload = (await upstream.json()) as unknown;
-  if (!upstream.ok) {
-    return { error: getProviderError(payload) ?? "OpenAI request failed." };
-  }
-
-  const output = extractOutputText(payload);
-  if (!output) {
-    return { error: "OpenAI returned an empty response." };
-  }
-
-  return { output };
-}
-
-async function generateWithAnthropic(systemPrompt: string, modelInput: string): Promise<ProviderResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return { error: "ANTHROPIC_API_KEY is not configured." };
-  }
-
-  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: 1200,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: modelInput,
-        },
-      ],
-    }),
-  });
-
-  const payload = (await upstream.json()) as unknown;
-  if (!upstream.ok) {
-    return { error: getProviderError(payload) ?? "Anthropic request failed." };
-  }
-
-  const output = extractAnthropicText(payload);
-  if (!output) {
-    return { error: "Anthropic returned an empty response." };
-  }
-
-  return { output };
+function deriveSessionTitle(input: string, type: string): string {
+  const snippet = input.trim().slice(0, 60).replace(/\s+/g, " ");
+  const label = type.charAt(0).toUpperCase() + type.slice(1);
+  return snippet ? `${label}: ${snippet}` : `${label} session`;
 }
 
 export async function POST(request: Request) {
+  const user = await getAuthedUser();
+  if (!user) return unauthorized();
+
+  let body: GenerateBody;
   try {
-    const body = (await request.json()) as GenerateRequest;
-
-    const type = body.type?.trim().toLowerCase();
-    const input = body.input?.trim();
-
-    if (!type || !VALID_TYPES.has(type)) {
-      return NextResponse.json({ error: "Invalid content type." }, { status: 400 });
-    }
-
-    if (!input || input.length < 12) {
-      return NextResponse.json(
-        { error: "Please provide a more detailed prompt (minimum 12 characters)." },
-        { status: 400 },
-      );
-    }
-
-    if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        {
-          error:
-            "No AI provider key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY to enable generation.",
-        },
-        { status: 500 },
-      );
-    }
-
-    const systemPrompt =
-      "You are an expert SaaS content writer for asafarim-digital. Generate polished, clear, practical content with a confident but friendly tone.";
-
-    const modelInput = `Content type: ${type}\n\nUser prompt:\n${input}\n\nRequirements:\n- Deliver production-ready copy\n- Keep structure readable\n- Avoid filler and generic claims\n- Use strong, outcome-oriented language`;
-
-    const providerErrors: string[] = [];
-
-    const openAIResult = await generateWithOpenAI(systemPrompt, modelInput);
-    if (openAIResult.output) {
-      return NextResponse.json({ output: openAIResult.output });
-    }
-    if (openAIResult.error) {
-      providerErrors.push(`OpenAI: ${openAIResult.error}`);
-    }
-
-    const anthropicResult = await generateWithAnthropic(systemPrompt, modelInput);
-    if (anthropicResult.output) {
-      return NextResponse.json({ output: anthropicResult.output });
-    }
-    if (anthropicResult.error) {
-      providerErrors.push(`Anthropic: ${anthropicResult.error}`);
-    }
-
-    const fallbackMessage = "Failed to generate content from all configured AI providers.";
-    return NextResponse.json(
-      { error: providerErrors.length > 0 ? providerErrors.join(" | ") : fallbackMessage },
-      { status: 502 },
-    );
+    body = (await request.json()) as GenerateBody;
   } catch {
+    return badRequest("Invalid JSON body.");
+  }
+
+  const type = body.type?.trim().toLowerCase();
+  const input = body.input?.trim();
+
+  if (!type || !VALID_CONTENT_TYPES.has(type)) {
+    return badRequest("Invalid content type.");
+  }
+  if (!input || input.length < MIN_PROMPT_LENGTH) {
+    return badRequest(
+      `Please provide a more detailed prompt (minimum ${MIN_PROMPT_LENGTH} characters).`,
+    );
+  }
+  if (input.length > MAX_PROMPT_LENGTH) {
+    return badRequest(`Prompt exceeds maximum length of ${MAX_PROMPT_LENGTH} characters.`);
+  }
+
+  // Validate optional folder / session ownership.
+  let folderId: string | null = null;
+  if (typeof body.folderId === "string" && body.folderId.length > 0) {
+    folderId = await assertFolderOwnership(body.folderId, user.id);
+    if (!folderId) return badRequest("Folder not found.");
+  }
+
+  let sessionId: string | null = null;
+  if (typeof body.sessionId === "string" && body.sessionId.length > 0) {
+    sessionId = await assertSessionOwnership(body.sessionId, user.id);
+    if (!sessionId) return badRequest("Session not found.");
+  }
+
+  // Ensure provider keys are configured before persisting work.
+  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: "Unexpected server error while generating content." },
+      {
+        error:
+          "No AI provider key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY to enable generation.",
+      },
       { status: 500 },
     );
   }
+
+  // Create a session on-the-fly if none was supplied.
+  if (!sessionId) {
+    const created = await prisma.contentChatSession.create({
+      data: {
+        userId: user.id,
+        tenantId: user.tenantId,
+        folderId,
+        title: deriveSessionTitle(input, type),
+        contentType: type,
+        lastMessageAt: new Date(),
+      },
+      select: { id: true },
+    });
+    sessionId = created.id;
+  }
+
+  // Persist the user prompt as a chat message BEFORE calling the provider.
+  await prisma.contentChatMessage.create({
+    data: {
+      sessionId: sessionId!,
+      role: "user",
+      content: input,
+      contentType: type,
+    },
+  });
+
+  const systemPrompt = buildSystemPrompt();
+  const modelInput = buildUserPrompt(type, input);
+
+  const errors: string[] = [];
+  const openAIResult = await generateWithOpenAI(systemPrompt, modelInput);
+  let success = "output" in openAIResult ? openAIResult : null;
+  if (!success && "error" in openAIResult) errors.push(`OpenAI: ${openAIResult.error}`);
+
+  if (!success) {
+    const anthropicResult = await generateWithAnthropic(systemPrompt, modelInput);
+    if ("output" in anthropicResult) {
+      success = anthropicResult;
+    } else {
+      errors.push(`Anthropic: ${anthropicResult.error}`);
+    }
+  }
+
+  if (!success) {
+    const errorMessage =
+      errors.length > 0
+        ? errors.join(" | ")
+        : "Failed to generate content from all configured AI providers.";
+
+    const generation = await prisma.contentGeneration.create({
+      data: {
+        userId: user.id,
+        tenantId: user.tenantId,
+        folderId,
+        sessionId,
+        contentType: type,
+        prompt: input,
+        status: "failed",
+        error: errorMessage,
+      },
+      select: { id: true },
+    });
+
+    await prisma.contentChatSession.update({
+      where: { id: sessionId! },
+      data: { lastMessageAt: new Date() },
+    });
+
+    return NextResponse.json(
+      { error: errorMessage, sessionId, generationId: generation.id },
+      { status: 502 },
+    );
+  }
+
+  // Persist assistant message + generation record in parallel with session update.
+  const [assistantMessage, generation] = await Promise.all([
+    prisma.contentChatMessage.create({
+      data: {
+        sessionId: sessionId!,
+        role: "assistant",
+        content: success.output,
+        contentType: type,
+        provider: success.provider,
+        model: success.model,
+      },
+      select: { id: true },
+    }),
+    prisma.contentGeneration.create({
+      data: {
+        userId: user.id,
+        tenantId: user.tenantId,
+        folderId,
+        sessionId,
+        contentType: type,
+        prompt: input,
+        output: success.output,
+        provider: success.provider,
+        model: success.model,
+        status: "succeeded",
+        promptTokens: success.promptTokens,
+        completionTokens: success.completionTokens,
+        totalTokens: success.totalTokens,
+      },
+      select: { id: true },
+    }),
+    prisma.contentChatSession.update({
+      where: { id: sessionId! },
+      data: { lastMessageAt: new Date() },
+    }),
+  ]);
+
+  return NextResponse.json({
+    output: success.output,
+    sessionId,
+    generationId: generation.id,
+    messageId: assistantMessage.id,
+    provider: success.provider,
+    model: success.model,
+  });
 }
