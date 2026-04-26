@@ -47,7 +47,7 @@ RUN cd packages/db && npx prisma generate
 
 # Copy Prisma client to location expected by Next.js standalone
 RUN mkdir -p /app/node_modules/.prisma && \
-    cp -r /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client /app/node_modules/.prisma/client && \
+    find /app/node_modules/.pnpm -type d -name ".prisma" -exec cp -r {}/client /app/node_modules/.prisma/ \; && \
     chown -R nextjs:nodejs /app/node_modules/.prisma
 
 USER nextjs
