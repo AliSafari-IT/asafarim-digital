@@ -1,23 +1,33 @@
 import { Button } from "@asafarim/ui";
 import type { ChangeEvent } from "react";
 
-import { ContentType, TypeSelector } from "./TypeSelector";
+import type { ContentTypeDefinition } from "@/lib/client/api";
+
+import { TypeSelector } from "./TypeSelector";
 
 interface ContentFormProps {
   input: string;
-  type: ContentType;
+  type: string;
+  types: ContentTypeDefinition[];
   isLoading: boolean;
   onInputChange: (value: string) => void;
-  onTypeChange: (value: ContentType) => void;
+  onTypeChange: (value: string) => void;
+  onCreateType?: (input: {
+    label: string;
+    description?: string;
+    promptInstructions?: string;
+  }) => Promise<ContentTypeDefinition | null>;
   onSubmit: () => void;
 }
 
 export function ContentForm({
   input,
   type,
+  types,
   isLoading,
   onInputChange,
   onTypeChange,
+  onCreateType,
   onSubmit,
 }: ContentFormProps) {
   return (
@@ -28,7 +38,12 @@ export function ContentForm({
       </p>
 
       <div className="mt-6 space-y-5">
-        <TypeSelector value={type} onChange={onTypeChange} />
+        <TypeSelector
+          value={type}
+          types={types}
+          onChange={onTypeChange}
+          onCreateType={onCreateType}
+        />
 
         <div className="space-y-2">
           <label htmlFor="content-input" className="text-sm font-medium text-[var(--color-text-secondary)]">

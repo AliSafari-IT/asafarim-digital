@@ -3,8 +3,10 @@ interface OutputCardProps {
   isLoading: boolean;
   isCopied: boolean;
   error: string | null;
+  truncated?: boolean;
   onCopy: () => void;
   onRegenerate: () => void;
+  onContinue?: () => void;
 }
 
 export function OutputCard({
@@ -12,8 +14,10 @@ export function OutputCard({
   isLoading,
   isCopied,
   error,
+  truncated,
   onCopy,
   onRegenerate,
+  onContinue,
 }: OutputCardProps) {
   return (
     <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 shadow-[var(--shadow-card)] sm:p-7">
@@ -49,7 +53,27 @@ export function OutputCard({
         ) : error ? (
           <p className="text-sm text-[var(--color-danger)]">{error}</p>
         ) : output ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)]">{output}</p>
+          <>
+            {truncated && (
+              <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <span>
+                  <strong>Output was truncated</strong> by the provider's max-token limit. Increase{" "}
+                  <code className="font-mono">ANTHROPIC_MAX_TOKENS</code> /{" "}
+                  <code className="font-mono">OPENAI_MAX_OUTPUT_TOKENS</code>, or click Continue.
+                </span>
+                {onContinue && (
+                  <button
+                    type="button"
+                    onClick={onContinue}
+                    className="shrink-0 cursor-pointer rounded-md border border-amber-400/60 bg-amber-500/20 px-2 py-1 font-semibold text-amber-100 hover:bg-amber-500/30"
+                  >
+                    Continue
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text)]">{output}</p>
+          </>
         ) : (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Your generated content will appear here. Start with a focused prompt and choose the format you need.

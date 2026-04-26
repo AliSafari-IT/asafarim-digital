@@ -31,4 +31,5 @@ export type {
   NavItem,
   SiteSetting,
   AuditLog,
+  ContentTypeDefinition,
 } from "@prisma/client";

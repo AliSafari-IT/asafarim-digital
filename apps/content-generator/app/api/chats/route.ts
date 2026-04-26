@@ -3,9 +3,9 @@ import { prisma } from "@asafarim/db";
 
 import { badRequest, getAuthedUser, serverError, unauthorized } from "@/lib/server/auth";
 import { assertFolderOwnership } from "@/lib/server/ownership";
+import { assertContentTypeAvailable } from "@/lib/server/content-types";
 import {
   MAX_TITLE_LENGTH,
-  VALID_CONTENT_TYPES,
   sanitizeName,
 } from "@/lib/server/validation";
 
@@ -58,9 +58,9 @@ export async function POST(request: Request) {
 
   let contentType: string | null = null;
   if (typeof body.contentType === "string" && body.contentType.length > 0) {
-    const lower = body.contentType.trim().toLowerCase();
-    if (!VALID_CONTENT_TYPES.has(lower)) return badRequest("Invalid content type.");
-    contentType = lower;
+    const def = await assertContentTypeAvailable(body.contentType, user);
+    if (!def) return badRequest("Invalid or unavailable content type.");
+    contentType = def.slug;
   }
 
   let folderId: string | null = null;

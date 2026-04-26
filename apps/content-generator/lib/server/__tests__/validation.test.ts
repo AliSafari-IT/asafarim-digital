@@ -3,29 +3,33 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_TAGS,
   MAX_TAG_LENGTH,
-  isValidContentType,
+  isLikelyContentTypeSlug,
   sanitizeName,
   sanitizeOptionalText,
   sanitizeTags,
 } from "../validation";
 
-describe("isValidContentType", () => {
-  it("accepts all whitelisted content types", () => {
-    expect(isValidContentType("blog")).toBe(true);
-    expect(isValidContentType("product")).toBe(true);
-    expect(isValidContentType("email")).toBe(true);
-    expect(isValidContentType("social")).toBe(true);
-    expect(isValidContentType("summary")).toBe(true);
+// Note: content-type validation is no longer a hard-coded whitelist. Whether a
+// specific slug is *available* depends on system + user/tenant ownership and
+// is checked via assertContentTypeAvailable. isLikelyContentTypeSlug only
+// confirms the value can become a valid slug.
+describe("isLikelyContentTypeSlug", () => {
+  it("accepts well-formed slugs", () => {
+    expect(isLikelyContentTypeSlug("blog")).toBe(true);
+    expect(isLikelyContentTypeSlug("press-release")).toBe(true);
+    expect(isLikelyContentTypeSlug("blog_post")).toBe(true);
+    // Custom types like 'article' are now syntactically valid; availability is
+    // enforced separately by assertContentTypeAvailable against the DB.
+    expect(isLikelyContentTypeSlug("article")).toBe(true);
   });
 
-  it("rejects unknown values", () => {
-    expect(isValidContentType("blog ")).toBe(false);
-    expect(isValidContentType("BLOG")).toBe(false);
-    expect(isValidContentType("article")).toBe(false);
-    expect(isValidContentType("")).toBe(false);
-    expect(isValidContentType(null)).toBe(false);
-    expect(isValidContentType(undefined)).toBe(false);
-    expect(isValidContentType(123)).toBe(false);
+  it("rejects invalid input", () => {
+    expect(isLikelyContentTypeSlug("")).toBe(false);
+    expect(isLikelyContentTypeSlug("   ")).toBe(false);
+    expect(isLikelyContentTypeSlug("---")).toBe(false);
+    expect(isLikelyContentTypeSlug(null)).toBe(false);
+    expect(isLikelyContentTypeSlug(undefined)).toBe(false);
+    expect(isLikelyContentTypeSlug(123)).toBe(false);
   });
 });
 

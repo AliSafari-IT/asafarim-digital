@@ -6,11 +6,11 @@ import {
   assertFolderOwnership,
   assertSessionOwnership,
 } from "@/lib/server/ownership";
+import { assertContentTypeAvailable } from "@/lib/server/content-types";
 import {
   MAX_PROMPT_LENGTH,
   MAX_SYSTEM_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
-  VALID_CONTENT_TYPES,
   sanitizeName,
   sanitizeOptionalText,
   sanitizeTags,
@@ -79,10 +79,11 @@ export async function POST(request: Request) {
   if (typeof body.contentType !== "string") {
     return badRequest("Content type is required.");
   }
-  const contentType = body.contentType.trim().toLowerCase();
-  if (!VALID_CONTENT_TYPES.has(contentType)) {
-    return badRequest("Invalid content type.");
+  const contentTypeDef = await assertContentTypeAvailable(body.contentType, user);
+  if (!contentTypeDef) {
+    return badRequest("Invalid or unavailable content type.");
   }
+  const contentType = contentTypeDef.slug;
 
   const promptText = sanitizeOptionalText(body.prompt, MAX_PROMPT_LENGTH);
   if (!promptText) return badRequest("Prompt content is required.");

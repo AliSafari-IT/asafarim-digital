@@ -6,6 +6,7 @@ import {
   assertFolderOwnership,
   assertPromptOwnership,
 } from "@/lib/server/ownership";
+import { assertContentTypeAvailable } from "@/lib/server/content-types";
 import {
   MAX_PROMPT_LENGTH,
   MAX_SYSTEM_PROMPT_LENGTH,
@@ -27,6 +28,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
   let body: {
     title?: unknown;
+    contentType?: unknown;
     prompt?: unknown;
     systemPrompt?: unknown;
     tags?: unknown;
@@ -41,6 +43,14 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const data: Record<string, unknown> = {};
 
+  if (body.contentType !== undefined) {
+    if (typeof body.contentType !== "string") {
+      return badRequest("Content type must be a string.");
+    }
+    const def = await assertContentTypeAvailable(body.contentType, user);
+    if (!def) return badRequest("Invalid or unavailable content type.");
+    data.contentType = def.slug;
+  }
   if (body.title !== undefined) {
     const title = sanitizeName(body.title, MAX_TITLE_LENGTH);
     if (!title) return badRequest("Title cannot be empty.");

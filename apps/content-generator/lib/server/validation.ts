@@ -1,11 +1,3 @@
-export const VALID_CONTENT_TYPES = new Set([
-  "blog",
-  "product",
-  "email",
-  "social",
-  "summary",
-]);
-
 export const MAX_NAME_LENGTH = 120;
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_DESCRIPTION_LENGTH = 2000;
@@ -15,8 +7,39 @@ export const MAX_TAGS = 20;
 export const MAX_TAG_LENGTH = 40;
 export const MIN_PROMPT_LENGTH = 12;
 
-export function isValidContentType(value: unknown): value is string {
-  return typeof value === "string" && VALID_CONTENT_TYPES.has(value);
+export const MAX_CONTENT_TYPE_SLUG_LENGTH = 64;
+export const MAX_CONTENT_TYPE_LABEL_LENGTH = 80;
+export const MAX_CONTENT_TYPE_DESCRIPTION_LENGTH = 500;
+export const MAX_CONTENT_TYPE_INSTRUCTIONS_LENGTH = 4000;
+export const MAX_CONTENT_TYPE_SYSTEM_PROMPT_LENGTH = MAX_SYSTEM_PROMPT_LENGTH;
+
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
+
+/**
+ * Normalize a free-form value into a content-type slug.
+ * - Lowercases and trims.
+ * - Collapses internal whitespace and converts spaces to hyphens.
+ * - Strips characters outside [a-z0-9_-].
+ * - Trims leading/trailing separators.
+ * - Returns null if the resulting slug is empty or invalid.
+ */
+export function normalizeContentTypeSlug(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  let slug = value.trim().toLowerCase();
+  if (!slug) return null;
+  slug = slug.replace(/\s+/g, "-");
+  slug = slug.replace(/[^a-z0-9_-]/g, "");
+  slug = slug.replace(/^[-_]+|[-_]+$/g, "");
+  if (!slug) return null;
+  if (slug.length > MAX_CONTENT_TYPE_SLUG_LENGTH) {
+    slug = slug.slice(0, MAX_CONTENT_TYPE_SLUG_LENGTH).replace(/[-_]+$/g, "");
+  }
+  if (!SLUG_PATTERN.test(slug)) return null;
+  return slug;
+}
+
+export function isLikelyContentTypeSlug(value: unknown): value is string {
+  return normalizeContentTypeSlug(value) !== null;
 }
 
 export function sanitizeName(value: unknown, max = MAX_NAME_LENGTH): string | null {

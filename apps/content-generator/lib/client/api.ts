@@ -91,6 +91,48 @@ export const chatsApi = {
   messages: (id: string) => request<{ messages: ChatMessage[] }>("GET", `/api/chats/${id}/messages`),
 };
 
+export type ContentTypeDefinition = {
+  id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  promptInstructions: string | null;
+  systemPrompt: string | null;
+  isSystem: boolean;
+  isActive: boolean;
+};
+
+export type ContentTypeCreateInput = {
+  slug?: string;
+  label: string;
+  description?: string | null;
+  promptInstructions?: string | null;
+  systemPrompt?: string | null;
+};
+
+export type ContentTypeUpdateInput = Partial<{
+  label: string;
+  description: string | null;
+  promptInstructions: string | null;
+  systemPrompt: string | null;
+  isActive: boolean;
+}>;
+
+export const contentTypesApi = {
+  list: () =>
+    request<{ contentTypes: ContentTypeDefinition[] }>("GET", "/api/content-types"),
+  create: (input: ContentTypeCreateInput) =>
+    request<{ contentType: ContentTypeDefinition }>("POST", "/api/content-types", input),
+  update: (id: string, input: ContentTypeUpdateInput) =>
+    request<{ contentType: ContentTypeDefinition }>(
+      "PATCH",
+      `/api/content-types/${id}`,
+      input,
+    ),
+  remove: (id: string) =>
+    request<{ ok: true }>("DELETE", `/api/content-types/${id}`),
+};
+
 export const promptsApi = {
   list: (params?: { folderId?: string; favorites?: boolean }) => {
     const search = new URLSearchParams();
@@ -118,6 +160,8 @@ export type GenerateResponse = {
   output: string;
   sessionId: string;
   generationId: string;
+  truncated?: boolean;
+  stopReason?: string;
   messageId?: string;
   provider?: string;
   model?: string;

@@ -766,6 +766,75 @@ async function main() {
   }
   console.log(`    ✓ ${defaultApps.length} apps registered`);
 
+  // 11. Seed system content types for the content generator.
+  console.log("  → Seeding system content types...");
+  const systemContentTypes = [
+    {
+      slug: "blog",
+      label: "Blog Post",
+      description: "Long-form, educational, SEO-friendly",
+      promptInstructions:
+        "Produce an SEO-friendly long-form blog draft with a compelling intro, scannable subheadings, examples, and a conclusion with a clear takeaway.",
+    },
+    {
+      slug: "product",
+      label: "Product Description",
+      description: "Benefit-focused product copy",
+      promptInstructions:
+        "Write benefit-led product copy. Emphasize outcomes for the buyer, differentiators, and a single clear CTA.",
+    },
+    {
+      slug: "email",
+      label: "Email",
+      description: "Clear and persuasive outreach",
+      promptInstructions:
+        "Write a concise email with a hook, value proposition, social proof if relevant, and a single CTA. Avoid filler.",
+    },
+    {
+      slug: "social",
+      label: "Social Caption",
+      description: "Short, punchy, high-engagement",
+      promptInstructions:
+        "Draft 3 platform-aware social captions. Tone: confident, practical, premium. Use line breaks for readability and 1-2 relevant hashtags max.",
+    },
+    {
+      slug: "summary",
+      label: "Summary",
+      description: "Concise key points",
+      promptInstructions:
+        "Distill the input into the smallest set of high-signal bullet points capturing the key facts, decisions, and follow-ups.",
+    },
+  ];
+  for (const def of systemContentTypes) {
+    const existing = await prisma.contentTypeDefinition.findFirst({
+      where: { slug: def.slug, isSystem: true, userId: null, tenantId: null },
+    });
+    if (existing) {
+      await prisma.contentTypeDefinition.update({
+        where: { id: existing.id },
+        data: {
+          label: def.label,
+          description: def.description,
+          promptInstructions: def.promptInstructions,
+          isSystem: true,
+          isActive: true,
+        },
+      });
+    } else {
+      await prisma.contentTypeDefinition.create({
+        data: {
+          slug: def.slug,
+          label: def.label,
+          description: def.description,
+          promptInstructions: def.promptInstructions,
+          isSystem: true,
+          isActive: true,
+        },
+      });
+    }
+  }
+  console.log(`    ✓ ${systemContentTypes.length} system content types ensured`);
+
   console.log("\n✅ Seed complete!");
 }
 

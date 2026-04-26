@@ -12,11 +12,10 @@ import {
   assertFolderOwnership,
   assertSessionOwnership,
 } from "@/lib/server/ownership";
+import { assertContentTypeAvailable } from "@/lib/server/content-types";
 import {
   MAX_PROMPT_LENGTH,
   MIN_PROMPT_LENGTH,
-  VALID_CONTENT_TYPES,
-  sanitizeName,
 } from "@/lib/server/validation";
 
 type GenerateBody = {
@@ -26,9 +25,8 @@ type GenerateBody = {
   sessionId?: string | null;
 };
 
-function deriveSessionTitle(input: string, type: string): string {
+function deriveSessionTitle(input: string, label: string): string {
   const snippet = input.trim().slice(0, 60).replace(/\s+/g, " ");
-  const label = type.charAt(0).toUpperCase() + type.slice(1);
   return snippet ? `${label}: ${snippet}` : `${label} session`;
 }
 
@@ -43,12 +41,14 @@ export async function POST(request: Request) {
     return badRequest("Invalid JSON body.");
   }
 
-  const type = body.type?.trim().toLowerCase();
+  const rawType = typeof body.type === "string" ? body.type : "";
   const input = body.input?.trim();
 
-  if (!type || !VALID_CONTENT_TYPES.has(type)) {
-    return badRequest("Invalid content type.");
+  const typeDef = await assertContentTypeAvailable(rawType, user);
+  if (!typeDef) {
+    return badRequest("Invalid or unavailable content type.");
   }
+  const type = typeDef.slug;
   if (!input || input.length < MIN_PROMPT_LENGTH) {
     return badRequest(
       `Please provide a more detailed prompt (minimum ${MIN_PROMPT_LENGTH} characters).`,
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         userId: user.id,
         tenantId: user.tenantId,
         folderId,
-        title: deriveSessionTitle(input, type),
+        title: deriveSessionTitle(input, typeDef.label),
         contentType: type,
         lastMessageAt: new Date(),
       },
@@ -108,8 +108,15 @@ export async function POST(request: Request) {
     },
   });
 
-  const systemPrompt = buildSystemPrompt();
-  const modelInput = buildUserPrompt(type, input);
+  const typeContext = {
+    slug: typeDef.slug,
+    label: typeDef.label,
+    description: typeDef.description,
+    promptInstructions: typeDef.promptInstructions,
+    systemPrompt: typeDef.systemPrompt,
+  };
+  const systemPrompt = buildSystemPrompt(typeContext);
+  const modelInput = buildUserPrompt(typeContext, input);
 
   const errors: string[] = [];
   const openAIResult = await generateWithOpenAI(systemPrompt, modelInput);
@@ -200,5 +207,7 @@ export async function POST(request: Request) {
     messageId: assistantMessage.id,
     provider: success.provider,
     model: success.model,
+    truncated: success.truncated ?? false,
+    stopReason: success.stopReason,
   });
 }

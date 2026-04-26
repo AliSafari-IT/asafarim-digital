@@ -1,23 +1,28 @@
 'use client';
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { asafarimBrandTokens } from "@asafarim/ui";
 
 import { ContentForm } from "@/components/ContentForm";
 import { OutputCard } from "@/components/OutputCard";
 import { ProjectWorkspace } from "@/components/ProjectWorkspace";
-import { ContentType } from "@/components/TypeSelector";
-import { generate, promptsApi, type SavedPromptDto } from "@/lib/client/api";
+import {
+  contentTypesApi,
+  generate,
+  promptsApi,
+  type ContentTypeDefinition,
+  type SavedPromptDto,
+} from "@/lib/client/api";
 
 type GeneratePayload = {
-  type: ContentType;
+  type: string;
   input: string;
   folderId: string | null;
   sessionId: string | null;
 };
 
-const quickPrompts: Array<{ label: string; type: ContentType; prompt: string }> = [
+const quickPrompts: Array<{ label: string; type: string; prompt: string }> = [
   {
     label: "Product launch email",
     type: "email",
@@ -41,9 +46,11 @@ const quickPrompts: Array<{ label: string; type: ContentType; prompt: string }> 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export default function ContentGeneratorPage() {
-  const [type, setType] = useState<ContentType>("blog");
+  const [type, setType] = useState<string>("blog");
+  const [contentTypes, setContentTypes] = useState<ContentTypeDefinition[]>([]);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [truncated, setTruncated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -66,6 +73,7 @@ export default function ContentGeneratorPage() {
       });
 
       setOutput(data.output);
+      setTruncated(data.truncated ?? false);
       setSessionId(data.sessionId);
       setLastPayload({ ...payload, sessionId: data.sessionId });
       setWorkspaceRefresh((value) => value + 1);
@@ -95,9 +103,57 @@ export default function ContentGeneratorPage() {
     await runGeneration({ ...lastPayload, sessionId });
   };
 
+  // Ask the model to keep going from where it stopped. We append a short
+  // continuation hint to the prior prompt and reuse the existing session so
+  // the assistant has full chat history as context.
+  const handleContinue = async () => {
+    if (!lastPayload || !output) return;
+    const continuation =
+      "Continue exactly from where you left off in the previous response. Do not repeat anything already written.";
+    await runGeneration({
+      ...lastPayload,
+      input: continuation,
+      sessionId,
+    });
+  };
+
+  const loadContentTypes = useCallback(async () => {
+    try {
+      const { contentTypes: rows } = await contentTypesApi.list();
+      setContentTypes(rows);
+      setType((current) => {
+        if (current && rows.some((row) => row.slug === current)) return current;
+        const blog = rows.find((row) => row.slug === "blog");
+        return blog?.slug ?? rows[0]?.slug ?? current;
+      });
+    } catch {
+      // Non-fatal: the user can still type a slug they own; backend will validate.
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadContentTypes();
+  }, [loadContentTypes]);
+
+  const handleCreateType = useCallback(
+    async (input: { label: string; description?: string; promptInstructions?: string }) => {
+      const { contentType: created } = await contentTypesApi.create(input);
+      setContentTypes((prev) => {
+        const next = prev.filter((row) => row.id !== created.id);
+        next.push(created);
+        return next.sort((a, b) => a.label.localeCompare(b.label));
+      });
+      setType(created.slug);
+      return created;
+    },
+    [],
+  );
+
   const handleApplyPrompt = (prompt: SavedPromptDto) => {
-    if ((["blog", "product", "email", "social", "summary"] as ContentType[]).includes(prompt.contentType as ContentType)) {
-      setType(prompt.contentType as ContentType);
+    setType(prompt.contentType);
+    if (!contentTypes.some((row) => row.slug === prompt.contentType)) {
+      // Saved prompt references an unknown type — refresh the list so it appears.
+      void loadContentTypes();
     }
     setInput(prompt.prompt);
     if (prompt.folderId) setFolderId(prompt.folderId);
@@ -264,9 +320,11 @@ export default function ContentGeneratorPage() {
           <ContentForm
             input={input}
             type={type}
+            types={contentTypes}
             isLoading={isLoading}
             onInputChange={setInput}
             onTypeChange={setType}
+            onCreateType={handleCreateType}
             onSubmit={handleSubmit}
           />
           <button
@@ -289,6 +347,8 @@ export default function ContentGeneratorPage() {
           output={output}
           isLoading={isLoading}
           isCopied={isCopied}
+          truncated={truncated}
+          onContinue={handleContinue}
           error={error}
           onCopy={handleCopy}
           onRegenerate={handleRegenerate}
