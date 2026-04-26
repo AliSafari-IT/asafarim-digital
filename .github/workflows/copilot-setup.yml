@@ -64,7 +64,7 @@ jobs:
           pnpm --filter @asafarim/db build || true
 
       - name: Lint workspace
-        run: pnpm lint || true
+        run: pnpm turbo lint --continue || echo "Lint completed with warnings"
 
       - name: Verify Dockerfiles syntax
         run: |
