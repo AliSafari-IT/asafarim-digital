@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #0b1020;
+  --color-surface: #111733;
+  --color-border: #1f2a55;
+  --color-text: #f4f7ff;
+  --color-text-secondary: #97a3c9;
+  --color-primary: #6c8cff;
+  --color-primary-dark: #4b6bff;
+  --color-accent: #4ff2c9;
+  --gradient-brand: linear-gradient(135deg, #6c8cff 0%, #4ff2c9 100%);
+}
+
+[data-theme="light"] {
+  --color-bg: #f7f9ff;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-primary: #4b6bff;
+  --color-primary-dark: #2f4ad6;
+  --color-accent: #10b981;
+  --gradient-brand: linear-gradient(135deg, #4b6bff 0%, #10b981 100%);
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  font-family: "Geist", "Inter Tight", "Inter", "Segoe UI", sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}

@@ -31,13 +31,13 @@ model User {
   deactivatedAt DateTime?
 
   // Marketing attribution (captured at signup)
-  utmSource    String?
-  utmMedium    String?
-  utmCampaign  String?
-  utmContent   String?
-  utmTerm      String?
-  referrer     String?  @db.Text
-  landingPage  String?  @db.Text
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  referrer    String? @db.Text
+  landingPage String? @db.Text
 
   // Multi-tenant
   tenantId String?
@@ -54,11 +54,23 @@ model User {
   auditLogs AuditLog[]
 
   // Content generator
-  contentFolders          ContentProjectFolder[]
-  contentChatSessions     ContentChatSession[]
-  savedPrompts            SavedPrompt[]
-  contentGenerations      ContentGeneration[]
-  contentTypeDefinitions  ContentTypeDefinition[]
+  contentFolders         ContentProjectFolder[]
+  contentChatSessions    ContentChatSession[]
+  savedPrompts           SavedPrompt[]
+  contentGenerations     ContentGeneration[]
+  contentTypeDefinitions ContentTypeDefinition[]
+
+  // EduMatch
+  eduStudentProfile  EduStudentProfile?
+  eduTutorProfile    EduTutorProfile?
+  eduInquiries       EduInquiry[]
+  eduQuotes          EduQuote[]
+  eduStudentBookings EduBooking[]       @relation("EduBookingStudent")
+  eduTutorBookings   EduBooking[]       @relation("EduBookingTutor")
+  eduTransactions    EduTransaction[]
+  eduWallet          EduWallet?
+  eduNotifications   EduNotification[]
+  eduMessages        EduMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -243,7 +255,7 @@ model SiteSetting {
 // ─── Audit Log ─────────────────────────────────────────────────
 
 model AuditLog {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   userId    String?
   action    String
   entity    String
@@ -264,18 +276,18 @@ model AuditLog {
 // ─── Multi-Tenant Models ───────────────────────────────────────
 
 model Tenant {
-  id       String  @id @default(cuid())
-  name     String
-  slug     String  @unique
-  plan     String  @default("free")
-  status   String  @default("active") // active, trial, past_due, churned, suspended
-  mrrCents Int     @default(0)
-  seats    Int     @default(1)
-  region   String  @default("EU")
-  industry String?
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  plan             String    @default("free")
+  status           String    @default("active") // active, trial, past_due, churned, suspended
+  mrrCents         Int       @default(0)
+  seats            Int       @default(1)
+  region           String    @default("EU")
+  industry         String?
   primaryContactId String?
-  trialEndsAt DateTime?
-  churnedAt   DateTime?
+  trialEndsAt      DateTime?
+  churnedAt        DateTime?
 
   users            User[]
   subscriptions    Subscription[]
@@ -469,17 +481,17 @@ model AutomationRun {
 // ─── App Registry & System Health ──────────────────────────────
 
 model AppRegistry {
-  id             String   @id @default(cuid())
-  code           String   @unique // portal, content-generator, ops-hub, marketing-content
+  id             String    @id @default(cuid())
+  code           String    @unique // portal, content-generator, ops-hub, marketing-content
   name           String
-  description    String?  @db.Text
+  description    String?   @db.Text
   url            String // public URL (prod/qa subdomain)
   healthUrl      String // /api/health endpoint
-  environment    String   @default("qa") // dev, qa, prod
-  isEnabled      Boolean  @default(true)
+  environment    String    @default("qa") // dev, qa, prod
+  isEnabled      Boolean   @default(true)
   lastDeployedAt DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   healthChecks HealthCheck[]
 
@@ -536,13 +548,13 @@ model ContentProjectFolder {
 }
 
 model ContentChatSession {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
   tenantId      String?
   folderId      String?
   title         String
   contentType   String?
-  status        String   @default("active")
+  status        String    @default("active")
   lastMessageAt DateTime?
   metadata      Json?
 
@@ -553,9 +565,9 @@ model ContentChatSession {
   tenant Tenant?               @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   folder ContentProjectFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
-  messages    ContentChatMessage[]
+  messages     ContentChatMessage[]
   savedPrompts SavedPrompt[]
-  generations ContentGeneration[]
+  generations  ContentGeneration[]
 
   @@index([userId])
   @@index([tenantId])
@@ -565,10 +577,10 @@ model ContentChatSession {
 }
 
 model ContentChatMessage {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   sessionId   String
   role        String // system, user, assistant
-  content     String   @db.Text
+  content     String  @db.Text
   contentType String?
   provider    String?
   model       String?
@@ -666,5 +678,256 @@ model ContentGeneration {
   @@index([folderId])
   @@index([sessionId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// ─── EduMatch Models ───────────────────────────────────────────
+// AI-first homework help + tutor marketplace.
+// See docs/edumatch-project-plan.md.
+//
+// Identity reuses the global `User` model. STUDENT vs TUTOR is implicit
+// by the presence of EduStudentProfile / EduTutorProfile (a user may be
+// both). ADMIN flows through the existing RBAC system.
+//
+// Geo fields use PostGIS via `Unsupported("geography(Point, 4326)")`.
+// Spatial queries (e.g. ST_DWithin) must use `$queryRaw`. The first
+// migration must `CREATE EXTENSION IF NOT EXISTS postgis;`.
+
+model EduStudentProfile {
+  id                 String                                 @id @default(cuid())
+  userId             String                                 @unique
+  gradeLevel         String // K12, UNDERGRAD, GRAD
+  subjectsOfInterest String[]                               @default([])
+  homeAddress        Json?
+  homeLocation       Unsupported("geography(Point, 4326)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([gradeLevel])
+}
+
+model EduTutorProfile {
+  id              String                                 @id @default(cuid())
+  userId          String                                 @unique
+  bio             String?                                @db.Text
+  subjectsTaught  String[]                               @default([])
+  levelsTaught    String[]                               @default([])
+  hourlyRateCents Int                                    @default(0)
+  onlineOnly      Boolean                                @default(false)
+  serviceRadiusKm Int                                    @default(10)
+  homeAddress     Json?
+  homeLocation    Unsupported("geography(Point, 4326)")?
+
+  // Stripe Connect (Phase 4)
+  stripeAccountId String? @unique
+  payoutEnabled   Boolean @default(false)
+
+  // Trust & quality
+  verifiedAt  DateTime?
+  ratingAvg   Float     @default(0)
+  ratingCount Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([onlineOnly])
+  @@index([hourlyRateCents])
+  @@index([ratingAvg])
+  @@index([verifiedAt])
+}
+
+model EduInquiry {
+  id          String  @id @default(cuid())
+  studentId   String
+  subject     String
+  gradeLevel  String
+  description String  @db.Text
+  attachments Json? // [{ type, url, mime, sizeBytes }]
+  aiSummary   String? @db.Text
+  status      String  @default("NEW") // NEW, AI_RESPONDED, TUTOR_REQUESTED, BOOKED, CLOSED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student       User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  aiResponses   EduAiResponse[]
+  quoteRequests EduQuoteRequest[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([subject])
+  @@index([createdAt])
+}
+
+model EduAiResponse {
+  id               String  @id @default(cuid())
+  inquiryId        String
+  modelUsed        String
+  promptVersion    String
+  explanation      String  @db.Text
+  studyPlan        Json?
+  practiceProblems Json?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  tokenCostMicros  Int? // 1/1,000,000 of a USD, integer math for billing
+  latencyMs        Int?
+  truncated        Boolean @default(false)
+  stopReason       String?
+
+  createdAt DateTime @default(now())
+
+  inquiry EduInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId])
+  @@index([createdAt])
+}
+
+model EduQuoteRequest {
+  id          String   @id @default(cuid())
+  inquiryId   String
+  studentId   String
+  requestedAt DateTime @default(now())
+  expiresAt   DateTime
+  status      String   @default("OPEN") // OPEN, FULFILLED, EXPIRED, CANCELLED
+
+  inquiry EduInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  quotes  EduQuote[]
+
+  @@index([inquiryId])
+  @@index([studentId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model EduQuote {
+  id                String  @id @default(cuid())
+  quoteRequestId    String
+  tutorId           String
+  hourlyRateCents   Int
+  estimatedHours    Float
+  totalCents        Int
+  availabilitySlots Json? // [{ start, end, mode }]
+  notes             String? @db.Text
+  pdfUrl            String?
+  status            String  @default("PENDING") // PENDING, SENT, ACCEPTED, DECLINED, EXPIRED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quoteRequest EduQuoteRequest @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  tutor        User            @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  booking      EduBooking?
+
+  @@unique([quoteRequestId, tutorId])
+  @@index([quoteRequestId])
+  @@index([tutorId])
+  @@index([status])
+}
+
+model EduBooking {
+  id                    String    @id @default(cuid())
+  quoteId               String    @unique
+  studentId             String
+  tutorId               String
+  scheduledAt           DateTime
+  durationMinutes       Int
+  mode                  String // ONLINE, IN_PERSON
+  meetingUrl            String?
+  stripePaymentIntentId String?   @unique
+  status                String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, DISPUTED
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quote        EduQuote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  student      User             @relation("EduBookingStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  tutor        User             @relation("EduBookingTutor", fields: [tutorId], references: [id], onDelete: Cascade)
+  transactions EduTransaction[]
+  messages     EduMessage[]
+
+  @@index([studentId])
+  @@index([tutorId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model EduTransaction {
+  id               String  @id @default(cuid())
+  bookingId        String
+  tutorId          String
+  type             String // CHARGE, REFUND, PAYOUT, PLATFORM_FEE
+  grossCents       Int
+  platformFeeCents Int     @default(0)
+  netCents         Int
+  currency         String  @default("EUR")
+  stripeChargeId   String?
+  stripePayoutId   String?
+
+  createdAt DateTime @default(now())
+
+  booking EduBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  tutor   User       @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([tutorId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([stripeChargeId])
+}
+
+model EduWallet {
+  tutorId              String    @id
+  balanceCents         Int       @default(0)
+  pendingCents         Int       @default(0)
+  payoutThresholdCents Int       @default(5000)
+  currency             String    @default("EUR")
+  lastPayoutAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tutor User @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+}
+
+model EduNotification {
+  id      String    @id @default(cuid())
+  userId  String
+  type    String // INQUIRY_RECEIVED, AI_RESPONSE_READY, QUOTE_RECEIVED, BOOKING_CONFIRMED, PAYOUT_SENT, ...
+  payload Json?
+  readAt  DateTime?
+  sentAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([readAt])
+  @@index([createdAt])
+}
+
+model EduMessage {
+  id        String @id @default(cuid())
+  bookingId String
+  senderId  String
+  body      String @db.Text
+
+  createdAt DateTime @default(now())
+
+  booking EduBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([senderId])
   @@index([createdAt])
 }

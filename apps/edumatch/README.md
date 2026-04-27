@@ -1,0 +1,73 @@
+# EduMatch
+
+AI-first homework help + tutor marketplace. Web and API live here as a single
+Next.js 16 app inside the `asafarim-digital` monorepo. The Flutter mobile app
+is intentionally out of scope and will live in a separate repo if/when needed.
+
+See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-project-plan.md).
+
+## Status
+
+**Phase 1.1 — Domain models.** Skeleton boots, `/api/health` returns `{ ok: true }`,
+and the EduMatch domain (`EduStudentProfile`, `EduTutorProfile`, `EduInquiry`,
+`EduAiResponse`, `EduQuoteRequest`, `EduQuote`, `EduBooking`, `EduTransaction`,
+`EduWallet`, `EduNotification`, `EduMessage`) lives in
+`packages/db/prisma/schema.prisma`. Auth, AI, Stripe, and storage wiring all
+land in later phases.
+
+### Database bootstrap
+
+EduMatch uses PostGIS for spatial queries (`Unsupported("geography(Point, 4326)")`).
+Before the first `prisma db push`, enable the extension once:
+
+```bash
+psql "$DATABASE_URL" -f apps/edumatch/db/enable-postgis.sql
+pnpm --filter @asafarim/db db:push
+```
+
+Spatial filters use `$queryRaw` with `ST_DWithin` — Prisma cannot type-check
+`Unsupported` columns, which is fine for our use case.
+
+## Local development
+
+```bash
+# from repo root
+pnpm install
+pnpm dev --filter edumatch
+```
+
+App: http://localhost:3005
+Health: http://localhost:3005/api/health
+
+## Layout
+
+```
+apps/edumatch/
+├── app/
+│   ├── api/
+│   │   └── health/route.ts   # liveness probe
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx              # placeholder landing page
+├── next.config.ts
+├── package.json
+├── postcss.config.mjs
+├── tsconfig.json
+├── vitest.config.ts
+└── .env.example
+```
+
+## Roadmap (high-level)
+
+| Phase | Scope |
+|-------|-------|
+| 0 | Skeleton, health check, env template *(current)* |
+| 1.1 | Prisma schema additions in `packages/db`: users, profiles, inquiries, quotes, bookings, transactions, wallets |
+| 1.2 | `@asafarim/auth` integration — STUDENT / TUTOR / ADMIN roles, 2FA for tutors |
+| 1.3 | Profile CRUD + Google Maps geocoding |
+| 2 | Intake API, presigned uploads, AI orchestrator (OpenAI primary, Anthropic failover), streaming |
+| 3 | Tutor matching (PostGIS), quote requests, standardized quotes |
+| 4 | Stripe Connect onboarding, booking checkout, wallet, payouts |
+| 5 | Quote PDFs (Puppeteer), transactional email |
+| 6 | Web UI polish (mobile app excluded) |
+| 7 | E2E tests, deploy to `edumatch-qa.asafarim.com` |
