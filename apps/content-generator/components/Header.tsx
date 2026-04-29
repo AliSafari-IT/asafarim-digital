@@ -31,7 +31,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <AppSwitcher current="content-generator" />
+          <AppSwitcher current="content-generator" variant="compact"/>
           <a
             href={repoUrl}
             target="_blank"

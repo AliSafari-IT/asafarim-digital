@@ -263,7 +263,7 @@ export function Shell({
               </span>
               <NotificationsBell />
               <ThemeToggle />
-              <AppSwitcher current="marketing-content" />
+              <AppSwitcher current="marketing-content" variant="compact"/>
               <UserMenu user={user} />
             </div>
           </header>

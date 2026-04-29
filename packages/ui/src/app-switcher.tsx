@@ -83,6 +83,17 @@ function resolveUrl(envKey: string, fallback: string): string {
   return fallback;
 }
 
+function getGradientStyle(key: string): string {
+  const gradients: Record<string, string> = {
+    portal: "linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%)",
+    "content-generator": "linear-gradient(135deg, #8b5cf6 0%, #a21caf 100%)",
+    "ops-hub": "linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)",
+    "marketing-content": "linear-gradient(135deg, #ec4899 0%, #f97316 100%)",
+    edumatch: "linear-gradient(135deg, #10b981 0%, #0ea5e9 100%)",
+  };
+  return gradients[key] || gradients.portal;
+}
+
 export function AppSwitcher({ current, variant = "default" }: { current: AppKey; variant?: "default" | "compact" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -99,10 +110,7 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
         aria-expanded={open}
         aria-label="Switch app"
         title="Switch app"
-        className={isCompact
-          ? "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
-          : "group inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
-        }
+        className={"inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"}
       >
         <svg viewBox="0 0 16 16" fill="currentColor" className={isCompact ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden="true">
           <rect x="1" y="1" width="4" height="4" rx="1" />
@@ -120,12 +128,16 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
       {open && (
         <div
           role="dialog"
-          className={isCompact
-            ? "absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-2xl"
-            : "absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[min(20rem,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-3 shadow-[var(--shadow-card)]"
-          }
+          style={{
+            width: '320px',
+            maxWidth: 'calc(100vw - 1rem)',
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border-strong)',
+            zIndex: 9999,
+          }}
+          className="absolute right-0 top-[calc(100%+0.75rem)] rounded-xl p-3 shadow-[var(--shadow-card)]"
         >
-            <div className="flex items-center justify-between px-2 pb-2">
+            <div className="mb-2 flex items-center justify-between px-2">
               <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isCompact ? "text-[var(--color-text-subtle)]" : "text-[var(--color-text-muted)]"}`}>
                 ASafariM Apps
               </p>
@@ -133,7 +145,7 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
                 {apps.length}
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', width: '100%' }}>
               {apps.map((a) => {
                 const isCurrent = a.key === current;
                 const href = resolveUrl(a.urlEnv, a.fallback);
@@ -141,26 +153,56 @@ export function AppSwitcher({ current, variant = "default" }: { current: AppKey;
                   <a
                     key={a.key}
                     href={href}
-                    className={`${isCompact ? "rounded-xl" : "rounded-2xl"} group relative overflow-hidden border p-3 transition-all ${
-                      isCurrent
-                        ? isCompact
-                          ? "border-[var(--color-accent)] bg-[var(--color-primary-soft)]"
-                          : "border-[var(--color-primary)] bg-[var(--color-primary-soft)]"
-                        : isCompact
-                          ? "border-[var(--color-border)] bg-[var(--color-bg-soft)]/60 hover:border-[var(--color-border-strong)] hover:bg-white/[0.04]"
-                          : "border-[var(--color-border)] bg-[var(--color-panel)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)]"
-                    }`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      padding: '10px 8px',
+                      paddingRight: '45px',
+                      borderRadius: '10px',
+                      border: '1px solid var(--color-border)',
+                      background: isCurrent ? 'var(--color-primary-soft)' : 'var(--color-panel)',
+                      transition: 'all 0.2s',
+                      textDecoration: 'none',
+                      position: 'relative',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                    }}
                   >
-                    <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${a.gradient} text-sm font-bold text-white shadow-lg ring-1 ${a.ring}`}
-                    >
-                      {a.mark}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          flexShrink: 0,
+                          background: getGradientStyle(a.key),
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }}
+                        className="flex items-center justify-center rounded-lg text-sm font-bold text-white ring-1 ring-inset ring-white/10"
+                      >
+                        {a.mark}
+                      </div>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, paddingRight: '5px' }}>
+                        {a.name}
+                      </p>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-[var(--color-text)]">{a.name}</p>
-                    <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] sm:line-clamp-1">
+                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, paddingLeft: '40px' }}>
                       {a.tagline}
                     </p>
-                    <span className={`absolute right-2 top-2 rounded-full ${isCompact ? "bg-white/5" : "bg-[var(--color-panel)]"} px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${isCompact ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-muted)]"}`}>
+                    <span style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '8px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '2px 5px',
+                      borderRadius: '3px',
+                      background: isCurrent ? 'var(--color-primary)' : 'var(--color-surface)',
+                      color: isCurrent ? 'white' : 'var(--color-text-muted)',
+                    }}>
                       {isCurrent ? "Current" : a.tag}
                     </span>
                   </a>

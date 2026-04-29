@@ -1,26 +1,45 @@
 @import "tailwindcss";
+@import "@asafarim/country-language-selector/styles.css";
 
 :root {
   --color-bg: #0b1020;
   --color-surface: #111733;
+  --color-surface-soft: #0d1429;
+  --color-panel: rgba(17, 23, 51, 0.9);
+  --color-panel-strong: rgba(13, 20, 41, 0.95);
   --color-border: #1f2a55;
+  --color-border-strong: rgba(111, 127, 189, 0.4);
   --color-text: #f4f7ff;
   --color-text-secondary: #97a3c9;
+  --color-text-muted: #97a3c9;
+  --color-text-subtle: #6b7a9c;
   --color-primary: #6c8cff;
   --color-primary-dark: #4b6bff;
+  --color-primary-soft: rgba(108, 140, 255, 0.15);
   --color-accent: #4ff2c9;
+  --color-bg-soft: rgba(11, 16, 32, 0.6);
+  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
   --gradient-brand: linear-gradient(135deg, #6c8cff 0%, #4ff2c9 100%);
 }
 
 [data-theme="light"] {
   --color-bg: #f7f9ff;
   --color-surface: #ffffff;
+  --color-surface-soft: #f1f5f9;
+  --color-panel: rgba(255, 255, 255, 0.9);
+  --color-panel-strong: rgba(241, 245, 249, 0.95);
   --color-border: #e2e8f0;
+  --color-border-strong: rgba(148, 163, 184, 0.4);
   --color-text: #0f172a;
   --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-subtle: #94a3b8;
   --color-primary: #4b6bff;
   --color-primary-dark: #2f4ad6;
+  --color-primary-soft: rgba(75, 107, 255, 0.15);
   --color-accent: #10b981;
+  --color-bg-soft: rgba(247, 249, 255, 0.6);
+  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.15);
   --gradient-brand: linear-gradient(135deg, #4b6bff 0%, #10b981 100%);
 }
 

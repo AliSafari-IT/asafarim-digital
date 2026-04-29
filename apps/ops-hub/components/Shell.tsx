@@ -255,7 +255,7 @@ export function Shell({
               </div>
               <NotificationsBell />
               <ThemeToggle />
-              <AppSwitcher current="ops-hub" />
+              <AppSwitcher current="ops-hub" variant="default"/>
               <UserMenu user={user} />
             </div>
           </header>

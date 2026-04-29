@@ -313,7 +313,7 @@ export function SiteHeader({
         <div className="flex items-center gap-2">
           <CountryLanguageSelector />
           <ThemeToggle />
-          <AppSwitcher current="portal" />
+          <AppSwitcher current="portal" variant="compact" />
           <UserMenu />
           <button
             type="button"

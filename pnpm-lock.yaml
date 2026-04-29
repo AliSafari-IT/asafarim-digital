@@ -59,7 +59,7 @@ importers:
         version: 9.39.4(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.3
-        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.2.3(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.0
         version: 8.5.9
@@ -78,6 +78,9 @@ importers:
       '@asafarim/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@asafarim/country-language-selector':
+        specifier: workspace:*
+        version: link:../../packages/country-language-selector
       '@asafarim/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -147,7 +150,7 @@ importers:
         version: 9.39.4(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.3
-        version: 16.2.3(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.0
         version: 8.5.9
