@@ -45,7 +45,6 @@ RUN adduser --system --uid 1001 nextjs
 # Copy standalone app
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/edumatch/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/edumatch/.next/static ./apps/edumatch/.next/static
-COPY --from=builder --chown=nextjs:nodejs /repo/apps/edumatch/public ./apps/edumatch/public
 
 # Copy node_modules and packages needed for Prisma
 COPY --from=builder /repo/node_modules ./node_modules
