@@ -19,4 +19,4 @@ RUN pnpm install --ignore-scripts --filter @asafarim/db
 
 WORKDIR /app/packages/db
 
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npx prisma db push --accept-data-loss"]
+CMD ["sh", "-c", "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate deploy --schema=./prisma/schema.prisma && npx prisma db push --accept-data-loss --schema=./prisma/schema.prisma"]
