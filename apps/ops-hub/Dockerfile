@@ -15,6 +15,12 @@ ENV NEXT_PUBLIC_CONTENT_GENERATOR_URL=$NEXT_PUBLIC_CONTENT_GENERATOR_URL
 ARG NEXT_PUBLIC_MARKETING_CONTENT_URL="https://marketing-content.asafarim.com"
 ENV NEXT_PUBLIC_MARKETING_CONTENT_URL=$NEXT_PUBLIC_MARKETING_CONTENT_URL
 
+ARG NEXT_PUBLIC_EDUMATCH_URL="https://edumatch.asafarim.com"
+ENV NEXT_PUBLIC_EDUMATCH_URL=$NEXT_PUBLIC_EDUMATCH_URL
+
+ARG NEXT_PUBLIC_OPS_HUB_URL="https://ops-hub.asafarim.com"
+ENV NEXT_PUBLIC_OPS_HUB_URL=$NEXT_PUBLIC_OPS_HUB_URL
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/ops-hub ./apps/ops-hub
 COPY packages/auth ./packages/auth
