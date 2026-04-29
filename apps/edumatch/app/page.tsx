@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+
 export default function HomePage() {
   const { data: session } = useSession();
   const isStudent = session?.user?.roles?.includes("STUDENT");
@@ -47,13 +49,13 @@ export default function HomePage() {
             ) : (
               <>
                 <Link
-                  href="/api/auth/signin"
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://edumatch.asafarim.com')}`}
                   className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
                 >
                   Get Started as Student
                 </Link>
                 <Link
-                  href="/api/auth/signin"
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://edumatch.asafarim.com')}`}
                   className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-8 py-4 text-base font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                 >
                   Become a Tutor
