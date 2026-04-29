@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
-import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "../../../packages/ui/src/theme";
+import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "@asafarim/ui";
 import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
-import { AppSwitcher } from "./AppSwitcher";
+import { AppSwitcher } from "@asafarim/ui";
 
 type NavItem = {
   href: string;

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { MarketingContentLogo, MarketingContentMark } from "./Logo";
-import { AppSwitcher } from "./AppSwitcher";
+import { AppSwitcher } from "@asafarim/ui";
 import { CommandPalette } from "./CommandPalette";
 import { ThemeToggle } from "./ThemeToggle";
 import { useOutsideClick } from "@/lib/use-outside-click";

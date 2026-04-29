@@ -12,6 +12,7 @@
   "dependencies": {
     "@asafarim/auth": "workspace:*",
     "@asafarim/db": "workspace:*",
+    "@asafarim/ui": "workspace:*",
     "next": "^15.3.0",
     "next-auth": "^5.0.0-beta.28",
     "react": "^19.0.0",

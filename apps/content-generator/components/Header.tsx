@@ -1,7 +1,7 @@
 "use client";
 
 import { Logo } from "./Logo";
-import { AppSwitcher } from "./AppSwitcher";
+import { AppSwitcher } from "@asafarim/ui";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
 const repoUrl = "https://github.com/AliSafari-IT/asafarim-digital";

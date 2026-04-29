@@ -9,3 +9,4 @@ export { asafarimBrandTokens, asafarimTailwindThemeExtension } from "./brand-tok
 export type { AppKey } from "./app-switcher";
 export { applyTheme, initializeTheme, persistTheme, readTheme, THEME_STORAGE_KEY, themeInitScript } from "./theme";
 export type { Theme } from "./theme";
+export { subscribeThemeChanges } from "./theme";

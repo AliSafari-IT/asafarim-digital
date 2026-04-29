@@ -99,22 +99,40 @@ function Run-Build {
     Write-Host "[build] Done." -ForegroundColor Green
 }
 
+function Build-Packages {
+    Write-Host "[build-packages] Rebuilding workspace packages..." -ForegroundColor Cyan
+    pnpm --filter @asafarim/ui build
+    pnpm --filter @asafarim/auth build
+    pnpm --filter @asafarim/db build
+    Write-Host "[build-packages] Done." -ForegroundColor Green
+}
+
 function Run-Dev {
     Confirm-Deps
+    Build-Packages
     Write-Host "[dev] Starting all dev servers..." -ForegroundColor Cyan
     pnpm dev
 }
 
 function Run-Dev-Portal {
     Confirm-Deps
+    Build-Packages
     Write-Host "[dev] Starting portal..." -ForegroundColor Cyan
     pnpm dev:portal
 }
 
 function Start-Dev-Ops {
     Confirm-Deps
+    Build-Packages
     Write-Host "[dev] Starting ops-hub..." -ForegroundColor Cyan
     pnpm dev:ops
+}
+
+function Start-Dev-Edumatch {
+    Confirm-Deps
+    Build-Packages
+    Write-Host "[dev] Starting edumatch..." -ForegroundColor Cyan
+    pnpm dev:edumatch
 }
 
 function Run-Clean {
