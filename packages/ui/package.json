@@ -16,6 +16,7 @@
     "typescript": "^5.7.0",
     "react": "^19.0.0",
     "@types/react": "^19.0.0",
+    "@types/node": "^22.0.0",
     "tsup": "^8.3.0"
   },
   "peerDependencies": {
