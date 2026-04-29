@@ -8,10 +8,10 @@ See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-proje
 
 ## Status
 
-**Phase 2.1 — Intake API + presigned uploads.** Skeleton boots, `/api/health`
-is public, all other routes require an authenticated session.
+**Phase 2.2 — AI orchestrator (OpenAI primary, Anthropic failover) with streaming.**
+Vision (homework photos), audio (Whisper transcription), and streaming responses.
 
-Endpoints in scope for this phase:
+Endpoints:
 
 - `POST /api/uploads/presign` — STUDENT-only. Validates filename, MIME, and
   size against `lib/server/validation.ts`, mints a key namespaced by user id,
@@ -20,12 +20,34 @@ Endpoints in scope for this phase:
 - `POST /api/inquiries` — STUDENT-only. Validates intake JSON, refuses
   attachment keys not minted for the caller, verifies each object exists in
   storage (skipped in stub mode), persists `EduInquiry` with status `NEW`.
-  TODO at Phase 2.2: enqueue AI orchestrator job.
 - `GET /api/inquiries` — STUDENT-only. Returns the caller's own inquiries.
+- `GET /api/inquiries/[id]/ai?stream=1` — STUDENT-only. Server-Sent Events stream
+  of AI tokens. Supports vision (GPT-4o) for images, Whisper transcription for
+  audio attachments. Persists `EduAiResponse` on completion.
+- `POST /api/inquiries/[id]/ai/job` — STUDENT-only. Enqueue async AI job via
+  BullMQ (requires `REDIS_URL`). Use for long-running inference that exceeds
+  function timeout limits.
+- `GET /api/inquiries/[id]/ai/job` — Poll for async job status and latest response.
 
 Limits: 5 attachments × 50 MB each. Allowed MIME types: `image/{jpeg,png,webp,heic}`,
 `video/{mp4,quicktime}`, `audio/{mp4,mpeg,wav,webm}`, `text/plain`,
 `application/pdf`.
+
+AI Orchestrator (`lib/server/ai-orchestrator.ts`):
+- **OpenAI primary**: GPT-4o for vision (≤4 images), GPT-4o-mini for text-only.
+- **Whisper-1**: Automatic audio transcription before inference.
+- **Anthropic failover**: Claude 3.5 Sonnet when OpenAI fails or is unavailable.
+- **Streaming**: `streamOpenAI()` yields SSE tokens for real-time UX.
+- **Queue**: BullMQ + Redis for background processing (`lib/server/ai-worker.ts`).
+
+Configure via env:
+```
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL_VISION=gpt-4o
+OPENAI_MODEL_CHAT=gpt-4o-mini
+ANTHROPIC_API_KEY=sk-ant-...
+REDIS_URL=redis://localhost:6379   # for async jobs
+```
 
  The EduMatch domain
 (`EduStudentProfile`, `EduTutorProfile`, `EduInquiry`, `EduAiResponse`,

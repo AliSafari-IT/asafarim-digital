@@ -1,5 +1,4 @@
-import { getAuthedUser } from "./auth";
-import { unauthorized, forbidden, serverError } from "./auth";
+import { getAuthedUser, unauthorized, forbidden, badRequest, serverError } from "./auth";
 import { EduAuthError } from "./profiles";
 import { NextResponse } from "next/server";
 
@@ -17,4 +16,4 @@ export function handleEduError(scope: string, error: unknown): NextResponse {
 }
 
 // Re-export so route handlers only need one import surface.
-export { getAuthedUser };
+export { getAuthedUser, badRequest, serverError };
