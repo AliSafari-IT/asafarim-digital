@@ -812,6 +812,7 @@ model EduQuote {
   hourlyRateCents   Int
   estimatedHours    Float
   totalCents        Int
+  currency          String  @default("eur")
   availabilitySlots Json? // [{ start, end, mode }]
   notes             String? @db.Text
   pdfUrl            String?

@@ -7,8 +7,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-  const auth = await requireAuth(request);
-  if (auth instanceof NextResponse) return auth;
+  const authedUser = await requireAuth();
 
   const { id: quoteId } = await params;
 
@@ -36,7 +35,7 @@ export async function POST(
   }
 
   // Verify student owns this quote
-  if (quote.quoteRequest.inquiry.studentId !== auth.user.id) {
+  if (quote.quoteRequest.inquiry.studentId !== authedUser.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
