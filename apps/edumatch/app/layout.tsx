@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { SessionProvider } from "@/components/SessionProvider";
+import { EduNav } from "@/components/EduNav";
+import { EduFooter } from "@/components/EduFooter";
+import { I18nProvider } from "@asafarim/shared-i18n";
+import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
+import { readThemeFromCookie, themeInitScript } from "@asafarim/ui";
+import { edumatchDictionaries } from "@/lib/i18n-dictionaries";
 import "./globals.css";
 
 const appName = "EduMatch";
@@ -20,11 +27,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const cookieTheme = readThemeFromCookie(cookieStore.toString());
+  const initialTheme = cookieTheme ?? "dark";
+  const initialLocale = resolveLocaleFromCookie(cookieStore.toString());
+
   return (
-    <html lang="en" suppressHydrationWarning data-theme="dark">
-      <body className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
-        <SessionProvider>{children}</SessionProvider>
+    <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeInitScript,
+          }}
+        />
+      </head>
+      <body className="flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
+        <I18nProvider initialLocale={initialLocale} dictionaries={edumatchDictionaries}>
+          <SessionProvider>
+            <EduNav />
+            <main className="flex-1">{children}</main>
+            <EduFooter />
+          </SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   );

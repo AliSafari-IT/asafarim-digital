@@ -8,9 +8,16 @@ See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-proje
 
 ## Status
 
-**Phase 4 — Stripe Connect onboarding, checkout, wallet, payouts.**
-Tutor onboarding with Express accounts, split payments (15% platform fee), wallet
-management, and payout scheduling. Includes basic Next.js UI for student/tutor dashboards.
+**Phase 5 — PDF generation + email notifications (COMPLETE).**
+Quote PDFs generated with Puppeteer + Handlebars, uploaded to DO Spaces with signed URLs.
+Email notifications via Resend for inquiry received, AI response ready, quote received,
+booking confirmed, and payout sent.
+
+Previous phases:
+- **Phase 4** — Stripe Connect onboarding, checkout, wallet, payouts
+- **Phase 3** — Tutor matching with PostGIS geospatial queries, quote workflow
+- **Phase 2** — AI orchestrator with streaming and BullMQ queue
+- **Phase 1** — Multi-role auth, intake, file uploads
 
 Endpoints:
 
@@ -45,6 +52,13 @@ Endpoints:
 - `GET /api/tutors/wallet` — TUTOR-only. View wallet balance and transaction history.
 - `POST /api/tutors/wallet/payout` — TUTOR-only. Request payout (min €50, 7-day cooldown).
 - `POST /api/webhooks/stripe` — Public webhook handler for Connect events.
+
+**PDFs & Email (Phase 5):**
+- `POST /api/quotes/[id]/pdf` — STUDENT-only. Generate quote PDF with Puppeteer,
+  upload to DO Spaces, return signed URL.
+- `lib/server/email.ts` — Email service with Resend. Templates for all notification
+  types: inquiry_received, ai_response_ready, quote_received, booking_confirmed,
+  payout_sent.
 
 Limits: 5 attachments × 50 MB each. Allowed MIME types: `image/{jpeg,png,webp,heic}`,
 `video/{mp4,quicktime}`, `audio/{mp4,mpeg,wav,webm}`, `text/plain`, `application/pdf`.

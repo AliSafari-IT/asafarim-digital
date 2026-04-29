@@ -29,18 +29,18 @@ export default function TutorDashboard() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-primary)]"></div>
       </div>
     );
   }
 
   if (status === "unauthenticated") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please sign in</h1>
-          <Link href="/api/auth/signin" className="text-blue-600 hover:underline">
+          <h1 className="mb-4 text-2xl font-bold">Please sign in</h1>
+          <Link href="/api/auth/signin" className="text-[var(--color-primary)] hover:underline">
             Sign in
           </Link>
         </div>
@@ -52,70 +52,58 @@ export default function TutorDashboard() {
   const pending = wallet ? (wallet.pendingCents / 100).toFixed(2) : "0.00";
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Tutor Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-600">{session?.user?.name}</span>
-            <Link
-              href="/api/auth/signout"
-              className="text-sm text-red-600 hover:underline"
-            >
-              Sign out
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="mx-auto max-w-7xl px-4 py-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-[var(--color-text)]">Tutor Dashboard</h2>
+        <p className="text-[var(--color-text-muted)]">Manage your earnings and quote requests</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Available Balance</h3>
-            <p className="text-3xl font-bold text-green-600">€{balance}</p>
-            {wallet?.nextPayoutEligible && (
-              <button className="mt-3 text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full hover:bg-green-200 transition">
-                Request Payout
-              </button>
-            )}
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Pending Earnings</h3>
-            <p className="text-3xl font-bold text-yellow-600">€{pending}</p>
-            <p className="text-xs text-gray-400 mt-1">Available in 24 hours</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 mb-1">Quote Requests</h3>
-            <p className="text-3xl font-bold text-blue-600">0</p>
-            <Link
-              href="/tutor/requests"
-              className="text-sm text-blue-600 hover:underline mt-1 inline-block"
-            >
-              View requests →
-            </Link>
-          </div>
+      <div className="mb-8 grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+          <h3 className="mb-1 text-sm font-medium text-[var(--color-text-muted)]">Available Balance</h3>
+          <p className="text-3xl font-bold text-green-500">€{balance}</p>
+          {wallet?.nextPayoutEligible && (
+            <button className="mt-3 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-200">
+              Request Payout
+            </button>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
-          <div className="flex gap-4">
-            <Link
-              href="/tutor/connect/onboard"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-            >
-              Setup Stripe Connect
-            </Link>
-            <Link
-              href="/tutor/profile"
-              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
-            >
-              Edit Profile
-            </Link>
-          </div>
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+          <h3 className="mb-1 text-sm font-medium text-[var(--color-text-muted)]">Pending Earnings</h3>
+          <p className="text-3xl font-bold text-yellow-500">€{pending}</p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Available in 24 hours</p>
         </div>
-      </main>
+
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+          <h3 className="mb-1 text-sm font-medium text-[var(--color-text-muted)]">Quote Requests</h3>
+          <p className="text-3xl font-bold text-[var(--color-primary)]">0</p>
+          <Link
+            href="/tutor/requests"
+            className="mt-1 inline-block text-sm text-[var(--color-primary)] hover:underline"
+          >
+            View requests →
+          </Link>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
+        <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">Quick Actions</h2>
+        <div className="flex gap-3">
+          <Link
+            href="/tutor/connect/onboard"
+            className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            Setup Stripe Connect
+          </Link>
+          <Link
+            href="/tutor/profile"
+            className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+          >
+            Edit Profile
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
