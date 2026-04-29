@@ -2,6 +2,7 @@ import { auth } from "@asafarim/auth";
 import { NextResponse } from "next/server";
 
 export type AuthedUser = {
+  email: string;
   id: string;
   tenantId: string | null;
   roles: string[];

@@ -33,7 +33,7 @@ Default behavior (no args): runs 'install dev'
 "@
 }
 
-$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub")
+$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub", "apps/edumatch")
 $PackageDirs = @("packages/auth", "packages/db", "packages/ui", "packages/types", "packages/config")
 
 function Test-WorkspaceReady {

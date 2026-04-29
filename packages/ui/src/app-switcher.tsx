@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useOutsideClick } from "./use-outside-click";
 
-export type AppKey = "portal" | "content-generator" | "ops-hub" | "marketing-content";
+export type AppKey = "portal" | "content-generator" | "ops-hub" | "marketing-content" | "edumatch";
 
 const apps: Array<{
   key: AppKey;
@@ -59,6 +59,17 @@ const apps: Array<{
     mark: "M",
     gradient: "from-rose-500 to-amber-500",
     ring: "ring-rose-500/30",
+  },
+  {
+    key: "edumatch",
+    name: "EduMatch",
+    tagline: "Education matching platform",
+    tag: "Edu",
+    urlEnv: "NEXT_PUBLIC_EDUMATCH_URL",
+    fallback: process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com",
+    mark: "E",
+    gradient: "from-green-500 to-emerald-500",
+    ring: "ring-green-500/30",
   },
 ];
 

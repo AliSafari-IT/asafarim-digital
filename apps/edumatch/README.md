@@ -8,45 +8,82 @@ See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-proje
 
 ## Status
 
-**Phase 2.2 — AI orchestrator (OpenAI primary, Anthropic failover) with streaming.**
-Vision (homework photos), audio (Whisper transcription), and streaming responses.
+**Phase 4 — Stripe Connect onboarding, checkout, wallet, payouts.**
+Tutor onboarding with Express accounts, split payments (15% platform fee), wallet
+management, and payout scheduling. Includes basic Next.js UI for student/tutor dashboards.
 
 Endpoints:
 
-- `POST /api/uploads/presign` — STUDENT-only. Validates filename, MIME, and
-  size against `lib/server/validation.ts`, mints a key namespaced by user id,
-  and returns a presigned PUT URL (or a `local-stub://` URL when
-  `SPACES_*` env vars are absent — keeps dev offline-friendly).
-- `POST /api/inquiries` — STUDENT-only. Validates intake JSON, refuses
-  attachment keys not minted for the caller, verifies each object exists in
-  storage (skipped in stub mode), persists `EduInquiry` with status `NEW`.
+**Intake & AI (Phase 2):**
+- `POST /api/uploads/presign` — STUDENT-only. Validates filename, MIME, and size.
+- `POST /api/inquiries` — STUDENT-only. Validates intake JSON, persists `EduInquiry`.
 - `GET /api/inquiries` — STUDENT-only. Returns the caller's own inquiries.
-- `GET /api/inquiries/[id]/ai?stream=1` — STUDENT-only. Server-Sent Events stream
-  of AI tokens. Supports vision (GPT-4o) for images, Whisper transcription for
-  audio attachments. Persists `EduAiResponse` on completion.
-- `POST /api/inquiries/[id]/ai/job` — STUDENT-only. Enqueue async AI job via
-  BullMQ (requires `REDIS_URL`). Use for long-running inference that exceeds
-  function timeout limits.
-- `GET /api/inquiries/[id]/ai/job` — Poll for async job status and latest response.
+- `GET /api/inquiries/[id]/ai?stream=1` — STUDENT-only. SSE streaming AI response.
+- `POST /api/inquiries/[id]/ai/job` — STUDENT-only. Enqueue async AI job via BullMQ.
+
+**Tutor Matching (Phase 3):**
+- `GET /api/tutors/nearby?lat=&lng=&subject=&gradeLevel=` — STUDENT-only. PostGIS
+  `ST_DWithin` query finds tutors within radius, scored by proximity/subject/rating.
+- `POST /api/tutors/nearby` — Alternative with address geocoding.
+- `GET /api/tutors/quote-requests` — TUTOR-only. List open requests matching expertise.
+
+**Quotes (Phase 3):**
+- `POST /api/inquiries/[id]/quote-request` — STUDENT-only. Create quote request,
+  find matching tutors, transition inquiry → `TUTOR_REQUESTED`.
+- `POST /api/quote-requests/[id]/quotes` — TUTOR-only. Submit standardized quote
+  with `hourlyRateCents`, `estimatedHours`, `availabilitySlots`.
+- `GET /api/quote-requests/[id]/quotes` — STUDENT-only. List quotes for request.
+- `POST /api/quotes/[id]/accept` — STUDENT-only. Accept quote → creates booking.
+- `POST /api/quotes/[id]/decline` — STUDENT-only. Decline quote.
+
+**Payments (Phase 4):**
+- `POST /api/tutors/connect/onboard` — TUTOR-only. Start Stripe Connect Express
+  onboarding. Returns Stripe onboarding URL.
+- `GET /api/tutors/connect/onboard` — Check onboarding status.
+- `POST /api/quotes/[id]/checkout` — STUDENT-only. Create PaymentIntent for
+  booking with 15% platform fee to EduMatch, 85% to tutor.
+- `GET /api/tutors/wallet` — TUTOR-only. View wallet balance and transaction history.
+- `POST /api/tutors/wallet/payout` — TUTOR-only. Request payout (min €50, 7-day cooldown).
+- `POST /api/webhooks/stripe` — Public webhook handler for Connect events.
 
 Limits: 5 attachments × 50 MB each. Allowed MIME types: `image/{jpeg,png,webp,heic}`,
-`video/{mp4,quicktime}`, `audio/{mp4,mpeg,wav,webm}`, `text/plain`,
-`application/pdf`.
+`video/{mp4,quicktime}`, `audio/{mp4,mpeg,wav,webm}`, `text/plain`, `application/pdf`.
 
-AI Orchestrator (`lib/server/ai-orchestrator.ts`):
-- **OpenAI primary**: GPT-4o for vision (≤4 images), GPT-4o-mini for text-only.
-- **Whisper-1**: Automatic audio transcription before inference.
-- **Anthropic failover**: Claude 3.5 Sonnet when OpenAI fails or is unavailable.
-- **Streaming**: `streamOpenAI()` yields SSE tokens for real-time UX.
-- **Queue**: BullMQ + Redis for background processing (`lib/server/ai-worker.ts`).
+Key modules:
+- **AI** (`lib/server/ai-orchestrator.ts`): OpenAI primary, Anthropic failover,
+  GPT-4o vision, Whisper transcription, SSE streaming, BullMQ queue.
+- **Geocoding** (`lib/server/geocoding.ts`): Google Maps API for address → lat/lng.
+- **Tutor Matching** (`lib/server/tutor-matching.ts`): PostGIS `ST_DWithin`,
+  `ST_Distance`, scoring algorithm (proximity 30%, subject 25%, level 15%,
+  rating 20%, verified 10%).
+- **Quotes** (`lib/server/quotes.ts`): Quote request lifecycle, standardized
+  quotes with availability slots, accept/decline flow.
+- **Stripe** (`lib/server/stripe.ts`): Connect Express onboarding, PaymentIntents
+  with split payments, payout handling, webhook verification.
+- **Wallet** (`lib/server/wallet.ts`): Balance tracking, pending funds, payout
+  scheduling (€50 min, 7-day cooldown).
+
+**UI Pages:**
+- `/student` — Student dashboard with inquiry list, status badges, "Ask Question" CTA.
+- `/student/inquiry/new` — Intake form with subject, grade level, description.
+- `/tutor` — Tutor dashboard with wallet balance, payout status, quote requests.
+- Uses Tailwind CSS, Next.js App Router, Client Components for interactivity.
 
 Configure via env:
 ```
+# AI
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL_VISION=gpt-4o
 OPENAI_MODEL_CHAT=gpt-4o-mini
 ANTHROPIC_API_KEY=sk-ant-...
-REDIS_URL=redis://localhost:6379   # for async jobs
+REDIS_URL=redis://localhost:6379
+
+# Geocoding
+GOOGLE_MAPS_API_KEY=...
+
+# Storage (Spaces/S3)
+SPACES_ENDPOINT=...
+SPACES_BUCKET=...
 ```
 
  The EduMatch domain
