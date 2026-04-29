@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { SessionProvider } from "@/components/SessionProvider";
 import "./globals.css";
 
 const appName = "EduMatch";
@@ -23,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning data-theme="dark">
       <body className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
-        {children}
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

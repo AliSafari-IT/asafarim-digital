@@ -8,12 +8,32 @@ See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-proje
 
 ## Status
 
-**Phase 1.1 — Domain models.** Skeleton boots, `/api/health` returns `{ ok: true }`,
-and the EduMatch domain (`EduStudentProfile`, `EduTutorProfile`, `EduInquiry`,
-`EduAiResponse`, `EduQuoteRequest`, `EduQuote`, `EduBooking`, `EduTransaction`,
-`EduWallet`, `EduNotification`, `EduMessage`) lives in
-`packages/db/prisma/schema.prisma`. Auth, AI, Stripe, and storage wiring all
-land in later phases.
+**Phase 1.2 — Auth + role-based access.** Skeleton boots, `/api/health` is
+public, all other routes require an authenticated session. The EduMatch domain
+(`EduStudentProfile`, `EduTutorProfile`, `EduInquiry`, `EduAiResponse`,
+`EduQuoteRequest`, `EduQuote`, `EduBooking`, `EduTransaction`, `EduWallet`,
+`EduNotification`, `EduMessage`) lives in `packages/db/prisma/schema.prisma`.
+
+Auth uses `@asafarim/auth` (NextAuth + Prisma). EduMatch *roles* are derived
+at runtime:
+
+- **STUDENT** — has an `EduStudentProfile` row.
+- **TUTOR**   — has an `EduTutorProfile` row.
+- **ADMIN**   — has the global `admin` or `superadmin` role from the shared
+                RBAC tables. ADMIN satisfies any role check.
+
+Server helpers in `lib/server/profiles.ts`:
+
+- `getEduRoles(user)` → `EduRole[]`
+- `requireRole("STUDENT" | "TUTOR" | "ADMIN", ...)` — throws `EduAuthError`
+- `requireStudent()` / `requireTutor()` — return the resolved profile or throw
+- `handleEduError(scope, error)` — maps `EduAuthError` to JSON 401/403, anything
+  else to a logged 500 (see `lib/server/index.ts`).
+
+`GET /api/me` is the canonical client probe — returns user id, RBAC roles,
+and the resolved EduMatch roles.
+
+AI, Stripe, and storage wiring land in later phases.
 
 ### Database bootstrap
 

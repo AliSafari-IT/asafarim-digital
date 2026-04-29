@@ -20,6 +20,7 @@ Commands:
   dev           Start development servers for all apps
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
+  dev:edumatch  Start only the edumatch app in development mode
   db:push       Sync Prisma schema to local database (no migration file)
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -176,6 +177,7 @@ foreach ($cmd in $Commands) {
         "dev"        { Run-Dev }
         "dev:portal" { Run-Dev-Portal }
         "dev:ops"    { Start-Dev-Ops }
+        "dev:edumatch" { Start-Dev-Edumatch }
         "db:push"    { Invoke-DbPush }
         "db:seed"    { Invoke-DbSeed }
         "db:reset"   { Invoke-DbReset }

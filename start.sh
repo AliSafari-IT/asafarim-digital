@@ -15,6 +15,7 @@ Commands:
   dev           Start development servers for all apps
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
+  dev:edumatch  Start only the edumatch app in development mode
   db:push       Sync Prisma schema to local database
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -104,6 +105,12 @@ run_dev_ops() {
   pnpm dev:ops
 }
 
+start_dev_edumatch() {
+  confirm_deps
+  echo "🚀 Starting edumatch development server..."
+  pnpm --filter edumatch dev
+}
+
 run_clean() {
   echo "🧹 Cleaning up..."
   pnpm clean
@@ -168,6 +175,9 @@ while [ $# -gt 0 ]; do
       ;;
     dev:ops)
       run_dev_ops
+      ;;
+    dev:edumatch)
+      start_dev_edumatch
       ;;
     db:push)
       run_db_push
