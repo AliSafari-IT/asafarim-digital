@@ -23,6 +23,17 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
   };
 }
 
+/**
+ * Require authentication for a route. Returns the authenticated user or throws an error.
+ */
+export async function requireAuth(): Promise<AuthedUser> {
+  const user = await getAuthedUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+  return user;
+}
+
 /** Standard 401 response helper. */
 export function unauthorized(): NextResponse {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
