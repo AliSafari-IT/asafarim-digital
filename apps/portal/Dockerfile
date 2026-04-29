@@ -31,6 +31,7 @@ COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @asafarim/db build
+RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter portal build
 
 FROM node:20-alpine AS runner
