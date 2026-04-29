@@ -8,8 +8,26 @@ See the full plan at [`docs/edumatch-project-plan.md`](../../docs/edumatch-proje
 
 ## Status
 
-**Phase 1.2 — Auth + role-based access.** Skeleton boots, `/api/health` is
-public, all other routes require an authenticated session. The EduMatch domain
+**Phase 2.1 — Intake API + presigned uploads.** Skeleton boots, `/api/health`
+is public, all other routes require an authenticated session.
+
+Endpoints in scope for this phase:
+
+- `POST /api/uploads/presign` — STUDENT-only. Validates filename, MIME, and
+  size against `lib/server/validation.ts`, mints a key namespaced by user id,
+  and returns a presigned PUT URL (or a `local-stub://` URL when
+  `SPACES_*` env vars are absent — keeps dev offline-friendly).
+- `POST /api/inquiries` — STUDENT-only. Validates intake JSON, refuses
+  attachment keys not minted for the caller, verifies each object exists in
+  storage (skipped in stub mode), persists `EduInquiry` with status `NEW`.
+  TODO at Phase 2.2: enqueue AI orchestrator job.
+- `GET /api/inquiries` — STUDENT-only. Returns the caller's own inquiries.
+
+Limits: 5 attachments × 50 MB each. Allowed MIME types: `image/{jpeg,png,webp,heic}`,
+`video/{mp4,quicktime}`, `audio/{mp4,mpeg,wav,webm}`, `text/plain`,
+`application/pdf`.
+
+ The EduMatch domain
 (`EduStudentProfile`, `EduTutorProfile`, `EduInquiry`, `EduAiResponse`,
 `EduQuoteRequest`, `EduQuote`, `EduBooking`, `EduTransaction`, `EduWallet`,
 `EduNotification`, `EduMessage`) lives in `packages/db/prisma/schema.prisma`.

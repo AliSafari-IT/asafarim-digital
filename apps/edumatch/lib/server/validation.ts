@@ -61,6 +61,19 @@ export type Attachment = z.infer<typeof attachmentSchema>;
 export const GRADE_LEVELS = ["K12", "UNDERGRAD", "GRAD"] as const;
 export type GradeLevel = (typeof GRADE_LEVELS)[number];
 
+/**
+ * Flatten a ZodError into a single human-readable string suitable for a 400
+ * response body. zod v3 has no prettifyError, so we roll our own.
+ */
+export function formatZodError(err: z.ZodError): string {
+  return err.issues
+    .map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+      return `${path}: ${issue.message}`;
+    })
+    .join("; ");
+}
+
 export const inquiryIntakeSchema = z.object({
   subject: z.string().trim().min(2).max(80),
   gradeLevel: z.enum(GRADE_LEVELS),
