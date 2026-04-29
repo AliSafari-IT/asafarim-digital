@@ -18,6 +18,7 @@ export async function getAuthedUser(): Promise<AuthedUser | null> {
   if (!userId) return null;
   return {
     id: userId,
+    email: session.user.email ?? "",  
     tenantId: session.user.tenantId ?? null,
     roles: session.user.roles ?? [],
   };
