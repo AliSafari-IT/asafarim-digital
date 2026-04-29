@@ -8,7 +8,7 @@
     "clean": "turbo clean",
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
-    "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content",
+    "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch",
     "onVPS:dockerDown": "docker compose down"
   },
   "devDependencies": {
