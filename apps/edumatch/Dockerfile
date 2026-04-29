@@ -29,6 +29,7 @@ COPY packages/country-language-selector ./packages/country-language-selector
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @asafarim/db build
+RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter edumatch build
 
 FROM node:20-alpine AS runner
