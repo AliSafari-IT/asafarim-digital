@@ -932,3 +932,53 @@ model EduMessage {
   @@index([senderId])
   @@index([createdAt])
 }
+
+// ─── Unified Shopping Cart ─────────────────────────────────────
+// Shared cart/basket across all apps for unified checkout
+
+model Cart {
+  id              String     @id @default(cuid())
+  userId          String
+  status          String     @default("active") // active, checkout, completed, abandoned
+  subtotalCents   Int        @default(0)
+  totalCents      Int        @default(0)
+  currency        String     @default("EUR")
+  expiresAt       DateTime?
+  checkoutSessionId String?
+  paymentIntentId   String?
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([checkoutSessionId])
+}
+
+model CartItem {
+  id                 String  @id @default(cuid())
+  cartId             String
+  productType        String // edumatch_tutoring, edumatch_premium, content_generator, ops_hub_plan, other
+  productId          String
+  productName        String
+  description        String?
+  unitPriceCents     Int
+  quantity           Int     @default(1)
+  metadata           Json    @default("{}")
+  sellerId           String? // For marketplace split payments (tutor's stripe account id, etc.)
+  sellerType         String  @default("platform") // platform, tutor, external
+  platformFeePercent Int     @default(15)
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cartId])
+  @@index([productType])
+  @@index([productId])
+  @@index([sellerId])
+}

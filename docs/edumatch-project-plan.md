@@ -168,7 +168,7 @@ Seed data: ~20 subjects (Mathematics, Physics, English Lit, etc.), ~5 grade leve
 
 ## 6. Phased implementation plan
 
-The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I learn.
+The plan is sized to ~15 weeks of evening / weekend work (including 1 week for shared infrastructure). Adjust ruthlessly as I learn.
 
 ### Phase 0 — Setup (Week 1)
 
@@ -178,30 +178,61 @@ The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I
 - Wire Sentry + PostHog with placeholder events.
 - **Deliverable:** "Hello world" API responding on Fly.io, "Hello world" Flutter app running on iOS simulator + web.
 
-### Phase 1 — Foundations (Weeks 2–4)
+### Phase 0.5 — Shared Infrastructure (Week 2)
 
-**1.1 Database schema + migrations**
+> **Purpose:** Build cross-cutting shared packages that all apps will use for unified auth, payments, and navigation. This enables the "one login, one basket" architecture.
 
-- Author all tables from §5 as SQL migrations.
-- Seed script for subjects, grade levels, test users.
+**0.5.1 Payments package (`@asafarim/payments`)**
+
+- Stripe client wrapper with unified checkout session creation
+- Cart/basket service for cross-app purchases (add items from any app, checkout once)
+- Webhook handlers for `payment_intent.succeeded`, `checkout.session.completed`
+- Support for marketplace fees (platform + seller split)
+- **Effort:** 3 days. **Skill payoff:** Shared package architecture, Stripe Connect unified flow.
+
+**0.5.2 App switcher component**
+
+- Shared React component for unified navbar with app switcher dropdown
+- Shows all apps user has access to based on roles/permissions
+- Preserves session across subdomains (`.asafarim.com` cookie domain)
+- **Effort:** 2 days. **Skill payoff:** Cross-app navigation, shared UI components.
+
+**0.5.3 Role/permission seeding**
+
+- Add EduMatch-specific roles: `edumatch:student`, `edumatch:tutor`, `edumatch:admin`
+- Add permissions for each EduMatch feature (create inquiry, respond as tutor, admin verification, etc.)
+- **Effort:** 1 day. **Skill payoff:** RBAC design for multi-app ecosystem.
+
+**Deliverable:** All apps can import `@asafarim/payments` and use unified checkout; app switcher appears in portal and edumatch navbars.
+
+---
+
+### Phase 1 — Foundations (Weeks 3–5)
+
+**1.1 Database migrations + seeding**
+
+- Run Prisma migrations for EduMatch models (already in schema)
+- Enable PostGIS extension for geospatial queries
+- Seed subjects (Mathematics, Physics, etc.), grade levels, test tutors in test region
 - Document RLS policies in `db/POLICIES.md`.
-- **Effort:** 4 days. **Skill payoff:** Postgres schema design, migrations, RLS.
+- **Effort:** 3 days. **Skill payoff:** Postgres schema design, migrations, RLS.
 
 **1.2 Auth + role-based access**
 
-- Supabase Auth wired in API + Flutter.
-- JWT middleware, role enforcement decorator.
-- Email verification + password reset flows.
-- 2FA via TOTP for tutors (since they receive payouts).
-- **Effort:** 6 days. **Skill payoff:** Auth flows, JWTs, 2FA edge cases.
+- EduMatch-specific auth middleware (check `edumatch:student` or `edumatch:tutor` role)
+- Extend `@asafarim/auth` with EduMatch session hooks
+- Email verification + password reset flows
+- 2FA via TOTP for tutors (since they receive payouts)
+- **Effort:** 5 days. **Skill payoff:** Auth flows, JWTs, 2FA edge cases.
 
 **1.3 User profile APIs**
 
-- CRUD for student + tutor profiles.
-- Address geocoding via Google Maps API on save.
-- **Effort:** 4 days. **Skill payoff:** REST design, validation (zod), OpenAPI docs.
+- CRUD for `EduStudentProfile` + `EduTutorProfile`
+- Address geocoding via Google Maps API on save (update `homeLocation` geography field)
+- File upload endpoints for profile photos
+- **Effort:** 4 days. **Skill payoff:** REST design, validation (zod), PostGIS integration.
 
-### Phase 2 — Intake + AI (Weeks 5–7)
+### Phase 2 — Intake + AI (Weeks 6–8)
 
 **2.1 Intake API + file uploads**
 
@@ -224,7 +255,7 @@ The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I
 - Server-sent events (or Supabase Realtime) push the AI response back to the Flutter client as it streams.
 - **Effort:** 3 days. **Skill payoff:** Streaming UX, realtime patterns.
 
-### Phase 3 — Marketplace + matching (Weeks 8–9)
+### Phase 3 — Marketplace + matching (Weeks 9–10)
 
 **3.1 Tutor matching**
 
@@ -240,7 +271,7 @@ The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I
 - Tutor app shows pending requests; tutor fills in `hourly_rate`, `estimated_hours`, `availability_slots`, optional `notes`. System pre-fills hourly rate from their profile.
 - **Effort:** 5 days. **Skill payoff:** Multi-actor workflows, request/response state machines.
 
-### Phase 4 — Payments + payouts (Weeks 10–11)
+### Phase 4 — Payments + payouts (Weeks 11–12)
 
 **4.1 Stripe Connect onboarding**
 
@@ -261,7 +292,7 @@ The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I
 - Wallet view in tutor app: balance, pending, transaction history.
 - **Effort:** 5 days. **Skill payoff:** Cron jobs, financial bookkeeping invariants.
 
-### Phase 5 — PDFs + notifications (Week 12)
+### Phase 5 — PDFs + notifications (Week 13)
 
 **5.1 Quote PDF generation**
 
@@ -274,7 +305,7 @@ The plan is sized to ~14 weeks of evening / weekend work. Adjust ruthlessly as I
 - Resend/Mailgun integration with retry queue.
 - **Effort:** 3 days. **Skill payoff:** Transactional email patterns.
 
-### Phase 6 — Flutter UI (Weeks 13–14)
+### Phase 6 — Flutter UI (Weeks 14–15)
 
 Minimum shippable surface:
 

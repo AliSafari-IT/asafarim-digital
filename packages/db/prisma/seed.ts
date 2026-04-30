@@ -124,6 +124,106 @@ const defaultRoles = [
     isDefault: true,
     permissions: ["content.view"],
   },
+  // EduMatch roles
+  {
+    name: "edumatch_student",
+    displayName: "EduMatch Student",
+    description: "Student role for EduMatch - can create inquiries, view AI responses, and book tutoring.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "edumatch.profile.student.view",
+      "edumatch.profile.student.edit",
+      "edumatch.inquiry.create",
+      "edumatch.inquiry.view",
+      "edumatch.ai_response.view",
+      "edumatch.quote.view",
+      "edumatch.quote.accept",
+      "edumatch.booking.view",
+      "edumatch.message.send",
+      "edumatch.notification.view",
+    ],
+  },
+  {
+    name: "edumatch_tutor",
+    displayName: "EduMatch Tutor",
+    description: "Tutor role for EduMatch - can respond to quote requests and manage tutoring bookings.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "edumatch.profile.tutor.view",
+      "edumatch.profile.tutor.edit",
+      "edumatch.quote_request.respond",
+      "edumatch.quote.create",
+      "edumatch.quote.manage",
+      "edumatch.booking.view",
+      "edumatch.booking.manage",
+      "edumatch.wallet.view",
+      "edumatch.payout.receive",
+      "edumatch.message.send",
+      "edumatch.notification.view",
+    ],
+  },
+  {
+    name: "edumatch_admin",
+    displayName: "EduMatch Admin",
+    description: "Admin role for EduMatch - can verify tutors, manage disputes, and view analytics.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "edumatch.admin.verify_tutors",
+      "edumatch.admin.manage_disputes",
+      "edumatch.admin.view_analytics",
+      "edumatch.admin.manage_subjects",
+      "edumatch.users.view",
+      "edumatch.inquiry.admin_view",
+      "edumatch.booking.admin_view",
+      "edumatch.transaction.view",
+    ],
+  },
+];
+
+// ─── EduMatch Permissions ────────────────────────────────────
+// These extend the defaultPermissions array
+
+const edumatchPermissions = [
+  // Student profile
+  { name: "edumatch.profile.student.view", displayName: "View Student Profile", group: "edumatch", description: "View own student profile" },
+  { name: "edumatch.profile.student.edit", displayName: "Edit Student Profile", group: "edumatch", description: "Edit own student profile" },
+  // Tutor profile
+  { name: "edumatch.profile.tutor.view", displayName: "View Tutor Profile", group: "edumatch", description: "View own tutor profile" },
+  { name: "edumatch.profile.tutor.edit", displayName: "Edit Tutor Profile", group: "edumatch", description: "Edit own tutor profile" },
+  // Inquiries
+  { name: "edumatch.inquiry.create", displayName: "Create Inquiry", group: "edumatch", description: "Create homework help inquiry" },
+  { name: "edumatch.inquiry.view", displayName: "View Inquiry", group: "edumatch", description: "View own inquiries" },
+  { name: "edumatch.inquiry.admin_view", displayName: "Admin View Inquiries", group: "edumatch", description: "View all inquiries as admin" },
+  // AI responses
+  { name: "edumatch.ai_response.view", displayName: "View AI Response", group: "edumatch", description: "View AI-generated responses" },
+  // Quote requests
+  { name: "edumatch.quote_request.respond", displayName: "Respond to Quote Request", group: "edumatch", description: "Submit quote as tutor" },
+  // Quotes
+  { name: "edumatch.quote.view", displayName: "View Quotes", group: "edumatch", description: "View quotes for inquiry" },
+  { name: "edumatch.quote.create", displayName: "Create Quote", group: "edumatch", description: "Create quote as tutor" },
+  { name: "edumatch.quote.manage", displayName: "Manage Quotes", group: "edumatch", description: "Update or withdraw quotes" },
+  { name: "edumatch.quote.accept", displayName: "Accept Quote", group: "edumatch", description: "Accept a tutor quote" },
+  // Bookings
+  { name: "edumatch.booking.view", displayName: "View Bookings", group: "edumatch", description: "View tutoring bookings" },
+  { name: "edumatch.booking.manage", displayName: "Manage Bookings", group: "edumatch", description: "Reschedule or cancel bookings" },
+  { name: "edumatch.booking.admin_view", displayName: "Admin View Bookings", group: "edumatch", description: "View all bookings as admin" },
+  // Wallet & payouts
+  { name: "edumatch.wallet.view", displayName: "View Wallet", group: "edumatch", description: "View tutor wallet balance" },
+  { name: "edumatch.payout.receive", displayName: "Receive Payouts", group: "edumatch", description: "Receive payouts to connected account" },
+  { name: "edumatch.transaction.view", displayName: "View Transactions", group: "edumatch", description: "View transaction history" },
+  // Messaging
+  { name: "edumatch.message.send", displayName: "Send Messages", group: "edumatch", description: "Send in-app messages" },
+  // Notifications
+  { name: "edumatch.notification.view", displayName: "View Notifications", group: "edumatch", description: "View EduMatch notifications" },
+  // Admin
+  { name: "edumatch.admin.verify_tutors", displayName: "Verify Tutors", group: "edumatch", description: "Verify tutor profiles" },
+  { name: "edumatch.admin.manage_disputes", displayName: "Manage Disputes", group: "edumatch", description: "Handle booking disputes" },
+  { name: "edumatch.admin.view_analytics", displayName: "View Analytics", group: "edumatch", description: "View EduMatch analytics dashboard" },
+  { name: "edumatch.admin.manage_subjects", displayName: "Manage Subjects", group: "edumatch", description: "Manage subject categories" },
+  { name: "edumatch.users.view", displayName: "View EduMatch Users", group: "edumatch", description: "View EduMatch user list" },
 ];
 
 // ─── Default Nav Items ───────────────────────────────────────
@@ -560,10 +660,11 @@ async function seedOpsHub() {
 async function main() {
   console.log("🌱 Seeding database...\n");
 
-  // 1. Upsert permissions
+  // 1. Upsert permissions (combine default + EduMatch)
   console.log("  → Seeding permissions...");
+  const allPermissions = [...defaultPermissions, ...edumatchPermissions];
   const permissionMap: Record<string, string> = {};
-  for (const p of defaultPermissions) {
+  for (const p of allPermissions) {
     const result = await prisma.permission.upsert({
       where: { name: p.name },
       update: { displayName: p.displayName, group: p.group, description: p.description },
@@ -571,7 +672,7 @@ async function main() {
     });
     permissionMap[p.name] = result.id;
   }
-  console.log(`    ✓ ${defaultPermissions.length} permissions seeded`);
+  console.log(`    ✓ ${allPermissions.length} permissions seeded (${edumatchPermissions.length} EduMatch)`);
 
   // 2. Upsert roles and connect permissions
   console.log("  → Seeding roles...");

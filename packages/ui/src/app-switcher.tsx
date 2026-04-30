@@ -5,6 +5,13 @@ import { useOutsideClick } from "./use-outside-click";
 
 export type AppKey = "portal" | "content-generator" | "ops-hub" | "marketing-content" | "edumatch";
 
+export interface AppVisibility {
+  key: AppKey;
+  requiredRoles?: string[]; // Roles that can see this app
+  requiredPermissions?: string[]; // Permissions that can see this app
+  public?: boolean; // If true, visible to all authenticated users
+}
+
 const apps: Array<{
   key: AppKey;
   name: string;
@@ -15,6 +22,7 @@ const apps: Array<{
   mark: string;
   gradient: string;
   ring: string;
+  visibility: AppVisibility;
 }> = [
   {
     key: "portal",
@@ -26,6 +34,7 @@ const apps: Array<{
     mark: "A",
     gradient: "from-blue-500 to-indigo-600",
     ring: "ring-blue-500/30",
+    visibility: { key: "portal", public: true }, // All authenticated users can see
   },
   {
     key: "content-generator",
@@ -37,6 +46,7 @@ const apps: Array<{
     mark: "C",
     gradient: "from-violet-500 to-fuchsia-600",
     ring: "ring-fuchsia-500/30",
+    visibility: { key: "content-generator", public: true },
   },
   {
     key: "ops-hub",
@@ -48,6 +58,7 @@ const apps: Array<{
     mark: "O",
     gradient: "from-indigo-500 to-cyan-500",
     ring: "ring-cyan-500/30",
+    visibility: { key: "ops-hub", requiredRoles: ["admin", "ops"] },
   },
   {
     key: "marketing-content",
@@ -59,19 +70,60 @@ const apps: Array<{
     mark: "M",
     gradient: "from-rose-500 to-amber-500",
     ring: "ring-rose-500/30",
+    visibility: { key: "marketing-content", requiredRoles: ["admin", "marketing"] },
   },
   {
     key: "edumatch",
     name: "EduMatch",
-    tagline: "Education matching platform",
+    tagline: "Tutoring + AI homework help",
     tag: "Edu",
     urlEnv: "NEXT_PUBLIC_EDUMATCH_URL",
     fallback: process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com",
     mark: "E",
     gradient: "from-green-500 to-emerald-500",
     ring: "ring-green-500/30",
+    visibility: { key: "edumatch", public: true }, // Visible to all, role-based features inside
   },
 ];
+
+export { apps };
+
+/**
+ * Filter apps based on user roles and permissions
+ * Use this server-side to determine which apps to show in the UI
+ */
+export function filterAppsByRoles(
+  userRoles: string[],
+  userPermissions?: string[]
+): typeof apps {
+  return apps.filter((app) => {
+    const visibility = app.visibility;
+
+    // Public apps are visible to all authenticated users
+    if (visibility.public) {
+      return true;
+    }
+
+    // Check required roles
+    if (visibility.requiredRoles && visibility.requiredRoles.length > 0) {
+      const hasRequiredRole = visibility.requiredRoles.some((role) =>
+        userRoles.includes(role)
+      );
+      if (hasRequiredRole) return true;
+    }
+
+    // Check required permissions
+    if (visibility.requiredPermissions && visibility.requiredPermissions.length > 0) {
+      const hasRequiredPermission = visibility.requiredPermissions.some((perm) =>
+        userPermissions?.includes(perm)
+      );
+      if (hasRequiredPermission) return true;
+    }
+
+    // If no specific requirements, hide by default
+    return false;
+  });
+}
 
 function resolveUrl(envKey: string, fallback: string): string {
   // Only NEXT_PUBLIC_* are available in the browser; fallback otherwise.

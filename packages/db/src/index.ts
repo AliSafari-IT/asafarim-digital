@@ -17,7 +17,7 @@ export const prisma =
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 // Re-export types for convenience
-export { PrismaClient } from "@prisma/client";
+export { PrismaClient, Prisma } from "@prisma/client";
 export type {
   User,
   Account,
@@ -44,4 +44,6 @@ export type {
   EduWallet,
   EduNotification,
   EduMessage,
+  Cart,
+  CartItem,
 } from "@prisma/client";
