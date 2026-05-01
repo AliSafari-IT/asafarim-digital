@@ -28,9 +28,9 @@ vi.mock("../auth", () => ({
 import { prisma } from "@asafarim/db";
 import { getAuthedUser } from "../auth";
 
-const studentUser: AuthedUser = { id: "u-student", tenantId: null, roles: [] };
-const tutorUser: AuthedUser = { id: "u-tutor", tenantId: null, roles: [] };
-const adminUser: AuthedUser = { id: "u-admin", tenantId: null, roles: ["admin"] };
+const studentUser: AuthedUser = { id: "u-student", email: "student@example.com", tenantId: null, roles: [] };
+const tutorUser: AuthedUser = { id: "u-tutor", email: "tutor@example.com", tenantId: null, roles: [] };
+const adminUser: AuthedUser = { id: "u-admin", email: "admin@example.com", tenantId: null, roles: ["admin"] };
 const anonUser = null;
 
 const studentProfile = { userId: "u-student" } as never;
