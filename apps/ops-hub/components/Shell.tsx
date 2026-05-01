@@ -44,10 +44,8 @@ function resolveSharedAvatarSrc(src?: string | null) {
   return normalized;
 }
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, user }: { children: React.ReactNode; user: { name: string | null; email: string; roles: string[] } }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const user = session?.user;
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
