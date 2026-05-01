@@ -8,8 +8,8 @@ const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.as
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const isStudent = session?.user?.roles?.includes("STUDENT");
-  const isTutor = session?.user?.roles?.includes("TUTOR");
+  const isStudent = session?.user?.roles?.includes("edumatch_student");
+  const isTutor = session?.user?.roles?.includes("edumatch_tutor");
 
   return (
     <div className="flex flex-col">

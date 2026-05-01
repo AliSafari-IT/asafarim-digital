@@ -1,9 +1,15 @@
-import { prisma } from "@asafarim/db";
+import { prisma, Prisma } from "@asafarim/db";
 import type {
   EduStudentProfile,
   EduTutorProfile,
 } from "@asafarim/db";
 import { getAuthedUser, type AuthedUser } from "./auth";
+import type {
+  StudentProfileInput,
+  StudentProfilePatch,
+  TutorProfileInput,
+  TutorProfilePatch,
+} from "./validation";
 
 /**
  * EduMatch resolves "role" by which profile rows exist for the user:
@@ -122,4 +128,123 @@ export async function requireTutor(): Promise<TutorContext> {
   if (!profile) throw new EduAuthError(403, "Tutor profile required");
 
   return { user, profile };
+}
+
+/**
+ * Ensure the user has the given seeded RBAC role (e.g. `edumatch_student`).
+ * Idempotent: a no-op if the user already has the role. Silently skips when
+ * the role has not been seeded yet so that a fresh dev DB doesn't break the
+ * profile-create flow — the seed script is the source of truth for role rows.
+ */
+export async function assignRoleIfMissing(
+  userId: string,
+  roleName: string,
+): Promise<void> {
+  const role = await prisma.role.findUnique({ where: { name: roleName } });
+  if (!role) return;
+
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId, roleId: role.id } },
+    update: {},
+    create: { userId, roleId: role.id },
+  });
+}
+
+/**
+ * Create or replace the caller's EduStudentProfile and ensure the
+ * `edumatch_student` role is attached. Used by the profile POST route.
+ */
+export async function upsertStudentProfile(
+  userId: string,
+  input: StudentProfileInput,
+): Promise<EduStudentProfile> {
+  const data = {
+    gradeLevel: input.gradeLevel,
+    subjectsOfInterest: input.subjectsOfInterest ?? [],
+    homeAddress: (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+  };
+
+  const profile = await prisma.eduStudentProfile.upsert({
+    where: { userId },
+    update: data,
+    create: { userId, ...data },
+  });
+
+  await assignRoleIfMissing(userId, "edumatch_student");
+  return profile;
+}
+
+/**
+ * Partial update of the caller's EduStudentProfile. Throws 404 when no
+ * profile exists — clients should POST first to create one.
+ */
+export async function updateStudentProfile(
+  userId: string,
+  input: StudentProfilePatch,
+): Promise<EduStudentProfile> {
+  const existing = await prisma.eduStudentProfile.findUnique({ where: { userId } });
+  if (!existing) throw new EduAuthError(403, "Student profile not found");
+
+  const data: Prisma.EduStudentProfileUpdateInput = {};
+  if (input.gradeLevel !== undefined) data.gradeLevel = input.gradeLevel;
+  if (input.subjectsOfInterest !== undefined) data.subjectsOfInterest = input.subjectsOfInterest;
+  if (input.homeAddress !== undefined) {
+    data.homeAddress = (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue;
+  }
+
+  return prisma.eduStudentProfile.update({ where: { userId }, data });
+}
+
+/**
+ * Create or replace the caller's EduTutorProfile and ensure the
+ * `edumatch_tutor` role is attached. Tutor verification (verifiedAt) is a
+ * separate admin-only flow and is not touched here.
+ */
+export async function upsertTutorProfile(
+  userId: string,
+  input: TutorProfileInput,
+): Promise<EduTutorProfile> {
+  const data = {
+    bio: input.bio ?? null,
+    subjectsTaught: input.subjectsTaught ?? [],
+    levelsTaught: input.levelsTaught ?? [],
+    hourlyRateCents: input.hourlyRateCents ?? 0,
+    onlineOnly: input.onlineOnly ?? false,
+    serviceRadiusKm: input.serviceRadiusKm ?? 10,
+    homeAddress: (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+  };
+
+  const profile = await prisma.eduTutorProfile.upsert({
+    where: { userId },
+    update: data,
+    create: { userId, ...data },
+  });
+
+  await assignRoleIfMissing(userId, "edumatch_tutor");
+  return profile;
+}
+
+/**
+ * Partial update of the caller's EduTutorProfile. Throws 404 when no profile
+ * exists.
+ */
+export async function updateTutorProfile(
+  userId: string,
+  input: TutorProfilePatch,
+): Promise<EduTutorProfile> {
+  const existing = await prisma.eduTutorProfile.findUnique({ where: { userId } });
+  if (!existing) throw new EduAuthError(403, "Tutor profile not found");
+
+  const data: Prisma.EduTutorProfileUpdateInput = {};
+  if (input.bio !== undefined) data.bio = input.bio;
+  if (input.subjectsTaught !== undefined) data.subjectsTaught = input.subjectsTaught;
+  if (input.levelsTaught !== undefined) data.levelsTaught = input.levelsTaught;
+  if (input.hourlyRateCents !== undefined) data.hourlyRateCents = input.hourlyRateCents;
+  if (input.onlineOnly !== undefined) data.onlineOnly = input.onlineOnly;
+  if (input.serviceRadiusKm !== undefined) data.serviceRadiusKm = input.serviceRadiusKm;
+  if (input.homeAddress !== undefined) {
+    data.homeAddress = (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue;
+  }
+
+  return prisma.eduTutorProfile.update({ where: { userId }, data });
 }

@@ -81,3 +81,49 @@ export const inquiryIntakeSchema = z.object({
   attachments: z.array(attachmentSchema).max(5).default([]),
 });
 export type InquiryIntake = z.infer<typeof inquiryIntakeSchema>;
+
+/**
+ * Student profile input validation. Shared between POST (create) and PATCH
+ * (update); PATCH uses `.partial()` so any subset of fields is valid.
+ */
+export const studentProfileSchema = z.object({
+  gradeLevel: z.enum(GRADE_LEVELS),
+  subjectsOfInterest: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
+  homeAddress: z
+    .object({
+      line1: z.string().trim().max(200).optional(),
+      city: z.string().trim().max(100).optional(),
+      region: z.string().trim().max(100).optional(),
+      postalCode: z.string().trim().max(20).optional(),
+      country: z.string().trim().max(100).optional(),
+    })
+    .optional(),
+});
+export type StudentProfileInput = z.infer<typeof studentProfileSchema>;
+export const studentProfilePatchSchema = studentProfileSchema.partial();
+export type StudentProfilePatch = z.infer<typeof studentProfilePatchSchema>;
+
+/**
+ * Tutor profile input validation. `hourlyRateCents` is stored as an integer
+ * to avoid floating point money issues.
+ */
+export const tutorProfileSchema = z.object({
+  bio: z.string().trim().max(2000).optional(),
+  subjectsTaught: z.array(z.string().trim().min(1).max(60)).max(40).default([]),
+  levelsTaught: z.array(z.enum(GRADE_LEVELS)).max(3).default([]),
+  hourlyRateCents: z.number().int().min(0).max(100_000_00).default(0),
+  onlineOnly: z.boolean().default(false),
+  serviceRadiusKm: z.number().int().min(0).max(500).default(10),
+  homeAddress: z
+    .object({
+      line1: z.string().trim().max(200).optional(),
+      city: z.string().trim().max(100).optional(),
+      region: z.string().trim().max(100).optional(),
+      postalCode: z.string().trim().max(20).optional(),
+      country: z.string().trim().max(100).optional(),
+    })
+    .optional(),
+});
+export type TutorProfileInput = z.infer<typeof tutorProfileSchema>;
+export const tutorProfilePatchSchema = tutorProfileSchema.partial();
+export type TutorProfilePatch = z.infer<typeof tutorProfilePatchSchema>;
