@@ -17,9 +17,14 @@ Phase 0.5 (Shared Infrastructure) is complete:
 
 ## Tasks
 
-### 1. Database Migrations
-- [ ] Run `pnpm db:migrate` to create Cart/CartItem tables
-- [ ] Run `pnpm db:seed` to seed EduMatch roles (`edumatch_student`, `edumatch_tutor`, `edumatch_admin`)
+### 1. Database Migrations ⚠ user action
+Run locally (requires a running Postgres and `.env` DATABASE_URL):
+```bash
+pnpm --filter @asafarim/db db:migrate
+pnpm --filter @asafarim/db db:seed
+```
+- [ ] Migration creates Cart/CartItem tables + all EduMatch tables
+- [ ] Seed registers `edumatch_student`, `edumatch_tutor`, `edumatch_admin` roles and the 25 EduMatch permissions
 - [ ] Verify all EduMatch models are created:
   - `EduStudentProfile`
   - `EduTutorProfile`
@@ -27,36 +32,44 @@ Phase 0.5 (Shared Infrastructure) is complete:
   - `EduQuote`, `EduBooking`, `EduTransaction`
   - `EduWallet`, `EduNotification`, `EduMessage`
 
-### 2. Fix Role Checks in EduMatch Homepage
+### 2. Fix Role Checks in EduMatch Homepage ✅ done
 **File:** `apps/edumatch/app/page.tsx`
 
-Current role checks use incorrect string values:
 ```typescript
-const isStudent = session?.user?.roles?.includes("STUDENT");  // ❌ Wrong
-const isTutor = session?.user?.roles?.includes("TUTOR");      // ❌ Wrong
+const isStudent = session?.user?.roles?.includes("edumatch_student");
+const isTutor = session?.user?.roles?.includes("edumatch_tutor");
 ```
 
-Should use actual seeded role names:
-```typescript
-const isStudent = session?.user?.roles?.includes("edumatch_student");  // ✅ Correct
-const isTutor = session?.user?.roles?.includes("edumatch_tutor");        // ✅ Correct
-```
+### 3. Create Profile APIs ✅ done
+- [x] Student profile API — `apps/edumatch/app/api/student/profile/route.ts`
+  - `GET` — returns 404 when no profile exists
+  - `POST` — upsert + auto-attach `edumatch_student` role
+  - `PATCH` — partial update (grade, subjects, home address)
+- [x] Tutor profile API — `apps/edumatch/app/api/tutor/profile/route.ts`
+  - `GET` — returns 404 when no profile exists
+  - `POST` — upsert + auto-attach `edumatch_tutor` role
+  - `PATCH` — partial update (bio, subjects, levels, rate, radius, address)
+- [x] Zod schemas in `apps/edumatch/lib/server/validation.ts`
+  - `studentProfileSchema` / `studentProfilePatchSchema`
+  - `tutorProfileSchema` / `tutorProfilePatchSchema`
+- [x] Server helpers in `apps/edumatch/lib/server/profiles.ts`
+  - `upsertStudentProfile`, `updateStudentProfile`
+  - `upsertTutorProfile`, `updateTutorProfile`
+  - `assignRoleIfMissing` — idempotent RBAC role attach
 
-### 3. Create Profile APIs
-- [ ] Student profile creation API (`/api/student/profile`)
-  - POST: Create profile after first login
-  - GET: Retrieve own profile
-  - PATCH: Update profile (grade, subjects, learning goals)
-- [ ] Tutor profile creation API (`/api/tutor/profile`)
-  - POST: Create profile with verification docs
-  - GET: Retrieve own profile
-  - PATCH: Update bio, subjects, hourly rate, availability
-
-### 4. Test Role-Based Button Display
-Verify homepage buttons render correctly based on roles:
+### 4. Test Role-Based Button Display ⚠ user action
+After running migrations + seed, sign in and verify:
 - No roles → "Get Started as Student" / "Become a Tutor"
 - `edumatch_student` → "Ask a Question" button
 - `edumatch_tutor` → "Go to Dashboard" button
+
+To trigger a role, POST to the profile API while signed in:
+```bash
+curl -X POST http://localhost:3005/api/student/profile \
+  -H "Content-Type: application/json" \
+  -d '{"gradeLevel":"K12","subjectsOfInterest":["Math"]}'
+```
+Then sign out/in to refresh the session roles.
 
 ## Acceptance Criteria
 - [ ] Database migrations run successfully without errors
