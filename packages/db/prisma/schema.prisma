@@ -689,17 +689,17 @@ model ContentGeneration {
 // by the presence of EduStudentProfile / EduTutorProfile (a user may be
 // both). ADMIN flows through the existing RBAC system.
 //
-// Geo fields use PostGIS via `Unsupported("geography(Point, 4326)")`.
-// Spatial queries (e.g. ST_DWithin) must use `$queryRaw`. The first
-// migration must `CREATE EXTENSION IF NOT EXISTS postgis;`.
+// Geo fields temporarily use simple lat/lng Float columns (PostGIS not installed).
+// TODO: Revert to PostGIS geography once PostGIS is available on the database.
 
 model EduStudentProfile {
-  id                 String                                 @id @default(cuid())
-  userId             String                                 @unique
+  id                 String  @id @default(cuid())
+  userId             String  @unique
   gradeLevel         String // K12, UNDERGRAD, GRAD
-  subjectsOfInterest String[]                               @default([])
+  subjectsOfInterest String[] @default([])
   homeAddress        Json?
-  homeLocation       Unsupported("geography(Point, 4326)")?
+  homeLat            Float?
+  homeLng            Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -710,16 +710,17 @@ model EduStudentProfile {
 }
 
 model EduTutorProfile {
-  id              String                                 @id @default(cuid())
-  userId          String                                 @unique
-  bio             String?                                @db.Text
-  subjectsTaught  String[]                               @default([])
-  levelsTaught    String[]                               @default([])
-  hourlyRateCents Int                                    @default(0)
-  onlineOnly      Boolean                                @default(false)
-  serviceRadiusKm Int                                    @default(10)
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  bio             String? @db.Text
+  subjectsTaught  String[] @default([])
+  levelsTaught    String[] @default([])
+  hourlyRateCents Int     @default(0)
+  onlineOnly      Boolean @default(false)
+  serviceRadiusKm Int     @default(10)
   homeAddress     Json?
-  homeLocation    Unsupported("geography(Point, 4326)")?
+  homeLat         Float?
+  homeLng         Float?
 
   // Stripe Connect (Phase 4)
   stripeAccountId String? @unique
