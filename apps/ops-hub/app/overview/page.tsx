@@ -5,6 +5,7 @@ import { SystemHealthPanel } from "@/components/SystemHealthPanel";
 import { formatMoney, formatNumber, formatRelative } from "@/lib/format";
 import { getSystemHealth } from "@/lib/system-health";
 import Link from "next/link";
+import LiveTimeDisplay from "./LiveTimeDisplay";
 
 export const dynamic = "force-dynamic";
 
@@ -62,9 +63,7 @@ export default async function OverviewPage() {
           <h1 className="mt-1 text-2xl font-semibold text-[var(--color-text)]">Operations at a glance</h1>
           <p className="mt-1 text-sm text-[var(--color-text-muted)]">Live view across tenants, revenue, risk, and automations.</p>
         </div>
-        <div className="text-xs text-[var(--color-text-subtle)]">
-          Updated {new Date().toLocaleTimeString()}
-        </div>
+        <LiveTimeDisplay />
       </div>
 
       <SystemHealthPanel apps={systemApps} />

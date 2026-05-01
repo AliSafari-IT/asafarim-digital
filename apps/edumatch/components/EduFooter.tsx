@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import { useTranslation } from "@asafarim/shared-i18n";
+import { useState, useEffect } from "react";
 
 export function EduFooter() {
   const { t } = useTranslation();
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(2026);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">

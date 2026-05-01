@@ -368,10 +368,16 @@ export function SiteHeader({
 }
 
 export function SiteFooter({ subtitle }: { subtitle?: string }) {
+  const [year, setYear] = useState(2026);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
+
   return (
     <footer className="border-t border-[var(--color-border)]">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-[var(--color-text-muted)] sm:flex-row sm:items-center sm:justify-between">
-        <p>&copy; {new Date().getFullYear()} ASafariM Digital</p>
+        <p>&copy; {year} ASafariM Digital</p>
         <p>{subtitle ?? "Premium SaaS delivery across frontend, backend, and AI systems"}</p>
       </div>
     </footer>

@@ -1,18 +1,22 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import AuthFooter from "./AuthFooter";
 
 export const metadata: Metadata = {
   robots: {
     index: false,
     follow: false,
+    noarchive: true,
+    nosnippet: true,
   },
 };
 
 export default function AuthLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div aria-hidden="true" className="site-noise" />
@@ -56,7 +60,7 @@ export default function AuthLayout({
 
       <footer className="border-t border-[var(--color-border)]">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-[var(--color-text-muted)] sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} ASafariM Digital</p>
+          <AuthFooter />
           <p>Secure access for products, demos, and internal tools</p>
         </div>
       </footer>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { KpiCard } from "@/components/KpiCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { SectionHeader } from "@/components/SectionHeader";
+import LiveTimeDisplay from "./LiveTimeDisplay";
 import { formatCompact, formatMoney, formatNumber, formatPercent, formatRelative } from "@/lib/format";
 import {
   analyticsWeekly,
@@ -40,11 +41,7 @@ export default async function OverviewPage() {
         eyebrow="Overview"
         title="Growth at a glance"
         description="Cross-channel marketing system: campaigns, content, SEO, leads, and automations."
-        actions={
-          <span className="text-xs text-[var(--color-text-subtle)] sm:text-right">
-            Updated {new Date().toLocaleTimeString()}
-          </span>
-        }
+        actions={<LiveTimeDisplay />}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -1,9 +1,14 @@
 import { Logo } from "./Logo";
+import { useState, useEffect } from "react";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
 
 export function Footer() {
-  const year = new Date().getFullYear();
+  const [year, setYear] = useState(2024);
+
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
   return (
     <footer className="relative mt-20 border-t border-[var(--color-border)]/60 bg-[var(--color-surface-elevated)]/40">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">

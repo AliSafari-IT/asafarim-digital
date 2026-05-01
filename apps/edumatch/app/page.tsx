@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
 const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
 export default function HomePage() {
   const { data: session } = useSession();
+  const [callbackUrl, setCallbackUrl] = useState(edumatchUrl);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCallbackUrl(window.location.href);
+    }
+  }, []);
   const isStudent = session?.user?.roles?.includes("edumatch_student");
   const isTutor = session?.user?.roles?.includes("edumatch_tutor");
 
@@ -50,13 +58,13 @@ export default function HomePage() {
             ) : (
               <>
                 <Link
-                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : edumatchUrl)}`}
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                   className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
                 >
                   Get Started as Student
                 </Link>
                 <Link
-                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : edumatchUrl)}`}
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                   className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-8 py-4 text-base font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                 >
                   Become a Tutor

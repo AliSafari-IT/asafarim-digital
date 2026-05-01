@@ -54,6 +54,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2024);
 
   const isActive = (href: string) => {
     if (href.startsWith("/#")) {
@@ -66,6 +67,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
@@ -233,7 +238,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         {/* Footer */}
         <footer className="shrink-0 border-t border-[var(--color-border)] px-5 py-3">
           <div className="flex flex-col gap-1 text-xs text-[var(--color-text-secondary)] sm:flex-row sm:items-center sm:justify-between">
-            <span>&copy; {new Date().getFullYear()} ASafariM Digital — Content Generator</span>
+            <span>&copy; {currentYear} ASafariM Digital — Content Generator</span>
             <span className="flex items-center gap-3">
               <a href={portalUrl} className="hover:text-[var(--color-text)] transition-colors">Portal</a>
               <span>·</span>

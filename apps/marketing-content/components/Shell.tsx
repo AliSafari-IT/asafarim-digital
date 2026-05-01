@@ -53,6 +53,7 @@ export function Shell({
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2024);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("mc:sidebar") : null;
@@ -64,6 +65,10 @@ export function Shell({
       window.localStorage.setItem("mc:sidebar", collapsed ? "collapsed" : "expanded");
     }
   }, [collapsed]);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -272,7 +277,7 @@ export function Shell({
 
           <footer className="shrink-0 border-t border-[var(--color-border)] px-5 py-3">
             <div className="flex flex-col gap-1 text-xs text-[var(--color-text-subtle)] sm:flex-row sm:items-center sm:justify-between">
-              <span>&copy; {new Date().getFullYear()} ASafariM Digital — Marketing + Content Engine</span>
+              <span>&copy; {currentYear} ASafariM Digital — Marketing + Content Engine</span>
               <span className="flex items-center gap-3">
                 <a href={portalUrl} className="hover:text-[var(--color-text)] transition-colors">Portal</a>
                 <span>·</span>

@@ -44,17 +44,14 @@ function resolveSharedAvatarSrc(src?: string | null) {
   return normalized;
 }
 
-export function Shell({
-  children,
-  user,
-}: {
-  children: React.ReactNode;
-  user: { name: string | null; email: string; roles: string[] };
-}) {
+export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const user = session?.user;
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2026);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? window.localStorage.getItem("ops:sidebar") : null;
@@ -66,6 +63,10 @@ export function Shell({
       window.localStorage.setItem("ops:sidebar", collapsed ? "collapsed" : "expanded");
     }
   }, [collapsed]);
+
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear());
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -241,7 +242,7 @@ export function Shell({
 
             <div className="flex shrink-0 items-center gap-2">
               <div className="hidden items-center gap-1 xl:flex">
-                {user.roles
+                {user?.roles
                   .filter((r) => r.startsWith("ops_") || r === "superadmin")
                   .slice(0, 2)
                   .map((r) => (
@@ -256,7 +257,7 @@ export function Shell({
               <NotificationsBell />
               <ThemeToggle />
               <AppSwitcher current="ops-hub" variant="default"/>
-              <UserMenu user={user} />
+              <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
             </div>
           </header>
 
@@ -264,7 +265,7 @@ export function Shell({
 
           <footer className="shrink-0 border-t border-[var(--color-border)] px-5 py-3">
             <div className="flex flex-col gap-1 text-xs text-[var(--color-text-subtle)] sm:flex-row sm:items-center sm:justify-between">
-              <span>&copy; {new Date().getFullYear()} ASafariM Digital — SaaS Operations Hub</span>
+              <span>&copy; {currentYear} ASafariM Digital — SaaS Operations Hub</span>
               <span className="flex items-center gap-3">
                 <a href={portalUrl} className="hover:text-[var(--color-text)] transition-colors">Portal</a>
                 <span>·</span>
