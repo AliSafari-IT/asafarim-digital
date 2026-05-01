@@ -7,8 +7,8 @@ import { MAX_FILE_BYTES, type AllowedMime } from "./validation";
  * Phase 2.1 storage layer.
  *
  * Production: S3-compatible (DigitalOcean Spaces). Configure via env:
- *   SPACES_ENDPOINT, SPACES_REGION, SPACES_BUCKET, SPACES_ACCESS_KEY, SPACES_SECRET_KEY
- *   SPACES_PUBLIC_URL (optional — defaults to `${endpoint}/${bucket}`)
+ *   DO_SPACES_ENDPOINT, DO_SPACES_REGION, DO_SPACES_BUCKET, DO_SPACES_KEY, DO_SPACES_SECRET
+ *   DO_SPACES_PUBLIC_URL (optional — defaults to `${endpoint}/${bucket}`)
  *
  * Local dev: if any required var is missing the helper short-circuits into a
  * stub mode that returns a non-functional URL but the rest of the inquiry
@@ -49,31 +49,31 @@ type StorageConfig = {
 
 function readConfig(): StorageConfig | null {
   const {
-    SPACES_ENDPOINT,
-    SPACES_REGION,
-    SPACES_BUCKET,
-    SPACES_ACCESS_KEY,
-    SPACES_SECRET_KEY,
-    SPACES_PUBLIC_URL,
+    DO_SPACES_ENDPOINT,
+    DO_SPACES_REGION,
+    DO_SPACES_BUCKET,
+    DO_SPACES_KEY,
+    DO_SPACES_SECRET,
+    DO_SPACES_PUBLIC_URL,
   } = process.env;
 
   if (
-    !SPACES_ENDPOINT ||
-    !SPACES_REGION ||
-    !SPACES_BUCKET ||
-    !SPACES_ACCESS_KEY ||
-    !SPACES_SECRET_KEY
+    !DO_SPACES_ENDPOINT ||
+    !DO_SPACES_REGION ||
+    !DO_SPACES_BUCKET ||
+    !DO_SPACES_KEY ||
+    !DO_SPACES_SECRET
   ) {
     return null;
   }
 
   return {
-    endpoint: SPACES_ENDPOINT,
-    region: SPACES_REGION,
-    bucket: SPACES_BUCKET,
-    accessKey: SPACES_ACCESS_KEY,
-    secretKey: SPACES_SECRET_KEY,
-    publicUrl: SPACES_PUBLIC_URL ?? `${SPACES_ENDPOINT.replace(/\/$/, "")}/${SPACES_BUCKET}`,
+    endpoint: DO_SPACES_ENDPOINT,
+    region: DO_SPACES_REGION,
+    bucket: DO_SPACES_BUCKET,
+    accessKey: DO_SPACES_KEY,
+    secretKey: DO_SPACES_SECRET,
+    publicUrl: DO_SPACES_PUBLIC_URL ?? `${DO_SPACES_ENDPOINT.replace(/\/$/, "")}/${DO_SPACES_BUCKET}`,
   };
 }
 

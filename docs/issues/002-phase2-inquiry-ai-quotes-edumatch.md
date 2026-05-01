@@ -157,10 +157,11 @@ Implement Option A for now; document Option B as future work.
 | `OPENAI_API_KEY` | AI streaming |
 | `OPENAI_MODEL_CHAT` | gpt-4o-mini (text) |
 | `OPENAI_MODEL_VISION` | gpt-4o (image/audio) |
-| `S3_BUCKET` | File upload presign |
-| `AWS_REGION` | File upload presign |
-| `AWS_ACCESS_KEY_ID` | File upload presign |
-| `AWS_SECRET_ACCESS_KEY` | File upload presign |
+| `DO_SPACES_ENDPOINT` | File upload presign (DigitalOcean Spaces) |
+| `DO_SPACES_REGION` | File upload presign |
+| `DO_SPACES_BUCKET` | File upload presign |
+| `DO_SPACES_KEY` | File upload presign |
+| `DO_SPACES_SECRET` | File upload presign |
 | `GOOGLE_MAPS_API_KEY` | Geocoding (optional fallback) |
 
 ## Estimated Effort
