@@ -131,7 +131,7 @@ Implement Option A for now; document Option B as future work.
 - **AI Streaming:** Use `ReadableStream` + SSE headers (`Content-Type: text/event-stream`). The backend already handles this; the UI just needs an `EventSource` or `fetch` with `getReader()`.
 - **OpenAI env vars:** `OPENAI_API_KEY`, `OPENAI_MODEL_CHAT` (default `gpt-4o-mini`), `OPENAI_MODEL_VISION` (default `gpt-4o`) must be set in `apps/edumatch/.env`.
 - **PostGIS:** Nearby tutor matching uses `$queryRaw` with `ST_DWithin`. The PostGIS extension must be enabled (`CREATE EXTENSION IF NOT EXISTS postgis;` — already in migrations).
-- **File uploads:** Presign endpoint (`POST /api/uploads/presign`) must have `S3_BUCKET`, `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` configured.
+- **File uploads:** Presign endpoint (`POST /api/uploads/presign`) must have `DO_SPACES_ENDPOINT`, `DO_SPACES_REGION`, `DO_SPACES_BUCKET`, `DO_SPACES_KEY`, `DO_SPACES_SECRET` configured (DigitalOcean Spaces — S3-compatible).
 - Use `requireStudent()` / `requireTutor()` from `apps/edumatch/lib/server/profiles.ts` for all role guards.
 
 ## Related Files
