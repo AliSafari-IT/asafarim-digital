@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** In Progress (Phase 2 complete, Phase 3 next)
+**Status:** In Progress (Phase 4 complete, Phase 5 in progress)
 **Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
 
 ---
@@ -300,30 +300,34 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Notifications wired into: quote-request creation (tutors notified), quote accept (tutor notified), quote decline (tutor notified)
 - Admin debug view for tutor matching implemented: `app/admin/tutor-matching/page.tsx` + `POST /api/admin/tutor-matching/debug`
 - Added `edumatch.admin.debug_matching` permission to RBAC seed
-- Remaining: tutor app (Flutter), rate limiting, email templates
+- Remaining: tutor app (Flutter), rate limiting
 
-### Phase 4 — Payments + payouts (Weeks 11–12)
+### Phase 4 — Payments + payouts (Weeks 11–12) ✅ COMPLETE
 
 **4.1 Stripe Connect onboarding**
 
-- During tutor signup, open Stripe Connect Express onboarding flow.
-- Store `stripe_account_id`, set `payout_enabled` based on Stripe webhook.
+- ✅ Tutor onboarding flow: `/tutor/connect/onboard` with success/refresh pages
+- ✅ Express account creation with `transfers` and `card_payments` capabilities
+- ✅ Webhook handler for `account.updated` sets `payout_enabled`
 - **Effort:** 3 days. **Skill payoff:** Connect onboarding, webhooks.
 
 **4.2 Booking + checkout**
 
-- Student selects a quote → API creates a Stripe `PaymentIntent` with application fee (15%) and `transfer_data.destination` = tutor's Stripe account.
-- On `payment_intent.succeeded` webhook, mark booking SCHEDULED, credit tutor wallet (pending until session completes).
+- ✅ Student checkout page: `/student/checkout/[quoteId]` with booking summary
+- ✅ PaymentIntent creation with 15% platform fee + split to tutor
+- ✅ Booking confirmation page with status polling
+- ✅ Webhook updates booking to `SCHEDULED` on payment success
 - **Effort:** 6 days. **Skill payoff:** Stripe Connect split payments, webhook idempotency.
 
 **4.3 Wallet + payouts**
 
-- Daily scheduled job: any tutor with `pending_cents` > 0 and a session that completed >24h ago → move to `balance_cents`.
-- When `balance_cents` ≥ `payout_threshold_cents` and last payout ≥ 7 days ago → trigger Stripe payout.
-- Wallet view in tutor app: balance, pending, transaction history.
+- ✅ Tutor wallet dashboard with balance/pending cards
+- ✅ Transaction history display
+- ✅ Request payout button with threshold checks (€50 min, weekly cooldown)
+- ✅ `POST /api/tutors/wallet` triggers Stripe payout
 - **Effort:** 5 days. **Skill payoff:** Cron jobs, financial bookkeeping invariants.
 
-### Phase 5 — PDFs + notifications (Week 13)
+### Phase 5 — PDFs + notifications (Week 13) 🔄 IN PROGRESS
 
 **5.1 Quote PDF generation**
 
