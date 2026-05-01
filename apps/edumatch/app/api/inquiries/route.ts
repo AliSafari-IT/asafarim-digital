@@ -4,6 +4,7 @@ import { handleEduError } from "@/lib/server";
 import { badRequest, serverError } from "@/lib/server/auth";
 import { formatZodError, inquiryIntakeSchema } from "@/lib/server/validation";
 import { createInquiry, listInquiriesForStudent, InquiryValidationError } from "@/lib/server/inquiries";
+import { orchestrateResponse } from "@/lib/server/ai-orchestrator";
 
 export const runtime = "nodejs";
 
@@ -25,7 +26,12 @@ export async function POST(req: Request) {
     }
 
     const created = await createInquiry(user.id, parsed.data);
-    // TODO(Phase 2.2): enqueue AI orchestrator job here.
+
+    // Phase 2.2: fire-and-forget in-process AI orchestration (non-blocking).
+    orchestrateResponse(created.id).catch((e) =>
+      console.warn("[inquiries] AI auto-orchestration failed (non-blocking):", e),
+    );
+
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (error instanceof InquiryValidationError) {

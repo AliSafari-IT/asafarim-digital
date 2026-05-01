@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** Planning
+**Status:** In Progress (Phase 2 complete, Phase 3 next)
 **Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
 
 ---
@@ -178,11 +178,11 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Wire Sentry + PostHog with placeholder events.
 - **Deliverable:** "Hello world" API responding on Fly.io, "Hello world" Flutter app running on iOS simulator + web.
 
-### Phase 0.5 — Shared Infrastructure (Week 2)
+### Phase 0.5 — Shared Infrastructure (Week 2) ✅ COMPLETE
 
 > **Purpose:** Build cross-cutting shared packages that all apps will use for unified auth, payments, and navigation. This enables the "one login, one basket" architecture.
 
-**0.5.1 Payments package (`@asafarim/payments`)**
+**0.5.1 Payments package (`@asafarim/payments`)** ✅
 
 - Stripe client wrapper with unified checkout session creation
 - Cart/basket service for cross-app purchases (add items from any app, checkout once)
@@ -190,14 +190,14 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Support for marketplace fees (platform + seller split)
 - **Effort:** 3 days. **Skill payoff:** Shared package architecture, Stripe Connect unified flow.
 
-**0.5.2 App switcher component**
+**0.5.2 App switcher component** ✅
 
 - Shared React component for unified navbar with app switcher dropdown
 - Shows all apps user has access to based on roles/permissions
 - Preserves session across subdomains (`.asafarim.com` cookie domain)
 - **Effort:** 2 days. **Skill payoff:** Cross-app navigation, shared UI components.
 
-**0.5.3 Role/permission seeding**
+**0.5.3 Role/permission seeding** ✅
 
 - Add EduMatch-specific roles: `edumatch:student`, `edumatch:tutor`, `edumatch:admin`
 - Add permissions for each EduMatch feature (create inquiry, respond as tutor, admin verification, etc.)
@@ -205,11 +205,13 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 
 **Deliverable:** All apps can import `@asafarim/payments` and use unified checkout; app switcher appears in portal and edumatch navbars.
 
+**Actual notes:** Completed via Prisma seed with `UserRole` composite unique key for RBAC. Roles: `edumatch_student`, `edumatch_tutor`, `edumatch_admin`.
+
 ---
 
-### Phase 1 — Foundations (Weeks 3–5)
+### Phase 1 — Foundations (Weeks 3–5) ✅ COMPLETE
 
-**1.1 Database migrations + seeding**
+**1.1 Database migrations + seeding** ✅
 
 - Run Prisma migrations for EduMatch models (already in schema)
 - Enable PostGIS extension for geospatial queries
@@ -217,7 +219,7 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Document RLS policies in `db/POLICIES.md`.
 - **Effort:** 3 days. **Skill payoff:** Postgres schema design, migrations, RLS.
 
-**1.2 Auth + role-based access**
+**1.2 Auth + role-based access** ✅
 
 - EduMatch-specific auth middleware (check `edumatch:student` or `edumatch:tutor` role)
 - Extend `@asafarim/auth` with EduMatch session hooks
@@ -225,23 +227,30 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - 2FA via TOTP for tutors (since they receive payouts)
 - **Effort:** 5 days. **Skill payoff:** Auth flows, JWTs, 2FA edge cases.
 
-**1.3 User profile APIs**
+**1.3 User profile APIs** ✅
 
 - CRUD for `EduStudentProfile` + `EduTutorProfile`
 - Address geocoding via Google Maps API on save (update `homeLocation` geography field)
 - File upload endpoints for profile photos
 - **Effort:** 4 days. **Skill payoff:** REST design, validation (zod), PostGIS integration.
 
-### Phase 2 — Intake + AI (Weeks 6–8)
+**Actual notes:**
+- Migrations run with PostGIS enabled
+- Profile APIs at `/api/student/profile` and `/api/tutor/profile` with POST/GET/PATCH
+- Zod validation for profile inputs
+- Homepage role checks fixed to use seeded role names (`edumatch_student`/`edumatch_tutor`)
+- 2FA and email verification deferred to later phase
 
-**2.1 Intake API + file uploads**
+### Phase 2 — Intake + AI (Weeks 6–8) ✅ COMPLETE
+
+**2.1 Intake API + file uploads** ✅
 
 - POST `/inquiries` with multipart upload to DO Spaces via presigned URLs.
 - Validate file types (jpeg, png, mp4 ≤ 50 MB, m4a / wav for voice).
 - Persist `inquiries` row, push job onto queue.
 - **Effort:** 5 days. **Skill payoff:** Multipart uploads, presigned URLs, queue handoff.
 
-**2.2 AI orchestrator**
+**2.2 AI orchestrator** ✅
 
 - Worker consumes intake jobs.
 - Routes to OpenAI: vision for image, Whisper for audio, GPT-4o for text + reasoning.
@@ -250,26 +259,43 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Failover to Claude on OpenAI 5xx.
 - **Effort:** 8 days. **Skill payoff:** Multimodal AI, prompt versioning, observability around model calls.
 
-**2.3 Realtime AI response delivery to client**
+**2.3 Realtime AI response delivery to client** ✅
 
 - Server-sent events (or Supabase Realtime) push the AI response back to the Flutter client as it streams.
 - **Effort:** 3 days. **Skill payoff:** Streaming UX, realtime patterns.
 
-### Phase 3 — Marketplace + matching (Weeks 9–10)
+**Actual notes:**
+- Intake form upgraded to 3-step UI (Subject+Level → Question → Review) with character counter
+- Presign endpoint at `/api/uploads/presign` for file uploads
+- AI streaming via SSE at `/api/inquiries/[id]/ai` with token-by-token display
+- Auto-trigger AI on inquiry creation via `orchestrateResponse()` (fire-and-forget, in-process)
+- Quote request flow: `/api/inquiries/[id]/quote-request` → creates `EduQuoteRequest` + finds nearby tutors
+- Tutor quote submission at `/api/quote-requests/[id]/quotes` with rate/hours/slots/notes
+- Student quotes page at `/student/inquiry/[id]/quotes` with accept/decline → creates `EduBooking`
+- Tutor requests page at `/tutor/requests` with collapsible quote submission forms
+- PostGIS spatial queries for nearby tutor matching (`ST_DWithin`)
 
-**3.1 Tutor matching**
+### Phase 3 — Marketplace + matching (Weeks 9–10) 🔄 NEXT
+
+**3.1 Tutor matching** 🔄
 
 - Given an inquiry's subject + grade level + student location, return up to 5 ranked tutors.
 - Ranking signals: distance (PostGIS), rating, price tier, online_only fit.
 - API endpoint + admin debug view.
 - **Effort:** 5 days. **Skill payoff:** Spatial queries, ranking design.
 
-**3.2 Quote request + standardized quotes**
+**3.2 Quote request + standardized quotes** 🔄
 
 - POST `/quote-requests` creates a `quote_requests` row + 5 `quotes` (status PENDING).
 - Notification fires to each matched tutor.
 - Tutor app shows pending requests; tutor fills in `hourly_rate`, `estimated_hours`, `availability_slots`, optional `notes`. System pre-fills hourly rate from their profile.
 - **Effort:** 5 days. **Skill payoff:** Multi-actor workflows, request/response state machines.
+
+**Actual notes:**
+- Quote request and submission APIs already implemented (`/api/inquiries/[id]/quote-request`, `/api/quote-requests/[id]/quotes`)
+- PostGIS nearby tutor matching implemented (`ST_DWithin` in `listAvailableQuoteRequestsForTutor`)
+- Tutor matching scoring implemented in `tutor-matching.ts`
+- Remaining: notification system, admin debug view, tutor app (Flutter)
 
 ### Phase 4 — Payments + payouts (Weeks 11–12)
 

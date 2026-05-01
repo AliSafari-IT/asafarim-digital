@@ -1,0 +1,30 @@
+name: Auto-add issue reference to PR description
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  add-issue-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const currentBody = context.payload.pull_request.body || '';
+            const issueRef = `\n\nRefs #${context.issue.number}`;
+            
+            // Only add if not already present
+            if (!currentBody.includes(`Refs #${context.issue.number}`)) {
+              const newBody = currentBody + issueRef;
+              
+              github.rest.pulls.update({
+                pull_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: newBody
+              });
+            }
