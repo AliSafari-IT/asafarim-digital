@@ -8,26 +8,72 @@ type Wallet = {
   balanceCents: number;
   pendingCents: number;
   nextPayoutEligible: boolean;
+  nextPayoutAt: string | null;
+};
+
+type Transaction = {
+  id: string;
+  type: "CHARGE" | "PAYOUT";
+  grossCents: number;
+  platformFeeCents: number;
+  netCents: number;
+  createdAt: string;
 };
 
 export default function TutorDashboard() {
   const { data: session, status } = useSession();
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [connectStatus, setConnectStatus] = useState<{ hasAccount: boolean; payoutEnabled: boolean } | null>(null);
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutError, setPayoutError] = useState<string | null>(null);
+  const [payoutSuccess, setPayoutSuccess] = useState(false);
 
   useEffect(() => {
     if (status === "authenticated") {
       Promise.all([
-        fetch("/api/tutors/wallet").then((r) => r.json()).catch(() => ({ wallet: null })),
+        fetch("/api/tutors/wallet").then((r) => r.json()).catch(() => ({ wallet: null, transactions: [] })),
         fetch("/api/tutor/profile").then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
-      ]).then(([walletData, profileData]) => {
+        fetch("/api/tutors/connect/onboard").then((r) => r.json()).catch(() => ({ hasAccount: false, payoutEnabled: false })),
+      ]).then(([walletData, profileData, connectData]) => {
         setWallet(walletData.wallet);
+        setTransactions(walletData.transactions ?? []);
         setHasProfile((profileData as { ok: boolean }).ok);
+        setConnectStatus(connectData as { hasAccount: boolean; payoutEnabled: boolean });
         setLoading(false);
       });
     }
   }, [status]);
+
+  async function requestPayout() {
+    setPayoutLoading(true);
+    setPayoutError(null);
+    setPayoutSuccess(false);
+
+    try {
+      const res = await fetch("/api/tutors/wallet", { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPayoutError(data.error ?? "Payout failed");
+        setPayoutLoading(false);
+        return;
+      }
+
+      setPayoutSuccess(true);
+      // Refresh wallet data
+      const walletRes = await fetch("/api/tutors/wallet");
+      const walletData = await walletRes.json();
+      setWallet(walletData.wallet);
+      setTransactions(walletData.transactions ?? []);
+    } catch {
+      setPayoutError("Network error. Please try again.");
+    } finally {
+      setPayoutLoading(false);
+    }
+  }
 
   if (status === "loading" || loading) {
     return (
@@ -53,8 +99,11 @@ export default function TutorDashboard() {
   const balance = wallet ? (wallet.balanceCents / 100).toFixed(2) : "0.00";
   const pending = wallet ? (wallet.pendingCents / 100).toFixed(2) : "0.00";
 
+  const showConnectBanner = connectStatus && (!connectStatus.hasAccount || !connectStatus.payoutEnabled);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {/* Profile Setup Banner */}
       {hasProfile === false && (
         <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
           <div className="mt-0.5 text-amber-500 text-xl">⚠</div>
@@ -73,6 +122,41 @@ export default function TutorDashboard() {
         </div>
       )}
 
+      {/* Stripe Connect Banner */}
+      {showConnectBanner && (
+        <div className="mb-6 flex items-start gap-4 rounded-xl border border-blue-300 bg-blue-50 px-5 py-4">
+          <div className="mt-0.5 text-blue-500 text-xl">💳</div>
+          <div className="flex-1">
+            <p className="font-semibold text-blue-800">
+              {!connectStatus?.hasAccount ? "Connect your bank account" : "Complete Stripe verification"}
+            </p>
+            <p className="text-sm text-blue-700 mt-0.5">
+              {!connectStatus?.hasAccount
+                ? "Set up Stripe Connect to receive payments from students."
+                : "Your account is created but needs verification to enable payouts."}
+            </p>
+          </div>
+          <Link
+            href="/tutor/connect/onboard"
+            className="shrink-0 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 transition"
+          >
+            {!connectStatus?.hasAccount ? "Connect Stripe" : "Complete Setup"}
+          </Link>
+        </div>
+      )}
+
+      {/* Payout Messages */}
+      {payoutError && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-700">
+          {payoutError}
+        </div>
+      )}
+      {payoutSuccess && (
+        <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-green-700">
+          Payout requested successfully! Funds will arrive in 1-2 business days.
+        </div>
+      )}
+
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-[var(--color-text)]">Tutor Dashboard</h2>
         <p className="text-[var(--color-text-muted)]">Manage your earnings and quote requests</p>
@@ -82,17 +166,26 @@ export default function TutorDashboard() {
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <h3 className="mb-1 text-sm font-medium text-[var(--color-text-muted)]">Available Balance</h3>
           <p className="text-3xl font-bold text-green-500">€{balance}</p>
-          {wallet?.nextPayoutEligible && (
-            <button className="mt-3 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-200">
-              Request Payout
+          {wallet?.nextPayoutEligible && connectStatus?.payoutEnabled && (
+            <button
+              onClick={requestPayout}
+              disabled={payoutLoading}
+              className="mt-3 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-200 disabled:opacity-50"
+            >
+              {payoutLoading ? "Processing..." : "Request Payout"}
             </button>
+          )}
+          {wallet && !wallet.nextPayoutEligible && wallet.nextPayoutAt && (
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              Next payout available {new Date(wallet.nextPayoutAt).toLocaleDateString()}
+            </p>
           )}
         </div>
 
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <h3 className="mb-1 text-sm font-medium text-[var(--color-text-muted)]">Pending Earnings</h3>
           <p className="text-3xl font-bold text-yellow-500">€{pending}</p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Available in 24 hours</p>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Available 24h after session</p>
         </div>
 
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
@@ -107,14 +200,52 @@ export default function TutorDashboard() {
         </div>
       </div>
 
+      {/* Transaction History */}
+      {transactions.length > 0 && (
+        <div className="mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
+          <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">Recent Transactions</h2>
+          <div className="space-y-2">
+            {transactions.slice(0, 5).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium text-[var(--color-text)]">
+                    {tx.type === "CHARGE" ? "Session Payment" : "Payout to Bank"}
+                  </p>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {new Date(tx.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className={`font-semibold ${tx.type === "CHARGE" ? "text-green-600" : "text-blue-600"}`}>
+                    {tx.type === "CHARGE" ? "+" : "-"}€{(Math.abs(tx.netCents) / 100).toFixed(2)}
+                  </p>
+                  {tx.type === "CHARGE" && (
+                    <p className="text-xs text-[var(--color-text-muted)]">
+                      Fee: €{(tx.platformFeeCents / 100).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
         <h2 className="mb-4 text-lg font-semibold text-[var(--color-text)]">Quick Actions</h2>
         <div className="flex gap-3">
           <Link
             href="/tutor/connect/onboard"
-            className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              connectStatus?.payoutEnabled
+                ? "border border-[var(--color-border-strong)] text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                : "bg-[var(--color-primary)] text-white hover:opacity-90"
+            }`}
           >
-            Setup Stripe Connect
+            {connectStatus?.payoutEnabled ? "Stripe Connected ✓" : "Setup Stripe Connect"}
           </Link>
           <Link
             href="/tutor/profile"
