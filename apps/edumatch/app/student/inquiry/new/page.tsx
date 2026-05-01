@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const SUBJECTS_OF_INTEREST = [
+  "Mathematics", "Physics", "Chemistry", "Biology", "English",
+  "History", "Geography", "Computer Science", "Economics", "Other",
+];
+
 const SUBJECTS = [
   "Mathematics",
   "Physics",
@@ -39,29 +44,68 @@ export default function NewInquiry() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [needsProfile, setNeedsProfile] = useState(false);
+  const [profileSubjects, setProfileSubjects] = useState<string[]>([]);
+  const [creatingProfile, setCreatingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   const gradeLevelLabel = GRADE_LEVELS.find((g) => g.value === gradeLevel)?.label ?? gradeLevel;
   const canProceed0 = subject.length > 0;
   const canProceed1 = description.trim().length >= MIN_CHARS;
+
+  async function submitInquiry() {
+    const res = await fetch("/api/inquiries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, gradeLevel, description: description.trim(), attachments: [] }),
+    });
+    const data = await res.json() as { id?: string; error?: string };
+    if (res.status === 403 && data.error?.toLowerCase().includes("student profile")) {
+      setNeedsProfile(true);
+      setProfileSubjects(subject ? [subject] : []);
+      setSubmitting(false);
+      return;
+    }
+    if (!res.ok) {
+      setError(data.error ?? "Failed to create inquiry.");
+      setSubmitting(false);
+      return;
+    }
+    router.push(`/student/inquiry/${data.id}`);
+  }
 
   async function handleSubmit() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, gradeLevel, description: description.trim(), attachments: [] }),
-      });
-      const data = await res.json() as { id?: string; error?: string };
-      if (!res.ok) {
-        setError(data.error ?? "Failed to create inquiry.");
-        setSubmitting(false);
-        return;
-      }
-      router.push(`/student/inquiry/${data.id}`);
+      await submitInquiry();
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
+    }
+  }
+
+  async function handleCreateProfile() {
+    setCreatingProfile(true);
+    setProfileError(null);
+    try {
+      const res = await fetch("/api/student/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gradeLevel, subjectsOfInterest: profileSubjects }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) {
+        setProfileError(data.error ?? "Failed to create profile.");
+        setCreatingProfile(false);
+        return;
+      }
+      setNeedsProfile(false);
+      setSubmitting(true);
+      await submitInquiry();
+    } catch {
+      setProfileError("Network error. Please try again.");
+      setCreatingProfile(false);
     }
   }
 
@@ -105,13 +149,73 @@ export default function NewInquiry() {
         ))}
       </div>
 
-      {error && (
+      {error && !needsProfile && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
+      {needsProfile && (
+        <div className="mb-6 rounded-xl border border-[var(--color-primary)] bg-[color:color-mix(in_srgb,var(--color-primary)_8%,var(--color-panel))] p-6">
+          <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">One more step — create your student profile</h2>
+          <p className="text-sm text-[var(--color-text-muted)] mb-5">
+            Your grade level is already set from your question. Optionally pick subjects you care about, then we&apos;ll submit your inquiry automatically.
+          </p>
+
+          {profileError && (
+            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {profileError}
+            </div>
+          )}
+
+          <div className="mb-4">
+            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-1">Grade Level</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{gradeLevelLabel}</p>
+          </div>
+
+          <div className="mb-5">
+            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-2">Subjects of Interest <span className="normal-case font-normal">(optional)</span></p>
+            <div className="flex flex-wrap gap-2">
+              {SUBJECTS_OF_INTEREST.map((s) => {
+                const active = profileSubjects.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() =>
+                      setProfileSubjects((prev) =>
+                        active ? prev.filter((x) => x !== s) : [...prev, s],
+                      )
+                    }
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                      active
+                        ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                        : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            onClick={handleCreateProfile}
+            disabled={creatingProfile}
+            className="w-full rounded-lg bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+          >
+            {creatingProfile ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Creating profile &amp; submitting…
+              </>
+            ) : "Create Profile &amp; Submit Inquiry"}
+          </button>
+        </div>
+      )}
+
+      <div className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 ${needsProfile ? "opacity-50 pointer-events-none" : ""}`}>
         {/* Step 0: Subject & Grade */}
         {step === 0 && (
           <div className="space-y-5">

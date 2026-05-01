@@ -17,16 +17,18 @@ export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/inquiries")
-        .then((r) => r.json())
-        .then((data) => {
-          setInquiries(data.items ?? []);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      Promise.all([
+        fetch("/api/inquiries").then((r) => r.json()).catch(() => ({ items: [] })),
+        fetch("/api/student/profile").then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
+      ]).then(([inquiryData, profileData]) => {
+        setInquiries((inquiryData as { items?: Inquiry[] }).items ?? []);
+        setHasProfile((profileData as { ok: boolean }).ok);
+        setLoading(false);
+      });
     }
   }, [status]);
 
@@ -53,6 +55,24 @@ export default function StudentDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+        {hasProfile === false && (
+          <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
+            <div className="mt-0.5 text-amber-500 text-xl">⚠</div>
+            <div className="flex-1">
+              <p className="font-semibold text-amber-800">Student profile not set up yet</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                You need a student profile before you can submit inquiries. It only takes a few seconds.
+              </p>
+            </div>
+            <Link
+              href="/student/inquiry/new"
+              className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
+            >
+              Set up profile
+            </Link>
+          </div>
+        )}
+
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-[var(--color-text)]">My Inquiries</h2>
           <Link
