@@ -17,6 +17,9 @@ jobs:
   typecheck:
     name: TypeScript Type Check
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,6 +51,9 @@ jobs:
   lint:
     name: ESLint
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -80,6 +86,7 @@ jobs:
     name: Build Verification
     runs-on: ubuntu-latest
     needs: [typecheck, lint]
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,6 +101,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Cache Puppeteer Chrome
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            puppeteer-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -113,6 +128,7 @@ jobs:
         env:
           NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
           NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
+          PUPPETEER_SKIP_DOWNLOAD: "true"
 
       - name: Build EduMatch (App)
         run: pnpm --filter edumatch build
@@ -127,6 +143,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: [build]
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -141,6 +158,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+
+      - name: Cache Puppeteer Chrome
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            puppeteer-${{ runner.os }}-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -157,6 +182,9 @@ jobs:
   schema-check:
     name: Database Schema Validation
     runs-on: ubuntu-latest
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
