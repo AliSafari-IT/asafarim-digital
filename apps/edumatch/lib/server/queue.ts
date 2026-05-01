@@ -24,7 +24,7 @@ function createConnection() {
 
 const connection = createConnection();
 
-export const AI_QUEUE_NAME = "edumatch:ai" as const;
+export const AI_QUEUE_NAME = "edumatch-ai" as const;
 
 export type AiJobPayload = {
   inquiryId: string;
