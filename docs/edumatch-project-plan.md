@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** In Progress (Phase 4 complete, Phase 5 in progress)
+**Status:** In Progress (Phase 5 complete, Phase 6 in progress)
 **Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
 
 ---
@@ -327,20 +327,27 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - ✅ `POST /api/tutors/wallet` triggers Stripe payout
 - **Effort:** 5 days. **Skill payoff:** Cron jobs, financial bookkeeping invariants.
 
-### Phase 5 — PDFs + notifications (Week 13) 🔄 IN PROGRESS
+### Phase 5 — PDFs + notifications (Week 13) ✅ COMPLETE
 
 **5.1 Quote PDF generation**
 
-- Worker renders a quote as HTML template (Handlebars), Puppeteer converts to PDF, uploads to DO Spaces, signs URL, stores on `quotes.pdf_url`.
+- ✅ PDF service: `lib/server/pdf.ts` with Puppeteer
+- ✅ Handlebars template: `lib/emails/quote-pdf.html`
+- ✅ BullMQ worker: `lib/workers/pdf-generation.ts`
+- ✅ Signed URL generation (1 hour expiry)
+- ✅ Download endpoint: `/api/quotes/[id]/pdf`
 - **Effort:** 4 days. **Skill payoff:** Headless browser PDFs, signed URLs.
 
 **5.2 Email notifications**
 
-- Templated emails: inquiry received, AI response ready, quote received, booking confirmed, payout sent.
-- Resend/Mailgun integration with retry queue.
+- ✅ Resend integration: `lib/server/email.ts`
+- ✅ 6 email templates with Handlebars
+- ✅ Email queue worker with retry logic (3 attempts)
+- ✅ Notification preferences API: `/api/me/notifications`
+- ✅ Admin testing page: `/admin/emails`
 - **Effort:** 3 days. **Skill payoff:** Transactional email patterns.
 
-### Phase 6 — Flutter UI (Weeks 14–15)
+### Phase 6 — Flutter UI (Weeks 14–15) 🔄 IN PROGRESS
 
 Minimum shippable surface:
 
