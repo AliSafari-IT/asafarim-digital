@@ -1,0 +1,97 @@
+name: Main Branch Protection
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ───────────────────────────────────────────
+  # Prevent Direct Push to Main
+  # ───────────────────────────────────────────
+  prevent-direct-push:
+    name: Verify PR-Based Merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Check if push is from PR merge
+        run: |
+          if [ "${{ github.event.head_commit.message }}" == *"Merge pull request"* ]; then
+            echo "✓ Push is from PR merge"
+          else
+            echo "⚠ Direct push to main detected"
+            echo "Please use Pull Requests for all changes to main"
+          fi
+
+  # ───────────────────────────────────────────
+  # Require Reviews
+  # ───────────────────────────────────────────
+  require-reviews:
+    name: Check PR Reviews
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Verify minimum reviews
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviews = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const approvingReviews = reviews.data.filter(r => r.state === 'APPROVED');
+            
+            if (approvingReviews.length < 1) {
+              core.setFailed(`❌ PR requires at least 1 approving review. Current: ${approvingReviews.length}`);
+            } else {
+              console.log(`✓ PR has ${approvingReviews.length} approving reviews`);
+            }
+
+  # ───────────────────────────────────────────
+  # Check Branch is Up to Date
+  # ───────────────────────────────────────────
+  check-branch-updated:
+    name: Check Branch Currency
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if branch is behind main
+        run: |
+          git fetch origin main
+          BEHIND=$(git rev-list --count HEAD..origin/main || echo "0")
+          if [ "$BEHIND" -gt 0 ]; then
+            echo "⚠ Branch is $BEHIND commits behind main"
+            echo "Please rebase or merge main into your branch"
+            exit 1
+          fi
+          echo "✓ Branch is up to date with main"
+
+  # ───────────────────────────────────────────
+  # Status Check Aggregation
+  # ───────────────────────────────────────────
+  all-checks-pass:
+    name: All Required Checks Passed
+    runs-on: ubuntu-latest
+    needs: [require-reviews, check-branch-updated]
+    if: always() && github.event_name == 'pull_request'
+    steps:
+      - name: Verify all checks passed
+        run: |
+          if [ "${{ needs.require-reviews.result }}" != "success" ] || \
+             [ "${{ needs.check-branch-updated.result }}" != "success" ]; then
+            echo "❌ Some required checks failed"
+            exit 1
+          fi
+          echo "✓ All branch protection checks passed"

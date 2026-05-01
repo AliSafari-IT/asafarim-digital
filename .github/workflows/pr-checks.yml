@@ -1,0 +1,147 @@
+name: PR — Branch Protection & Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  # ───────────────────────────────────────────
+  # 1. PR Metadata Validation
+  # ───────────────────────────────────────────
+  pr-metadata:
+    name: Validate PR Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR Title Format
+        uses: amannn/action-semantic-pull-request@v5
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          scopes: |
+            edumatch
+            portal
+            auth
+            db
+            ui
+            payments
+            shared
+            infra
+          requireScope: false
+
+      - name: Check PR Description
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 30 ]; then
+            echo "❌ PR description is too short. Please provide context about the changes."
+            exit 1
+          fi
+          echo "✓ PR description is sufficient"
+
+  # ───────────────────────────────────────────
+  # 2. Lockfile Validation
+  # ───────────────────────────────────────────
+  lockfile-check:
+    name: Lockfile Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Verify lockfile matches package.json
+        run: |
+          pnpm install --frozen-lockfile
+          if [ -n "$(git status --porcelain pnpm-lock.yaml)" ]; then
+            echo "❌ pnpm-lock.yaml is out of sync with package.json"
+            echo "Run 'pnpm install' locally and commit the updated lockfile"
+            exit 1
+          fi
+          echo "✓ Lockfile is in sync"
+
+  # ───────────────────────────────────────────
+  # 3. Dependency Audit
+  # ───────────────────────────────────────────
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run audit
+        run: |
+          pnpm audit --audit-level=high || true
+          echo "⚠ Review high/critical severity vulnerabilities above"
+
+  # ───────────────────────────────────────────
+  # 4. File Size & Bundle Check
+  # ───────────────────────────────────────────
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for large files
+        run: |
+          LARGE_FILES=$(find . -type f -size +5M -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./.next/*" -not -path "./.turbo/*" | head -20)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "❌ Large files detected (>5MB):"
+            echo "$LARGE_FILES"
+            echo "Consider using Git LFS for large files"
+            exit 1
+          fi
+          echo "✓ No oversized files detected"
+
+  # ───────────────────────────────────────────
+  # 5. Required Checks Summary
+  # ───────────────────────────────────────────
+  pr-summary:
+    name: PR Quality Summary
+    runs-on: ubuntu-latest
+    needs: [pr-metadata, lockfile-check, security-audit, bundle-size]
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## PR Quality Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| PR Title Format | ${{ needs.pr-metadata.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lockfile Valid | ${{ needs.lockfile-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Audit | ${{ needs.security-audit.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle Size | ${{ needs.bundle-size.result }} |" >> $GITHUB_STEP_SUMMARY

@@ -5,6 +5,8 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
     "clean": "turbo clean",
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
