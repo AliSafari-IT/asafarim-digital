@@ -55,7 +55,24 @@ export default function HomePage() {
               >
                 Go to Dashboard
               </Link>
+            ) : session?.user ? (
+              // Logged in but no role selected yet - show role selection
+              <>
+                <Link
+                  href="/student"
+                  className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
+                >
+                  Continue as Student
+                </Link>
+                <Link
+                  href="/tutor"
+                  className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-8 py-4 text-base font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                >
+                  Become a Tutor
+                </Link>
+              </>
             ) : (
+              // Not logged in - go to sign in
               <>
                 <Link
                   href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`}
