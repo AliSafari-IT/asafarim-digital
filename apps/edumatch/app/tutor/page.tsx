@@ -14,16 +14,18 @@ export default function TutorDashboard() {
   const { data: session, status } = useSession();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (status === "authenticated") {
-      fetch("/api/tutors/wallet")
-        .then((r) => r.json())
-        .then((data) => {
-          setWallet(data.wallet);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
+      Promise.all([
+        fetch("/api/tutors/wallet").then((r) => r.json()).catch(() => ({ wallet: null })),
+        fetch("/api/tutor/profile").then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
+      ]).then(([walletData, profileData]) => {
+        setWallet(walletData.wallet);
+        setHasProfile((profileData as { ok: boolean }).ok);
+        setLoading(false);
+      });
     }
   }, [status]);
 
@@ -53,6 +55,24 @@ export default function TutorDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      {hasProfile === false && (
+        <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
+          <div className="mt-0.5 text-amber-500 text-xl">⚠</div>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-800">Tutor profile not set up yet</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              You need a tutor profile with your subjects and hourly rate before you can receive quote requests.
+            </p>
+          </div>
+          <Link
+            href="/tutor/profile"
+            className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
+          >
+            Set up profile
+          </Link>
+        </div>
+      )}
+
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-[var(--color-text)]">Tutor Dashboard</h2>
         <p className="text-[var(--color-text-muted)]">Manage your earnings and quote requests</p>
@@ -100,7 +120,7 @@ export default function TutorDashboard() {
             href="/tutor/profile"
             className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)]"
           >
-            Edit Profile
+            {hasProfile ? "Edit Profile" : "Create Profile"}
           </Link>
         </div>
       </div>

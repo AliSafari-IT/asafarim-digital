@@ -75,12 +75,20 @@ export default function StudentDashboard() {
 
         <div className="mb-8 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-[var(--color-text)]">My Inquiries</h2>
-          <Link
-            href="/student/inquiry/new"
-            className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
-          >
-            Ask a Question
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/student/profile"
+              className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
+            >
+              {hasProfile ? "Edit Profile" : "Create Profile"}
+            </Link>
+            <Link
+              href="/student/inquiry/new"
+              className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+            >
+              Ask a Question
+            </Link>
+          </div>
         </div>
 
         {inquiries.length === 0 ? (
