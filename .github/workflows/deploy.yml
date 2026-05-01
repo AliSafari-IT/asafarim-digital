@@ -20,6 +20,13 @@ env:
   DEPLOY_PATH: /var/repos/asafarim-digital
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
+# Keep production deploys serialized, but do not cancel a running deploy
+# after it has already mutated the server state. Queue the next run instead
+# so Actions does not report a false-negative "cancelled" deploy.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
