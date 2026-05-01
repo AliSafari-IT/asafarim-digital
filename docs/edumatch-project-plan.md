@@ -294,8 +294,13 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 **Actual notes:**
 - Quote request and submission APIs already implemented (`/api/inquiries/[id]/quote-request`, `/api/quote-requests/[id]/quotes`)
 - PostGIS nearby tutor matching implemented (`ST_DWithin` in `listAvailableQuoteRequestsForTutor`)
-- Tutor matching scoring implemented in `tutor-matching.ts`
-- Remaining: notification system, admin debug view, tutor app (Flutter)
+- Tutor matching scoring implemented in `tutor-matching.ts` with ranking algorithm (distance, rating, subject match, level match, online preference, verification)
+- Notification system implemented: `lib/server/notifications.ts` with in-app + email delivery via Resend
+- Notification API routes: `GET /api/notifications`, `POST /api/notifications` (mark-all-read), `POST /api/notifications/[id]/mark-read`
+- Notifications wired into: quote-request creation (tutors notified), quote accept (tutor notified), quote decline (tutor notified)
+- Admin debug view for tutor matching implemented: `app/admin/tutor-matching/page.tsx` + `POST /api/admin/tutor-matching/debug`
+- Added `edumatch.admin.debug_matching` permission to RBAC seed
+- Remaining: tutor app (Flutter), rate limiting, email templates
 
 ### Phase 4 — Payments + payouts (Weeks 11–12)
 

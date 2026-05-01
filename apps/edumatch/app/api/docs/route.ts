@@ -243,6 +243,54 @@ export async function GET() {
           },
         },
       },
+      "/api/notifications": {
+        get: {
+          summary: "List user notifications",
+          tags: ["Notifications"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "unreadOnly", in: "query", schema: { type: "boolean" } },
+            { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+            { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+          ],
+          responses: {
+            "200": { description: "List of notifications with unread count" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+        post: {
+          summary: "Mark all notifications as read",
+          tags: ["Notifications"],
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: { action: { type: "string", enum: ["mark-all-read"] } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "All notifications marked as read" },
+          },
+        },
+      },
+      "/api/notifications/{id}/mark-read": {
+        post: {
+          summary: "Mark a single notification as read",
+          tags: ["Notifications"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "Notification marked as read" },
+            "404": { description: "Not found or already read" },
+          },
+        },
+      },
       "/api/tutor/profile": {
         post: {
           summary: "Create or update tutor profile",

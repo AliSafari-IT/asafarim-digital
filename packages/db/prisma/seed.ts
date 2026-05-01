@@ -175,6 +175,7 @@ const defaultRoles = [
       "edumatch.admin.manage_disputes",
       "edumatch.admin.view_analytics",
       "edumatch.admin.manage_subjects",
+      "edumatch.admin.debug_matching",
       "edumatch.users.view",
       "edumatch.inquiry.admin_view",
       "edumatch.booking.admin_view",
@@ -223,6 +224,7 @@ const edumatchPermissions = [
   { name: "edumatch.admin.manage_disputes", displayName: "Manage Disputes", group: "edumatch", description: "Handle booking disputes" },
   { name: "edumatch.admin.view_analytics", displayName: "View Analytics", group: "edumatch", description: "View EduMatch analytics dashboard" },
   { name: "edumatch.admin.manage_subjects", displayName: "Manage Subjects", group: "edumatch", description: "Manage subject categories" },
+  { name: "edumatch.admin.debug_matching", displayName: "Debug Tutor Matching", group: "edumatch", description: "Test tutor matching algorithm" },
   { name: "edumatch.users.view", displayName: "View EduMatch Users", group: "edumatch", description: "View EduMatch user list" },
 ];
 

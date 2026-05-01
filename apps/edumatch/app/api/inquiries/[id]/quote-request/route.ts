@@ -4,6 +4,7 @@ import { handleEduError, badRequest, serverError } from "@/lib/server";
 import { createQuoteRequest, QuoteError } from "@/lib/server/quotes";
 import { findBestTutors } from "@/lib/server/tutor-matching";
 import { geocodeAddress } from "@/lib/server/geocoding";
+import { notifyTutorsOfQuoteRequest } from "@/lib/server/notifications";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -78,6 +79,16 @@ export async function POST(
       preferOnline: body.preferOnline ?? false,
       limit: 20,
     });
+
+    // Fire-and-forget: notify matched tutors
+    if (tutors.length > 0) {
+      void notifyTutorsOfQuoteRequest({
+        tutorIds: tutors.map((t) => t.userId),
+        quoteRequestId: quoteRequest.id,
+        subject: inquiry.subject,
+        gradeLevel: inquiry.gradeLevel,
+      });
+    }
 
     return NextResponse.json({
       quoteRequest,
