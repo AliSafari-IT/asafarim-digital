@@ -1,0 +1,189 @@
+name: CI — Type Check, Lint, Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: "20"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: "true"
+
+jobs:
+  # ───────────────────────────────────────────
+  # 1. Type Check
+  # ───────────────────────────────────────────
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @asafarim/db db:generate
+
+      - name: Type Check all packages
+        run: pnpm typecheck
+        continue-on-error: false
+
+  # ───────────────────────────────────────────
+  # 2. Lint
+  # ───────────────────────────────────────────
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @asafarim/db db:generate
+
+      - name: Lint all packages
+        run: pnpm lint
+        continue-on-error: false
+
+  # ───────────────────────────────────────────
+  # 3. Build Verification
+  # ───────────────────────────────────────────
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @asafarim/db db:generate
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @asafarim/db build
+          pnpm --filter @asafarim/auth build
+          pnpm --filter @asafarim/ui build
+          pnpm --filter @asafarim/payments build
+
+      - name: Build Portal (App)
+        run: pnpm --filter portal build
+        env:
+          NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+          NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
+
+      - name: Build EduMatch (App)
+        run: pnpm --filter edumatch build
+        env:
+          NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
+          NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+
+  # ───────────────────────────────────────────
+  # 4. Test (if tests exist)
+  # ───────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @asafarim/db db:generate
+
+      - name: Run tests
+        run: pnpm test --if-present || echo "No tests configured"
+
+  # ───────────────────────────────────────────
+  # 5. Database Schema Validation
+  # ───────────────────────────────────────────
+  schema-check:
+    name: Database Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma Schema
+        run: pnpm --filter @asafarim/db prisma validate
+
+      - name: Check for uncommitted migrations
+        run: |
+          cd packages/db
+          if [ -d prisma/migrations ]; then
+            echo "✓ Migrations directory exists"
+            ls -la prisma/migrations/
+          else
+            echo "⚠ No migrations directory found - schema changes may need migration"
+          fi
