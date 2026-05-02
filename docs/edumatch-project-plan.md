@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** In Progress (Phase 5 complete, Phase 6 in progress)
+**Status:** In Progress (Phase 6 complete, Phase 7 in progress)
 **Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
 
 ---
@@ -347,27 +347,32 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - ✅ Admin testing page: `/admin/emails`
 - **Effort:** 3 days. **Skill payoff:** Transactional email patterns.
 
-### Phase 6 — Flutter UI (Weeks 14–15) 🔄 IN PROGRESS
+### Phase 6 — Flutter UI (Weeks 14–15) ✅ COMPLETE
 
-Minimum shippable surface:
+**Actual notes:**
 
-- **Onboarding** (role select, sign-up, profile build)
-- **Student home** (list of past inquiries, "ask new question" CTA)
-- **Intake screen** (text + image + voice capture)
-- **AI response screen** (streamed explanation, "Get tutor quotes" button)
-- **Quote comparison screen** (5 quotes side-by-side)
-- **Booking + checkout screen** (Stripe payment sheet)
-- **Tutor home** (incoming requests, wallet, settings)
+- Flutter project in `apps/mobile/` with Riverpod, Dio, Stripe
+- Onboarding with role selection (Student/Tutor)
+- Google Sign In integration
+- Student: home, new inquiry, AI response, quotes, booking
+- Tutor: dashboard, quote requests, wallet, bookings
+- Core widgets: RoleCard, LoadingOverlay
 
-**Effort:** 10 days. **Skill payoff:** Flutter fundamentals, state management (Riverpod), Stripe payment sheet integration.
+**Effort:** 10 days. **Skill payoff:** Flutter, Riverpod, Stripe SDK.
 
-### Phase 7 — Polish + ship (Week 15+, ongoing)
+### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
-- E2E tests with Playwright (web) + integration tests for API.
-- Real device testing on iOS + Android.
-- Privacy policy + terms (template, since this is a practice project).
-- Deploy to TestFlight + Play Console internal track.
-- Invite 5 friends to try it.
+**Completed:**
+- ✅ Playwright E2E tests: student-flow, tutor-flow, checkout
+- ✅ Legal pages: Privacy Policy, Terms of Service, Cookie Policy
+- ✅ Playwright config for desktop + mobile browsers
+
+**Remaining:**
+- Real device testing on iOS + Android
+- TestFlight + Play Console deployment
+- Invite 5 beta users
+- Lighthouse optimization (≥90)
+- Accessibility improvements
 
 ---
 
