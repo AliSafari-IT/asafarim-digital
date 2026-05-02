@@ -307,7 +307,25 @@ export async function listStudentQuoteRequests(studentId: string) {
 }
 
 /**
+ * Haversine distance in km between two lat/lng points.
+ * Used as a fallback when PostGIS is not available.
+ */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
  * List available quote requests for a tutor (matching their expertise + location).
+ * Uses plain lat/lng columns (PostGIS not installed).
  */
 export async function listAvailableQuoteRequestsForTutor(
   tutorId: string,
@@ -320,14 +338,45 @@ export async function listAvailableQuoteRequestsForTutor(
   });
   if (!tutor) throw new QuoteError("Tutor profile not found.");
 
-  // Find open requests where:
-  // 1. Quote request is OPEN and not expired
-  // 2. Inquiry subject matches tutor's subjectsTaught (case insensitive)
-  // 3. Either online-only tutor OR within service radius
+  // Fetch all open, non-expired requests with student location
+  const openRequests = await prisma.eduQuoteRequest.findMany({
+    where: {
+      status: "OPEN",
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { requestedAt: "desc" },
+    take: 200,
+    include: {
+      inquiry: {
+        select: {
+          id: true,
+          subject: true,
+          gradeLevel: true,
+          description: true,
+          studentId: true,
+        },
+      },
+    },
+  });
 
-  const distanceMeters = maxDistanceKm * 1000;
+  // Filter by subject match
+  const subjectsLower = tutor.subjectsTaught.map((s) => s.toLowerCase());
+  const subjectMatched = tutor.subjectsTaught.length === 0
+    ? openRequests
+    : openRequests.filter((r) =>
+        subjectsLower.some((s) => r.inquiry.subject.toLowerCase().includes(s)),
+      );
 
-  const requests = await prisma.$queryRaw<Array<{
+  // Fetch student profiles for location filtering
+  const studentIds = [...new Set(subjectMatched.map((r) => r.inquiry.studentId))];
+  const studentProfiles = await prisma.eduStudentProfile.findMany({
+    where: { userId: { in: studentIds } },
+    select: { userId: true, homeLat: true, homeLng: true },
+  });
+  const profileMap = new Map(studentProfiles.map((p) => [p.userId, p]));
+
+  // Filter by distance and compute distanceKm
+  const results: Array<{
     id: string;
     inquiryId: string;
     subject: string;
@@ -335,42 +384,33 @@ export async function listAvailableQuoteRequestsForTutor(
     description: string;
     requestedAt: Date;
     expiresAt: Date;
-    distanceMeters: number;
-  }>>`
-    SELECT
-      qr.id,
-      i.id as "inquiryId",
-      i.subject,
-      i."gradeLevel",
-      i.description,
-      qr."requestedAt",
-      qr."expiresAt",
-      ST_Distance(
-        ST_SetSRID(ST_MakePoint(${location.lng}, ${location.lat}), 4326)::geography,
-        sp."homeLocation"::geography
-      ) AS "distanceMeters"
-    FROM "EduQuoteRequest" qr
-    JOIN "EduInquiry" i ON qr."inquiryId" = i.id
-    JOIN "EduStudentProfile" sp ON i."studentId" = sp."userId"
-    WHERE qr.status = 'OPEN'
-      AND qr."expiresAt" > NOW()
-      AND i.subject ILIKE ANY (
-        SELECT unnest(${tutor.subjectsTaught}::text[])
-      )
-      AND (
-        ${tutor.onlineOnly} = true
-        OR ST_DWithin(
-          sp."homeLocation"::geography,
-          ST_SetSRID(ST_MakePoint(${location.lng}, ${location.lat}), 4326)::geography,
-          ${distanceMeters}
-        )
-      )
-    ORDER BY qr."requestedAt" DESC
-    LIMIT 50
-  `;
+    distanceKm: number;
+  }> = [];
 
-  return requests.map((r) => ({
-    ...r,
-    distanceKm: Math.round((r.distanceMeters / 1000) * 10) / 10,
-  }));
+  for (const req of subjectMatched) {
+    const sp = profileMap.get(req.inquiry.studentId);
+
+    let distanceKm = 0;
+    if (sp?.homeLat != null && sp?.homeLng != null) {
+      distanceKm = Math.round(haversineKm(location.lat, location.lng, sp.homeLat, sp.homeLng) * 10) / 10;
+    }
+
+    // Skip if tutor is location-bound and student is too far
+    if (!tutor.onlineOnly && sp?.homeLat != null && distanceKm > maxDistanceKm) {
+      continue;
+    }
+
+    results.push({
+      id: req.id,
+      inquiryId: req.inquiryId,
+      subject: req.inquiry.subject,
+      gradeLevel: req.inquiry.gradeLevel,
+      description: req.inquiry.description,
+      requestedAt: req.requestedAt,
+      expiresAt: req.expiresAt,
+      distanceKm,
+    });
+  }
+
+  return results.slice(0, 50);
 }

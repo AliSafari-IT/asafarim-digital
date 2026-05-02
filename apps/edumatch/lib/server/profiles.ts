@@ -127,6 +127,9 @@ export async function requireTutor(): Promise<TutorContext> {
   }
   if (!profile) throw new EduAuthError(403, "Tutor profile required");
 
+  // Ensure role is always in sync with profile existence (handles stale sessions)
+  await assignRoleIfMissing(user.id, "edumatch_tutor");
+
   return { user, profile };
 }
 

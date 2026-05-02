@@ -10,6 +10,38 @@ import { prisma } from "@asafarim/db";
 export const runtime = "nodejs";
 
 /**
+ * GET /api/inquiries/[id]/quote-request
+ *
+ * Return the most recent quote request for this inquiry (student only).
+ */
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { user } = await requireStudent();
+    const { id: inquiryId } = await params;
+
+    const quoteRequest = await prisma.eduQuoteRequest.findFirst({
+      where: { inquiryId, studentId: user.id },
+      orderBy: { requestedAt: "desc" },
+      select: { id: true, status: true, expiresAt: true, requestedAt: true },
+    });
+
+    if (!quoteRequest) {
+      return NextResponse.json({ quoteRequest: null });
+    }
+
+    return NextResponse.json({ quoteRequest });
+  } catch (error) {
+    if (error instanceof Error && error.name === "EduAuthError") {
+      return handleEduError("quote-request", error);
+    }
+    return serverError("quote-request", error);
+  }
+}
+
+/**
  * POST /api/inquiries/[id]/quote-request
  *
  * Student requests quotes for their inquiry. This:
@@ -43,8 +75,9 @@ export async function POST(
       maxDistanceKm?: number;
     };
 
-    // Resolve location: explicit coords > geocoded address > error
+    // Resolve location: explicit coords > geocoded address > student profile > error
     let location = body.studentLocation;
+
     if (!location && body.address) {
       const geocoded = await geocodeAddress(body.address);
       if (!geocoded) {
@@ -59,8 +92,19 @@ export async function POST(
       location = geocoded.location;
     }
 
+    // Fallback to student's profile location if available
     if (!location) {
-      return badRequest("Provide studentLocation {lat,lng} or address to geocode.");
+      const studentProfile = await prisma.eduStudentProfile.findUnique({
+        where: { userId: user.id },
+        select: { homeLat: true, homeLng: true },
+      });
+      if (studentProfile?.homeLat && studentProfile?.homeLng) {
+        location = { lat: studentProfile.homeLat, lng: studentProfile.homeLng };
+      }
+    }
+
+    if (!location) {
+      return badRequest("Provide studentLocation {lat,lng} or address to geocode, or set your home location in your student profile.");
     }
 
     // Create quote request

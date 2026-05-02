@@ -1,10 +1,13 @@
 /**
- * Phase 3 — Tutor matching with PostGIS spatial queries.
+ * Phase 3 — Tutor matching.
  *
  * Core capabilities:
- * - Find tutors within radius using `ST_DWithin` on `homeLocation`
+ * - Find tutors within radius using Haversine on homeLat/homeLng columns
  * - Match by subject expertise, grade level, and availability
  * - Score and rank tutors by composite algorithm
+ *
+ * Note: PostGIS is not yet installed; uses plain lat/lng Float columns.
+ * TODO: Migrate to ST_DWithin once PostGIS is enabled.
  */
 
 import { prisma } from "@asafarim/db";
@@ -45,78 +48,82 @@ export type ScoredTutor = {
 };
 
 /**
- * Find tutors within the specified radius using PostGIS ST_DWithin.
- * Requires `homeLocation` to be populated (geography(Point, 4326)).
- *
- * Note: The first migration must `CREATE EXTENSION IF NOT EXISTS postgis;`
+ * Haversine distance in km between two lat/lng points.
+ */
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Find tutors within the specified radius using Haversine on homeLat/homeLng.
+ * (PostGIS is not yet installed; uses plain Float columns.)
  */
 export async function findNearbyTutors(
   input: TutorMatchInput,
 ): Promise<ScoredTutor[]> {
   const { studentLocation, maxDistanceKm = 50, limit = 20 } = input;
 
-  // PostGIS ST_DWithin uses meters; convert km to meters
-  const distanceMeters = maxDistanceKm * 1000;
+  const tutors = await prisma.eduTutorProfile.findMany({
+    where: {
+      OR: [
+        { onlineOnly: true },
+        { homeLat: { not: null }, homeLng: { not: null } },
+      ],
+    },
+    select: {
+      userId: true,
+      bio: true,
+      subjectsTaught: true,
+      levelsTaught: true,
+      hourlyRateCents: true,
+      onlineOnly: true,
+      serviceRadiusKm: true,
+      ratingAvg: true,
+      ratingCount: true,
+      verifiedAt: true,
+      homeLat: true,
+      homeLng: true,
+    },
+  });
 
-  // Raw query with PostGIS geography operators
-  // Uses index on homeLocation if available
-  const results = await prisma.$queryRaw<Array<{
-    userId: string;
-    bio: string | null;
-    subjectsTaught: string[];
-    levelsTaught: string[];
-    hourlyRateCents: number;
-    onlineOnly: boolean;
-    serviceRadiusKm: number;
-    ratingAvg: number;
-    ratingCount: number;
-    verifiedAt: Date | null;
-    distanceMeters: number;
-  }>>`
-    SELECT
-      tp."userId",
-      tp.bio,
-      tp."subjectsTaught",
-      tp."levelsTaught",
-      tp."hourlyRateCents",
-      tp."onlineOnly",
-      tp."serviceRadiusKm",
-      tp."ratingAvg",
-      tp."ratingCount",
-      tp."verifiedAt",
-      ST_Distance(
-        tp."homeLocation"::geography,
-        ST_SetSRID(ST_MakePoint(${studentLocation.lng}, ${studentLocation.lat}), 4326)::geography
-      ) AS "distanceMeters"
-    FROM "EduTutorProfile" tp
-    WHERE tp."homeLocation" IS NOT NULL
-      AND ST_DWithin(
-        tp."homeLocation"::geography,
-        ST_SetSRID(ST_MakePoint(${studentLocation.lng}, ${studentLocation.lat}), 4326)::geography,
-        ${distanceMeters}
-      )
-      AND tp."serviceRadiusKm" >= ${maxDistanceKm}
-    ORDER BY "distanceMeters" ASC
-    LIMIT ${limit}
-  `;
+  const nearby: ScoredTutor[] = [];
+  for (const t of tutors) {
+    let distanceKm = 0;
+    if (t.homeLat != null && t.homeLng != null) {
+      distanceKm = Math.round(
+        haversineKm(studentLocation.lat, studentLocation.lng, t.homeLat, t.homeLng) * 10,
+      ) / 10;
+      if (!t.onlineOnly && distanceKm > maxDistanceKm) continue;
+    }
+    nearby.push({
+      userId: t.userId,
+      bio: t.bio,
+      subjectsTaught: t.subjectsTaught,
+      levelsTaught: t.levelsTaught,
+      hourlyRateCents: t.hourlyRateCents,
+      onlineOnly: t.onlineOnly,
+      serviceRadiusKm: t.serviceRadiusKm,
+      ratingAvg: t.ratingAvg,
+      ratingCount: t.ratingCount,
+      verifiedAt: t.verifiedAt,
+      distanceKm,
+      subjectMatch: false,
+      levelMatch: false,
+      availabilityScore: 0,
+      compositeScore: 0,
+    });
+  }
 
-  return results.map((r) => ({
-    userId: r.userId,
-    bio: r.bio,
-    subjectsTaught: r.subjectsTaught,
-    levelsTaught: r.levelsTaught,
-    hourlyRateCents: r.hourlyRateCents,
-    onlineOnly: r.onlineOnly,
-    serviceRadiusKm: r.serviceRadiusKm,
-    ratingAvg: r.ratingAvg,
-    ratingCount: r.ratingCount,
-    verifiedAt: r.verifiedAt,
-    distanceKm: Math.round((r.distanceMeters / 1000) * 10) / 10,
-    subjectMatch: false, // computed below
-    levelMatch: false,
-    availabilityScore: 0,
-    compositeScore: 0,
-  }));
+  return nearby.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, limit);
 }
 
 /**
@@ -197,25 +204,21 @@ export async function findBestTutors(
 
 /**
  * Check if a tutor can service a specific location.
- * Verifies the tutor's service radius covers the point.
+ * Uses Haversine with homeLat/homeLng (PostGIS not available).
  */
 export async function canTutorServiceLocation(
   tutorId: string,
   location: GeoPoint,
 ): Promise<boolean> {
-  const result = await prisma.$queryRaw<{ withinRadius: boolean }[]>`
-    SELECT ST_DWithin(
-      tp."homeLocation"::geography,
-      ST_SetSRID(ST_MakePoint(${location.lng}, ${location.lat}), 4326)::geography,
-      tp."serviceRadiusKm" * 1000
-    ) AS "withinRadius"
-    FROM "EduTutorProfile" tp
-    WHERE tp."userId" = ${tutorId}
-      AND tp."homeLocation" IS NOT NULL
-    LIMIT 1
-  `;
-
-  return result[0]?.withinRadius ?? false;
+  const tutor = await prisma.eduTutorProfile.findUnique({
+    where: { userId: tutorId },
+    select: { onlineOnly: true, serviceRadiusKm: true, homeLat: true, homeLng: true },
+  });
+  if (!tutor) return false;
+  if (tutor.onlineOnly) return true;
+  if (tutor.homeLat == null || tutor.homeLng == null) return false;
+  const distanceKm = haversineKm(location.lat, location.lng, tutor.homeLat, tutor.homeLng);
+  return distanceKm <= tutor.serviceRadiusKm;
 }
 
 /**
@@ -226,9 +229,8 @@ export async function updateTutorLocation(
   tutorId: string,
   location: GeoPoint,
 ): Promise<void> {
-  await prisma.$executeRaw`
-    UPDATE "EduTutorProfile"
-    SET "homeLocation" = ST_SetSRID(ST_MakePoint(${location.lng}, ${location.lat}), 4326)
-    WHERE "userId" = ${tutorId}
-  `;
+  await prisma.eduTutorProfile.update({
+    where: { userId: tutorId },
+    data: { homeLat: location.lat, homeLng: location.lng },
+  });
 }

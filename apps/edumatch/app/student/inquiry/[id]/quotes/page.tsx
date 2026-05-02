@@ -34,7 +34,7 @@ export default function QuotesPage() {
   const { id: inquiryId } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const quoteRequestId = searchParams.get("qr");
+  const qrParam = searchParams.get("qr");
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,23 +43,34 @@ export default function QuotesPage() {
   const [declining, setDeclining] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!quoteRequestId) {
-      setError("No quote request found. Please go back and request tutor quotes.");
+    async function load() {
+      let quoteRequestId = qrParam;
+
+      // If no ?qr param, look it up from the inquiry
+      if (!quoteRequestId) {
+        const r = await fetch(`/api/inquiries/${inquiryId}/quote-request`);
+        const data = await r.json() as { quoteRequest?: { id: string } | null };
+        quoteRequestId = data.quoteRequest?.id ?? null;
+      }
+
+      if (!quoteRequestId) {
+        setError("No quote request found. Please go back and request tutor quotes.");
+        setLoading(false);
+        return;
+      }
+
+      const r = await fetch(`/api/quote-requests/${quoteRequestId}/quotes`);
+      const data = await r.json() as { items?: Quote[]; error?: string };
+      if (data.error) throw new Error(data.error);
+      setQuotes(data.items ?? []);
       setLoading(false);
-      return;
     }
-    fetch(`/api/quote-requests/${quoteRequestId}/quotes`)
-      .then((r) => r.json())
-      .then((data: { items?: Quote[]; error?: string }) => {
-        if (data.error) throw new Error(data.error);
-        setQuotes(data.items ?? []);
-        setLoading(false);
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Failed to load quotes");
-        setLoading(false);
-      });
-  }, [quoteRequestId]);
+
+    load().catch((e: unknown) => {
+      setError(e instanceof Error ? e.message : "Failed to load quotes");
+      setLoading(false);
+    });
+  }, [inquiryId, qrParam]);
 
   async function accept(quoteId: string) {
     setAccepting(quoteId);

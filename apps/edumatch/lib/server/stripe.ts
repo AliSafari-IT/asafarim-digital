@@ -11,15 +11,20 @@ import Stripe from "stripe";
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
+const STRIPE_MOCK_MODE = process.env.STRIPE_MOCK_MODE === "true";
 
-export const stripe = STRIPE_SECRET_KEY
+export const stripe = STRIPE_SECRET_KEY && !STRIPE_MOCK_MODE
   ? new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-02-24.acacia" })
   : null;
 
 export const PLATFORM_FEE_PERCENT = 15; // 15% platform fee
 
 export function isStripeConfigured(): boolean {
-  return !!stripe;
+  return !!stripe || STRIPE_MOCK_MODE;
+}
+
+export function isMockMode(): boolean {
+  return STRIPE_MOCK_MODE;
 }
 
 export type ConnectOnboardingResult =
@@ -36,6 +41,17 @@ export async function createConnectAccount(
   refreshUrl: string,
   returnUrl: string,
 ): Promise<ConnectOnboardingResult> {
+  // Mock mode: simulate successful Connect account creation
+  if (STRIPE_MOCK_MODE) {
+    const mockAccountId = `acct_mock_${tutorId.slice(0, 8)}`;
+    console.log(`[MOCK] Creating Stripe Connect account for ${email}: ${mockAccountId}`);
+    return {
+      success: true,
+      url: `${returnUrl}?mock=onboarding_complete&account=${mockAccountId}`,
+      accountId: mockAccountId,
+    };
+  }
+
   if (!stripe) {
     return { success: false, error: "Stripe not configured. Set STRIPE_SECRET_KEY." };
   }
@@ -74,6 +90,13 @@ export async function createConnectAccount(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    // Detect specific Stripe Connect not enabled error
+    if (message.includes("signed up for Connect") || message.includes("create new accounts")) {
+      return {
+        success: false,
+        error: "Stripe Connect is not enabled on this account. Please sign up for Stripe Connect at https://dashboard.stripe.com/connect before creating tutor accounts.",
+      };
+    }
     return { success: false, error: `Stripe Connect error: ${message}` };
   }
 }
@@ -84,6 +107,11 @@ export async function createConnectAccount(
 export async function getConnectDashboardLink(
   stripeAccountId: string,
 ): Promise<string | null> {
+  // Mock mode: return a placeholder dashboard URL
+  if (STRIPE_MOCK_MODE || stripeAccountId.startsWith("acct_mock_")) {
+    return `https://dashboard.stripe.com/test/connect/accounts/${stripeAccountId}`;
+  }
+
   if (!stripe) return null;
 
   try {
@@ -108,6 +136,18 @@ export async function createBookingPaymentIntent(
   tutorStripeAccountId: string,
   description: string,
 ): Promise<PaymentIntentResult> {
+  // Mock mode: simulate successful PaymentIntent creation
+  if (STRIPE_MOCK_MODE) {
+    const mockPaymentIntentId = `pi_mock_${Date.now()}`;
+    const platformFeeCents = Math.round(totalCents * (PLATFORM_FEE_PERCENT / 100));
+    console.log(`[MOCK] Creating PaymentIntent: ${mockPaymentIntentId}, total: ${totalCents}, fee: ${platformFeeCents}`);
+    return {
+      success: true,
+      clientSecret: `${mockPaymentIntentId}_secret_mock`,
+      paymentIntentId: mockPaymentIntentId,
+    };
+  }
+
   if (!stripe) {
     return { success: false, error: "Stripe not configured." };
   }
@@ -190,6 +230,11 @@ export function constructWebhookEvent(
  * Check if a Connect account is fully onboarded and enabled.
  */
 export async function isAccountOnboarded(stripeAccountId: string): Promise<boolean> {
+  // Mock mode: always consider mock accounts as onboarded
+  if (STRIPE_MOCK_MODE || stripeAccountId.startsWith("acct_mock_")) {
+    return true;
+  }
+
   if (!stripe) return false;
 
   try {
@@ -208,6 +253,13 @@ export async function createPayout(
   stripeAccountId: string,
   amountCents: number,
 ): Promise<{ success: boolean; payoutId?: string; error?: string }> {
+  // Mock mode: simulate successful payout
+  if (STRIPE_MOCK_MODE) {
+    const mockPayoutId = `po_mock_${Date.now()}`;
+    console.log(`[MOCK] Creating payout: ${mockPayoutId}, amount: ${amountCents}, account: ${stripeAccountId}`);
+    return { success: true, payoutId: mockPayoutId };
+  }
+
   if (!stripe) {
     return { success: false, error: "Stripe not configured." };
   }

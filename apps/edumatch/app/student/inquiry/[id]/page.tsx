@@ -31,6 +31,15 @@ type Inquiry = {
   aiResponses: AiResponse[];
 };
 
+type StudentProfile = {
+  userId: string;
+  gradeLevel: string;
+  subjectsOfInterest: string[];
+  homeAddress: { formatted?: string } | null;
+  homeLat: number | null;
+  homeLng: number | null;
+};
+
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   NEW: { label: "New", cls: "bg-gray-100 text-gray-700" },
   AI_RESPONDED: { label: "AI Responded", cls: "bg-blue-100 text-blue-700" },
@@ -57,6 +66,9 @@ export default function InquiryDetail() {
   const [requestingQuotes, setRequestingQuotes] = useState(false);
   const [quoteRequestId, setQuoteRequestId] = useState<string | null>(null);
 
+  // Student profile state (for location)
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+
   useEffect(() => {
     if (!id) return;
     fetch(`/api/inquiries/${id}`)
@@ -75,6 +87,17 @@ export default function InquiryDetail() {
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : "Failed to load");
         setLoading(false);
+      });
+
+    // Fetch student profile for location
+    fetch("/api/student/profile")
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json() as Promise<StudentProfile>;
+      })
+      .then((data) => setStudentProfile(data))
+      .catch(() => {
+        // Profile may not exist yet
       });
   }, [id]);
 
@@ -156,14 +179,52 @@ export default function InquiryDetail() {
     }
   }
 
+  async function getLocation(): Promise<{ lat: number; lng: number } | null> {
+    // 1. Use profile location if available
+    if (studentProfile?.homeLat && studentProfile?.homeLng) {
+      return { lat: studentProfile.homeLat, lng: studentProfile.homeLng };
+    }
+
+    // 2. Try browser geolocation
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 300000, // 5 minutes cache
+          });
+        });
+        return {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+      } catch {
+        // Geolocation failed or denied, continue to error
+      }
+    }
+
+    return null;
+  }
+
   async function requestTutorQuotes() {
     if (!inquiry) return;
+
+    const location = await getLocation();
+    if (!location) {
+      setError("Location required to find nearby tutors. Please set your home location in your student profile or allow browser location access.");
+      return;
+    }
+
     setRequestingQuotes(true);
     try {
       const res = await fetch(`/api/inquiries/${id}/quote-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preferOnline: true }),
+        body: JSON.stringify({
+          preferOnline: true,
+          studentLocation: location,
+        }),
       });
       const data = await res.json() as { quoteRequest?: { id: string }; error?: string };
       if (!res.ok) {
@@ -314,7 +375,7 @@ export default function InquiryDetail() {
         )}
         {(inquiry.status === "TUTOR_REQUESTED" || quoteRequestId) && (
           <Link
-            href={`/student/inquiry/${id}/quotes`}
+            href={`/student/inquiry/${id}/quotes${quoteRequestId ? `?qr=${quoteRequestId}` : ""}`}
             className="rounded-lg border border-[var(--color-border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
           >
             View Quotes
