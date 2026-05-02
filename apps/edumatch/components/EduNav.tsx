@@ -248,7 +248,7 @@ export function EduNav() {
   return (
     <CommonNavbar
       items={items}
-      app="edumatch" as AppCode
+      app="edumatch"
       logo={<EduLogo />}
       rightContent={<RightContent />}
       className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl"
