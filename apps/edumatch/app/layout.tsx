@@ -21,6 +21,14 @@ export const metadata: Metadata = {
   },
   description: appDescription,
   applicationName: appName,
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-icon.svg", type: "image/svg+xml" },
+    ],
+  },
   robots: {
     index: false,
     follow: false,

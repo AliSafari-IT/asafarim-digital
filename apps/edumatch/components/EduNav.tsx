@@ -214,11 +214,26 @@ function UserMenu() {
 // Logo component
 function EduLogo() {
   return (
-    <Link href="/" className="flex items-center gap-2">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-sm font-bold text-white shadow-lg shadow-green-500/20">
-        E
+    <Link href="/" className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#14532d] to-[#052e16] shadow-lg shadow-green-500/20 ring-1 ring-green-500/30">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6">
+          <defs>
+            <linearGradient id="capG" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#4ade80"/>
+              <stop offset="100%" stopColor="#10b981"/>
+            </linearGradient>
+          </defs>
+          <polygon points="16,6 26,11 16,16 6,11" fill="url(#capG)"/>
+          <path d="M9 13 L9 20 Q16 24 23 20 L23 13" stroke="#4ade80" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="26" y1="11" x2="26" y2="19" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round"/>
+          <circle cx="26" cy="20.5" r="1.8" fill="#34d399"/>
+          <circle cx="16" cy="11" r="2" fill="#ffffff" opacity="0.9"/>
+        </svg>
       </div>
-      <span className="text-lg font-bold text-[var(--color-text)]">EduMatch</span>
+      <span className="text-lg font-bold">
+        <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Edu</span>
+        <span className="text-[var(--color-text)]">Match</span>
+      </span>
     </Link>
   );
 }
