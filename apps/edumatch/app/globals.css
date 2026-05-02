@@ -2,6 +2,9 @@
 @import "@asafarim/country-language-selector/styles.css";
 @source "../../packages/ui/src/**/*.{ts,tsx}";
 
+/* Explicitly generate responsive navbar classes from @asafarim/ui */
+@source inline("hidden md:flex md:hidden items-center gap-1 gap-4 p-2 rounded-md w-6 h-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 justify-between h-16 py-4 border-t flex-col mt-4 pt-4");
+
 :root {
   --color-bg: #0b1020;
   --color-surface: #111733;
