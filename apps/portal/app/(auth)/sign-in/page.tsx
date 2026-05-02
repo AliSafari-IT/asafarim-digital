@@ -40,18 +40,31 @@ function isTrustedCallbackOrigin(origin: string): boolean {
   }
   return false;
 }
-
 function normalizeCallbackUrl(raw: string | null): string {
   if (!raw) return "/";
-  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  if (raw.startsWith("/") && !raw.startsWith("//")) {
+    // Prevent redirect loops - don't redirect back to auth pages
+    if (raw.startsWith("/sign-in") || raw.startsWith("/sign-up")) {
+      return "/";
+    }
+    return raw;
+  }
 
   try {
     const parsed = new URL(raw);
     if (isTrustedCallbackOrigin(parsed.origin)) {
-      if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
-        return `${parsed.pathname}${parsed.search}${parsed.hash}` || "/";
+      // Strip /sign-in, /sign-up from callback to prevent loops
+      let pathname = parsed.pathname;
+      if (pathname === "/sign-in" || pathname === "/sign-up" ||
+          pathname.startsWith("/sign-in?") || pathname.startsWith("/sign-up?")) {
+        pathname = "/";
       }
-      return parsed.toString();
+      
+      if (typeof window !== "undefined" && parsed.origin === window.location.origin) {
+        return pathname + parsed.search + parsed.hash || "/";
+      }
+      // Return cleaned URL without /sign-in path
+      return parsed.origin + pathname + parsed.search + parsed.hash;
     }
   } catch {
     // Ignore malformed callback URLs and fall back to root.
@@ -59,7 +72,6 @@ function normalizeCallbackUrl(raw: string | null): string {
 
   return "/";
 }
-
 export default function SignInPage() {
   return (
     <Suspense fallback={null}>
@@ -247,7 +259,7 @@ function SignInPageContent() {
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-          Don&apos;t have an account?{" "}
+          Don't have an account?{" "}
           <Link href={signUpHref} className="font-semibold text-[var(--color-primary)] hover:underline">
             Sign up
           </Link>

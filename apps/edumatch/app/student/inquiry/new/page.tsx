@@ -210,7 +210,7 @@ export default function NewInquiry() {
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 Creating profile &amp; submitting…
               </>
-            ) : "Create Profile &amp; Submit Inquiry"}
+            ) : "Create Profile & Submit Inquiry"}
           </button>
         </div>
       )}

@@ -18,12 +18,14 @@ export default function StudentDashboard() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const signinUrl = process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/auth/signin` : "/api/auth/signin";
+  const EDUMATCH_URL = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
   useEffect(() => {
     if (status === "authenticated") {
       Promise.all([
-        fetch("/api/inquiries").then((r) => r.json()).catch(() => ({ items: [] })),
-        fetch("/api/student/profile").then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
+        fetch(`${EDUMATCH_URL}/api/inquiries`).then((r) => r.json()).catch(() => ({ items: [] })),
+        fetch(`${EDUMATCH_URL}/api/student/profile`).then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
       ]).then(([inquiryData, profileData]) => {
         setInquiries((inquiryData as { items?: Inquiry[] }).items ?? []);
         setHasProfile((profileData as { ok: boolean }).ok);
@@ -45,7 +47,7 @@ export default function StudentDashboard() {
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center">
           <h1 className="mb-4 text-2xl font-bold">Please sign in</h1>
-          <Link href="/api/auth/signin" className="text-[var(--color-primary)] hover:underline">
+          <Link href={signinUrl} className="text-[var(--color-primary)] hover:underline">
             Sign in
           </Link>
         </div>
@@ -65,7 +67,7 @@ export default function StudentDashboard() {
               </p>
             </div>
             <Link
-              href="/student/inquiry/new"
+              href={`${EDUMATCH_URL}/student/inquiry/new`}
               className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
             >
               Set up profile
@@ -77,13 +79,13 @@ export default function StudentDashboard() {
           <h2 className="text-2xl font-bold text-[var(--color-text)]">My Inquiries</h2>
           <div className="flex items-center gap-3">
             <Link
-              href="/student/profile"
+              href={`${EDUMATCH_URL}/student/profile`}
               className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
             >
               {hasProfile ? "Edit Profile" : "Create Profile"}
             </Link>
             <Link
-              href="/student/inquiry/new"
+              href={`${EDUMATCH_URL}/student/inquiry/new`}
               className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
             >
               Ask a Question
@@ -95,7 +97,7 @@ export default function StudentDashboard() {
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center">
             <p className="mb-4 text-[var(--color-text-muted)]">No inquiries yet</p>
             <Link
-              href="/student/inquiry/new"
+              href={`${EDUMATCH_URL}/student/inquiry/new`}
               className="text-[var(--color-primary)] hover:underline"
             >
               Ask your first question
@@ -106,7 +108,7 @@ export default function StudentDashboard() {
             {inquiries.map((inquiry) => (
               <Link
                 key={inquiry.id}
-                href={`/student/inquiry/${inquiry.id}`}
+                href={`${EDUMATCH_URL}/student/inquiry/${inquiry.id}`}
                 className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5 transition hover:border-[var(--color-primary)] hover:shadow-lg"
               >
                 <div className="flex items-start justify-between">
