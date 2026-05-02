@@ -29,6 +29,13 @@
     },
     "db:migrate": {
       "cache": false
+    },
+    "db:seed": {
+      "cache": false,
+      "dependsOn": ["db:migrate"]
+    },
+    "seed": {
+      "cache": false
     }
   }
 }

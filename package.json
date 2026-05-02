@@ -11,7 +11,8 @@
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
     "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch",
-    "onVPS:dockerDown": "docker compose down"
+    "onVPS:dockerDown": "docker compose down",
+    "seed": "turbo seed"
   },
   "devDependencies": {
     "turbo": "^2.4.0"
