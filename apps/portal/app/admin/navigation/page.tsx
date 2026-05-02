@@ -45,7 +45,10 @@ export default function AdminNavigationPage() {
   const filteredItems = items.filter((item) => {
     const matchesSearch = searchQuery === "" ||
       item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.href.toLowerCase().includes(searchQuery.toLowerCase());
+      item.href.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.requiredRole && item.requiredRole.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      item.group.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.placement && item.placement.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesGroup = filterGroup === "" || item.group === filterGroup;
     const matchesVisibility = filterVisibility === "" || item.visibility === filterVisibility;
     const matchesActive = filterActive === "all" ||
