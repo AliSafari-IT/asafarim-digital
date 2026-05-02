@@ -6,13 +6,25 @@ import { z } from "zod";
 
 export const runtime = "nodejs";
 
+const isoOrLocalDatetime = z
+  .string()
+  .min(1)
+  .transform((val) => {
+    // Accept datetime-local format ("2026-05-03T14:30") and full ISO strings
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)) {
+      return new Date(val + ":00").toISOString();
+    }
+    return new Date(val).toISOString();
+  })
+  .pipe(z.string().datetime());
+
 const submitQuoteSchema = z.object({
   hourlyRateCents: z.number().int().min(100).max(100000),
   estimatedHours: z.number().min(0.5).max(100),
   availabilitySlots: z.array(
     z.object({
-      start: z.string().datetime(),
-      end: z.string().datetime(),
+      start: isoOrLocalDatetime,
+      end: isoOrLocalDatetime,
       mode: z.enum(["ONLINE", "IN_PERSON"]),
     }),
   ).min(1).max(5),

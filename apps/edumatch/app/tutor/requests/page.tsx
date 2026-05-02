@@ -40,21 +40,42 @@ export default function TutorRequestsPage() {
   const [forms, setForms] = useState<Record<string, QuoteForm>>({});
 
   useEffect(() => {
-    fetch("/api/tutors/quote-requests")
-      .then((r) => r.json())
-      .then((data: { items?: QuoteRequest[]; error?: string }) => {
-        if (data.error) throw new Error(data.error);
-        setRequests(data.items ?? []);
-        setLoading(false);
-      })
-      .catch((e: unknown) => {
-        setError(
-          e instanceof Error && e.message.includes("lat/lng")
-            ? "Add your address in your profile to see nearby quote requests."
-            : (e instanceof Error ? e.message : "Failed to load requests"),
-        );
-        setLoading(false);
-      });
+    async function loadRequests(lat?: number, lng?: number) {
+      const url = lat != null && lng != null
+        ? `/api/tutors/quote-requests?lat=${lat}&lng=${lng}`
+        : `/api/tutors/quote-requests`;
+
+      const r = await fetch(url);
+      const data = await r.json() as { items?: QuoteRequest[]; error?: string };
+
+      if (data.error) {
+        // If no location in profile, try browser geolocation
+        if (data.error.includes("lat/lng") && lat == null) {
+          if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => loadRequests(pos.coords.latitude, pos.coords.longitude),
+              () => {
+                setError("Add your home address in your tutor profile to see nearby quote requests.");
+                setLoading(false);
+              },
+            );
+          } else {
+            setError("Add your home address in your tutor profile to see nearby quote requests.");
+            setLoading(false);
+          }
+          return;
+        }
+        throw new Error(data.error);
+      }
+
+      setRequests(data.items ?? []);
+      setLoading(false);
+    }
+
+    loadRequests().catch((e: unknown) => {
+      setError(e instanceof Error ? e.message : "Failed to load requests");
+      setLoading(false);
+    });
   }, []);
 
   function getForm(id: string): QuoteForm {
@@ -149,9 +170,18 @@ export default function TutorRequestsPage() {
       </p>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              {error}
+              {error.includes("profile") && (
+                <Link href="/tutor/profile" className="ml-1 font-semibold underline hover:text-amber-900">
+                  Update tutor profile →
+                </Link>
+              )}
+            </div>
+            <button onClick={() => setError(null)} className="shrink-0 underline text-xs">dismiss</button>
+          </div>
         </div>
       )}
 

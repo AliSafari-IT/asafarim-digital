@@ -248,7 +248,13 @@ const defaultNavItems = [
   // EduMatch nav items - Header
   { label: "Home", href: "/", position: 0, group: "main", visibility: "public", appScope: ["edumatch"], placement: "header", icon: "home" },
   { label: "Student", href: "/student", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header", icon: "education" },
+  
+  // Tutor header navbar items - Quick access to key features
   { label: "Tutor", href: "/tutor", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "users" },
+  { label: "Quote Requests", href: "/tutor/requests", position: 2, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "chat" },
+  { label: "My Quotes", href: "/tutor/quotes", position: 3, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "list" },
+  { label: "Bookings", href: "/tutor/bookings", position: 4, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "layers" },
+  { label: "Earnings", href: "/tutor/earnings", position: 5, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "analytics" },
 
   // EduMatch nav items - Student Sidebar
   { label: "Dashboard", href: "/student", position: 0, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "overview" },

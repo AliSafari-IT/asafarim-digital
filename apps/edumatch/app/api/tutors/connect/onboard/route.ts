@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireTutor } from "@/lib/server/profiles";
 import { handleEduError, badRequest, serverError } from "@/lib/server";
-import { createConnectAccount, isStripeConfigured } from "@/lib/server/stripe";
+import { createConnectAccount, isStripeConfigured, isMockMode } from "@/lib/server/stripe";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -25,6 +25,16 @@ export async function POST(req: Request) {
 
     // If already has an account, check if onboarding is complete
     if (profile.stripeAccountId) {
+      // In mock mode, always return a redirect URL to simulate completing onboarding
+      if (isMockMode() || profile.stripeAccountId.startsWith("acct_mock_")) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3005";
+        const refreshUrl = `${appUrl}/tutor/connect/refresh`;
+        const returnUrl = `${appUrl}/tutor/connect/success`;
+        return NextResponse.json({
+          url: `${returnUrl}?mock=onboarding_complete&account=${profile.stripeAccountId}`,
+          accountId: profile.stripeAccountId,
+        });
+      }
       return NextResponse.json({
         accountId: profile.stripeAccountId,
         alreadyOnboarded: true,

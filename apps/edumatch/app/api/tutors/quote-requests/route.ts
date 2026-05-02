@@ -21,13 +21,14 @@ export async function GET(req: Request) {
     const lng = searchParams.get("lng");
     const maxDistanceKm = parseInt(searchParams.get("maxDistanceKm") ?? "50", 10);
 
-    // Tutor must provide location (or we could use their profile homeLocation)
+    // Resolve tutor location: query params → profile lat/lng → geocode homeAddress
     let location: { lat: number; lng: number } | null = null;
 
     if (lat && lng) {
       location = { lat: parseFloat(lat), lng: parseFloat(lng) };
+    } else if (profile.homeLat != null && profile.homeLng != null) {
+      location = { lat: profile.homeLat, lng: profile.homeLng };
     } else if (profile.homeAddress) {
-      // Try to extract from profile or geocode
       const addr = profile.homeAddress as { formatted?: string } | null;
       if (addr?.formatted) {
         const geocoded = await geocodeAddress(addr.formatted);
