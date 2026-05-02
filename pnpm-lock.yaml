@@ -291,6 +291,9 @@ importers:
       '@asafarim/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@asafarim/navigation':
+        specifier: workspace:*
+        version: link:../../packages/navigation
       '@asafarim/shared-i18n':
         specifier: workspace:*
         version: link:../../packages/shared-i18n
