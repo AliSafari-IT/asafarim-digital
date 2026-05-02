@@ -50,6 +50,7 @@ yarn-error.log*
 *.swp
 *.swo
 *.code-workspace
+*-vps.code-workspace
 
 # OS
 .DS_Store
