@@ -32,15 +32,20 @@ export async function POST(req: Request) {
     const item = await prisma.navItem.create({
       data: {
         label: body.label.trim(),
+        labelKey: body.labelKey || null,
         href: body.href.trim(),
         position: body.position ?? 0,
         visibility: body.visibility ?? "public",
         requiredRole: body.requiredRole || null,
+        requiredPermissions: body.requiredPermissions ?? [],
+        appScope: body.appScope ?? ["all"],
         parentId: body.parentId || null,
         isActive: body.isActive ?? true,
         icon: body.icon || null,
         target: body.target ?? "_self",
         group: body.group ?? "main",
+        placement: body.placement ?? "header",
+        metadata: body.metadata || null,
       },
     });
 

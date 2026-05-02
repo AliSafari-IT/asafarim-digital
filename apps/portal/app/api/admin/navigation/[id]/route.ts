@@ -12,7 +12,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!existing) return NextResponse.json({ error: "Nav item not found" }, { status: 404 });
 
     const data: Record<string, unknown> = {};
-    const fields = ["label", "href", "position", "visibility", "requiredRole", "parentId", "isActive", "icon", "target", "group"];
+    const fields = [
+      "label", "labelKey", "href", "position", "visibility",
+      "requiredRole", "requiredPermissions", "appScope", "parentId",
+      "isActive", "icon", "target", "group", "placement", "metadata"
+    ];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
