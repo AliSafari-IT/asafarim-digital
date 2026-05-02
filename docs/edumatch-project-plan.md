@@ -351,27 +351,39 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 
 **Actual notes:**
 
-- Flutter project in `apps/mobile/` with Riverpod, Dio, Stripe
-- Onboarding with role selection (Student/Tutor)
-- Google Sign In integration
-- Student: home, new inquiry, AI response, quotes, booking
-- Tutor: dashboard, quote requests, wallet, bookings
-- Core widgets: RoleCard, LoadingOverlay
-
-**Effort:** 10 days. **Skill payoff:** Flutter, Riverpod, Stripe SDK.
+- Flutter project initialized in `apps/mobile/` with Riverpod, Dio, Stripe
+- Onboarding screen with role selection (Student/Tutor)
+- Sign-in screen with Google Sign In integration
+- Student screens: home, new inquiry (multi-step), AI response, quotes, booking
+- Tutor screens: home with earnings cards, quote requests, wallet, bookings
+- Core widgets: RoleCard, LoadingOverlay with global state
+- API service with retry logic and auth token management
+- Data models: User, Inquiry, Quote (freezed)
+- Navigation with named routes
 
 ### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
-**Completed:**
-- ✅ Playwright E2E tests: student-flow, tutor-flow, checkout
-- ✅ Legal pages: Privacy Policy, Terms of Service, Cookie Policy
-- ✅ Playwright config for desktop + mobile browsers
+### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
-**Remaining:**
+**7.1 E2E Testing (Web)**
+
+- ✅ Playwright configured in `playwright.config.ts`
+- ✅ Student flow E2E tests: onboarding, inquiry creation, AI response
+- ✅ Tutor flow E2E tests: dashboard, wallet, quote requests
+- ✅ Checkout flow E2E tests: booking summary, payment
+- API integration tests: inquiries, quotes, wallet, webhooks
+
+**7.2 Legal Pages**
+
+- ✅ Privacy Policy: GDPR compliance, data collection practices
+- ✅ Terms of Service: student/tutor terms, payment terms
+- ✅ Cookie Policy: essential, analytics, functional cookies
+
+**7.3 Remaining:**
 - Real device testing on iOS + Android
-- TestFlight + Play Console deployment
-- Invite 5 beta users
-- Lighthouse optimization (≥90)
+- Deploy to TestFlight + Play Console internal track
+- Invite 5 friends to try it
+- Lighthouse score optimization
 - Accessibility improvements
 
 ---
