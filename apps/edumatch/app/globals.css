@@ -6,6 +6,18 @@
 @source inline("hidden md:flex md:hidden items-center gap-1 gap-4 p-2 rounded-md w-6 h-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 justify-between h-16 py-4 border-t flex-col mt-4 pt-4");
 
 :root {
+  /* ─── Brand Core ─────────────────────────────────────────── */
+  --brand-midnight: #0D0D0F;
+  --brand-azure: #3A7BFF;
+  --brand-slate: #A3A9B7;
+  --brand-mint: #4FF2C9;
+  --brand-violet: #C084FC;
+  --brand-pink: #F472B6;
+  --brand-text: #F5F7FB;
+  --brand-border-dark: #2A2F3B;
+  --brand-elevated: #14161C;
+
+  /* ─── EduMatch Semantic Colors (education-themed blue tint) ─── */
   --color-bg: #0b1020;
   --color-surface: #111733;
   --color-surface-soft: #0d1429;
@@ -21,12 +33,71 @@
   --color-primary-dark: #4b6bff;
   --color-primary-soft: rgba(108, 140, 255, 0.15);
   --color-accent: #4ff2c9;
+  --color-success: #4ff2c9;
+  --color-warning: #ffbe5b;
+  --color-danger: #ff7b92;
   --color-bg-soft: rgba(11, 16, 32, 0.6);
-  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
+
+  /* ─── Gradients ──────────────────────────────────────────── */
   --gradient-brand: linear-gradient(135deg, #6c8cff 0%, #4ff2c9 100%);
+  --gradient-headline: linear-gradient(120deg, #6AA3FF 0%, #A78BFA 50%, #5DE4C7 100%);
+  --gradient-violet: linear-gradient(135deg, #C084FC, #F472B6);
+  --gradient-mint: linear-gradient(135deg, #36C6A8, #5DE4C7);
+  --gradient-azure: linear-gradient(135deg, #4C7DFF, #6AA3FF);
+
+  /* ─── Shadows ──────────────────────────────────────────────── */
+  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
+  --shadow-glow: 0 20px 40px -22px rgba(76, 125, 255, 0.75);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.50);
+  --shadow-brand-glow: 0 0 0 1px rgba(58, 123, 255, 0.35), 0 12px 36px -20px rgba(79, 242, 201, 0.55);
+
+  /* ─── Radius ───────────────────────────────────────────────── */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-pill: 9999px;
+
+  /* ─── Typography ───────────────────────────────────────────── */
+  --font-sans: "Geist", "Manrope", "Inter Tight", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Geist", "Manrope", "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+
+  /* Type Scale */
+  --fs-eyebrow: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.25rem;
+  --fs-2xl: 1.5rem;
+  --fs-3xl: 1.875rem;
+  --fs-4xl: 2.25rem;
+  --fs-5xl: 3rem;
+  --fs-6xl: 3.75rem;
+  --fs-7xl: 5.25rem;
+
+  /* Tracking */
+  --tracking-eyebrow: 0.22em;
+  --tracking-display: -0.05em;
+  --tracking-h1: -0.04em;
+  --tracking-h2: -0.03em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+
+  /* ─── Motion ───────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
 }
 
-[data-theme="light"] {
+html[data-theme="light"] {
+  /* ─── Light Theme Colors ───────────────────────────────────── */
   --color-bg: #f7f9ff;
   --color-surface: #ffffff;
   --color-surface-soft: #f1f5f9;
@@ -42,9 +113,15 @@
   --color-primary-dark: #2f4ad6;
   --color-primary-soft: rgba(75, 107, 255, 0.15);
   --color-accent: #10b981;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
   --color-bg-soft: rgba(247, 249, 255, 0.6);
+
+  /* ─── Light Theme Shadows ──────────────────────────────────── */
   --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.15);
-  --gradient-brand: linear-gradient(135deg, #4b6bff 0%, #10b981 100%);
+  --shadow-glow: 0 18px 36px -20px rgba(34, 83, 216, 0.35);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
 }
 
 * {
