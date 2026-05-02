@@ -49,6 +49,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "error">("idle");
   const [uploadMessage, setUploadMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isVerified = Boolean(user.emailVerified);
@@ -145,6 +146,24 @@ export function ProfileForm({ user }: { user: ProfileData }) {
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
     if (file) void uploadAvatarFile(file);
+  }
+
+  async function handleCopyUserId() {
+    try {
+      await navigator.clipboard.writeText(user.id);
+      setCopyStatus("copied");
+      setTimeout(() => setCopyStatus("idle"), 2000);
+    } catch {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement("textarea");
+      textArea.value = user.id;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopyStatus("copied");
+      setTimeout(() => setCopyStatus("idle"), 2000);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -260,6 +279,25 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                 Usernames are unique platform identifiers and become read-only once claimed.
               </p>
             </div>
+            <button
+              type="button"
+              onClick={handleCopyUserId}
+              className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-left transition hover:border-[var(--color-primary)]/50"
+            >
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">User ID</p>
+                <p className="mt-2 text-xs font-mono text-[var(--color-text-muted)]">{user.id}</p>
+              </div>
+              {copyStatus === "copied" ? (
+                <svg className="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4 text-[var(--color-text-muted)] group-hover:text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </aside>
