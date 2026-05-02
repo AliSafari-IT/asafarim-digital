@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);}
+.wrap{padding:18px 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.sw{display:flex;flex-direction:column;gap:6px;}
+.chip{aspect-ratio:1.6/1;border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.06);display:flex;align-items:flex-end;justify-content:flex-end;padding:8px;font-size:10px;font-family:var(--font-mono);color:rgba(0,0,0,0.55);font-weight:600;}
+.lbl{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10.5px;color:var(--color-text-muted);}
+.name{color:var(--color-text);font-family:var(--font-sans);font-weight:600;font-size:11.5px;}
+</style></head><body>
+<div class="wrap">
+  <div class="sw"><div class="chip" style="background:#4FF2C9">SUCCESS</div><div class="lbl"><span class="name">Success</span><span>#4FF2C9</span></div></div>
+  <div class="sw"><div class="chip" style="background:#5DE4C7">ACCENT</div><div class="lbl"><span class="name">Accent</span><span>#5DE4C7</span></div></div>
+  <div class="sw"><div class="chip" style="background:#FFBE5B">WARN</div><div class="lbl"><span class="name">Warning</span><span>#FFBE5B</span></div></div>
+  <div class="sw"><div class="chip" style="background:#FF7B92;color:rgba(255,255,255,0.7);">DANGER</div><div class="lbl"><span class="name">Danger</span><span>#FF7B92</span></div></div>
+  <div class="sw"><div class="chip" style="background:#FF6B7A;color:rgba(255,255,255,0.7);">DANGER-2</div><div class="lbl"><span class="name">Danger alt</span><span>#FF6B7A</span></div></div>
+</div></body></html>

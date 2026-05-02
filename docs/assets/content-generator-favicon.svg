@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Content Generator">
+  <defs>
+    <linearGradient id="cg-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d0f"></stop>
+      <stop offset="100%" stop-color="#1a1f2c"></stop>
+    </linearGradient>
+    <linearGradient id="cg-ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a7bff"></stop>
+      <stop offset="100%" stop-color="#4ff2c9"></stop>
+    </linearGradient>
+    <linearGradient id="cg-spark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c084fc"></stop>
+      <stop offset="100%" stop-color="#f472b6"></stop>
+    </linearGradient>
+    <radialGradient id="cg-core" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"></stop>
+      <stop offset="60%" stop-color="#4ff2c9" stop-opacity="0.65"></stop>
+      <stop offset="100%" stop-color="#3a7bff" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#cg-bg)"></rect>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="none" stroke="url(#cg-ring)" stroke-width="1.5" opacity="0.55"></rect>
+  <circle cx="32" cy="32" r="18" fill="url(#cg-core)" opacity="0.85"></circle>
+  <g stroke="url(#cg-ring)" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M14 32 Q32 12 50 32"></path>
+    <path d="M14 32 Q32 52 50 32"></path>
+  </g>
+  <g fill="url(#cg-spark)">
+    <circle cx="14" cy="32" r="3"></circle>
+    <circle cx="50" cy="32" r="3"></circle>
+    <circle cx="32" cy="14" r="2.4"></circle>
+    <circle cx="32" cy="50" r="2.4"></circle>
+  </g>
+  <path d="M27 26 L37 26 M25 32 L39 32 M28 38 L36 38" stroke="#0d0d0f" stroke-width="2" stroke-linecap="round" opacity="0.8"></path>
+</svg>

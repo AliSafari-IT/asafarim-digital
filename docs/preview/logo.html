@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);}
+.wrap{padding:32px 28px;display:flex;align-items:center;gap:32px;}
+.mark{display:flex;align-items:center;gap:12px;}
+.bug{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#3A7BFF,#4FF2C9);display:flex;align-items:center;justify-content:center;color:#0d0d0f;font-family:var(--font-display);font-weight:800;font-size:24px;letter-spacing:-0.04em;box-shadow:0 16px 36px -16px rgba(58,123,255,0.7);}
+.word{font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:-0.03em;color:var(--color-text);}
+.word .accent{background:var(--gradient-headline);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.compact{display:flex;align-items:center;gap:6px;}
+.bug.sm{width:24px;height:24px;border-radius:7px;font-size:13px;}
+.lockup{display:flex;flex-direction:column;gap:3px;}
+.lockup .top{font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-0.03em;}
+.lockup .sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.32em;color:var(--color-text-muted);text-transform:uppercase;}
+</style></head><body>
+<div class="wrap">
+  <div class="mark"><div class="bug">A</div><span class="word"><span class="accent">A</span>Safari<span class="accent">M</span></span></div>
+  <div class="compact"><div class="bug sm">A</div><div class="lockup"><span class="top">ASafariM</span><span class="sub">Portal · Monorepo</span></div></div>
+</div></body></html>

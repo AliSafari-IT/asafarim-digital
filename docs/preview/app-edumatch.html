@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);}
+.wrap{padding:22px 24px;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center;}
+
+/* App tile preview */
+.tile{width:88px;height:88px;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#14532d,#052e16);position:relative;box-shadow:0 16px 36px -16px rgba(20,83,45,0.7);}
+.tile img{width:100%;height:100%;display:block;}
+
+/* Meta */
+.meta{display:flex;flex-direction:column;gap:8px;}
+.app{font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-0.02em;color:var(--color-text);display:flex;align-items:center;gap:8px;}
+.app .glyph{display:inline-block;font-family:var(--font-display);font-weight:800;font-size:11px;color:#4ade80;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.32);padding:2px 7px;border-radius:6px;letter-spacing:0.18em;}
+.tag{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;color:var(--color-text-muted);}
+.desc{font-size:12.5px;color:var(--color-text-muted);line-height:1.5;max-width:340px;}
+
+/* Color stops */
+.swatches{display:flex;gap:6px;}
+.sw{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.chip{width:36px;height:36px;border-radius:9px;border:1px solid rgba(255,255,255,0.06);}
+.hex{font-family:var(--font-mono);font-size:9.5px;color:var(--color-text-muted);}
+</style></head><body>
+<div class="wrap">
+  <div class="tile"><img src="../assets/edumatch-apple-icon.svg" alt="Edumatch" /></div>
+  <div class="meta">
+    <div class="app">Edumatch <span class="glyph">EM</span></div>
+    <div class="tag">Education app · forest / emerald</div>
+    <div class="desc">Graduation-cap glyph with white pearl center & emerald tassel-cord. Distinct from the master azure-mint brand — apps may carry their own palette.</div>
+  </div>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#052e16"></div><span class="hex">052e16</span></div>
+    <div class="sw"><div class="chip" style="background:#14532d"></div><span class="hex">14532d</span></div>
+    <div class="sw"><div class="chip" style="background:#10b981"></div><span class="hex">10b981</span></div>
+    <div class="sw"><div class="chip" style="background:#22c55e"></div><span class="hex">22c55e</span></div>
+    <div class="sw"><div class="chip" style="background:#4ade80"></div><span class="hex">4ade80</span></div>
+    <div class="sw"><div class="chip" style="background:#34d399"></div><span class="hex">34d399</span></div>
+  </div>
+</div></body></html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);}
+.wrap{padding:24px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.cell{display:flex;flex-direction:column;align-items:center;gap:10px;}
+.box{width:96px;height:64px;background:linear-gradient(135deg,#3A7BFF22,#4FF2C922);border:1px solid var(--color-border-strong);}
+.lbl{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.name{color:var(--color-text);font-weight:600;font-size:12px;}
+.val{color:var(--color-text-muted);font-family:var(--font-mono);font-size:11px;}
+</style></head><body>
+<div class="wrap">
+  <div class="cell"><div class="box" style="border-radius:8px"></div><div class="lbl"><span class="name">xs</span><span class="val">8px · chips</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:10px"></div><div class="lbl"><span class="name">sm</span><span class="val">10px · inputs</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:14px"></div><div class="lbl"><span class="name">md</span><span class="val">14px · cards</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:16px"></div><div class="lbl"><span class="name">lg</span><span class="val">16px</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:20px"></div><div class="lbl"><span class="name">xl</span><span class="val">20px</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:24px"></div><div class="lbl"><span class="name">2xl</span><span class="val">24px</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:32px"></div><div class="lbl"><span class="name">3xl</span><span class="val">32px · hero</span></div></div>
+  <div class="cell"><div class="box" style="border-radius:9999px"></div><div class="lbl"><span class="name">pill</span><span class="val">9999 · CTA</span></div></div>
+</div></body></html>

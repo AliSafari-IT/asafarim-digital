@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);}
+.wrap{padding:24px 28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.pill{display:inline-flex;align-items:center;gap:8px;border-radius:9999px;padding:6px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.22em;border:1px solid var(--color-border-strong);background:var(--color-panel-strong);color:var(--color-text-muted);}
+.pill .dot{width:6px;height:6px;border-radius:50%;}
+.live{background:rgba(79,242,201,0.10);border-color:rgba(79,242,201,0.35);color:#5DE4C7;}
+.live .dot{background:#34d399;animation:p 1.6s ease-in-out infinite;}
+.concept{background:rgba(255,255,255,0.06);color:#cdd6e3;}
+.warn{background:rgba(255,190,91,0.10);border-color:rgba(255,190,91,0.35);color:#FFBE5B;}
+.danger{background:rgba(255,123,146,0.10);border-color:rgba(255,123,146,0.35);color:#FF7B92;}
+.tag{display:inline-flex;align-items:center;border-radius:9999px;padding:5px 11px;font-size:11px;font-weight:500;border:1px solid var(--color-border);background:#0D192D;color:var(--color-text-muted);text-transform:none;letter-spacing:0;}
+@keyframes p{0%,100%{opacity:1;}50%{opacity:.45;}}
+</style></head><body>
+<div class="wrap">
+  <span class="pill"><span class="dot" style="background:#34d399"></span>Frontend · Backend · AI</span>
+  <span class="pill live"><span class="dot"></span>Live</span>
+  <span class="pill concept">Concept</span>
+  <span class="pill warn">Beta</span>
+  <span class="pill danger">Deprecated</span>
+  <span class="tag">Next.js</span>
+  <span class="tag">TypeScript</span>
+  <span class="tag">Design systems</span>
+  <span class="tag">PostgreSQL</span>
+  <span class="tag">RAG</span>
+</div></body></html>

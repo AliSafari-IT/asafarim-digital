@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+html,body{margin:0;padding:0;background:var(--color-surface);color:var(--color-text);font-family:var(--font-sans);min-height:280px;}
+body{background:radial-gradient(circle at 15% 20%,rgba(76,125,255,0.22),transparent 38%),radial-gradient(circle at 85% 10%,rgba(192,132,252,0.18),transparent 40%),radial-gradient(circle at 70% 90%,rgba(93,228,199,0.18),transparent 42%),var(--color-surface);}
+.wrap{padding:30px 28px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:9999px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all 180ms cubic-bezier(0.16,1,0.3,1);font-family:inherit;}
+.primary{background:#4C7DFF;color:white;}
+.primary:hover{background:#355FE0;}
+.secondary{background:var(--color-panel);color:var(--color-text);border-color:var(--color-border-strong);}
+.secondary:hover{border-color:#4C7DFF;}
+.brand{background:linear-gradient(135deg,#3A7BFF,#4FF2C9);color:#0D0D0F;box-shadow:0 8px 24px -10px rgba(58,123,255,0.8);}
+.brand:hover{filter:brightness(1.1);}
+.ghost{background:transparent;color:var(--color-text-muted);}
+.ghost:hover{color:var(--color-text);background:rgba(255,255,255,0.05);}
+.danger{background:transparent;color:#FF7B92;border-color:rgba(255,123,146,0.35);}
+.sm{padding:8px 14px;font-size:12px;}
+.lg{padding:14px 28px;font-size:14px;}
+svg{width:14px;height:14px;}
+</style></head><body>
+<div class="wrap">
+  <button class="btn primary lg">Start generating <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+  <button class="btn brand lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>Back to Portal</button>
+  <button class="btn secondary lg">Explore capabilities</button>
+  <button class="btn ghost lg">Learn more</button>
+  <button class="btn primary sm">Generate</button>
+  <button class="btn secondary sm">Copy</button>
+  <button class="btn danger sm">Disconnect</button>
+</div></body></html>
