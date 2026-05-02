@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 55432,
+				"driver": "PostgreSQL",
+				"name": "ASafariM",
+				"database": "asafarim",
+				"username": "asafarim",
+				"group": "ASM",
+				"password": "___PASSWORD___"
+			}
+		],
+		"postman.settings.dotenv-detection-notification-visibility": false
+	}
+}

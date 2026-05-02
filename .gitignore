@@ -49,8 +49,6 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
-*.code-workspace
-*-vps.code-workspace
 
 # OS
 .DS_Store
