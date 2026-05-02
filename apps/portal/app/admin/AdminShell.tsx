@@ -61,6 +61,47 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
+
+          <div className="mt-auto p-3">
+            <p className="mb-2 px-3 text-[10px] uppercase tracking-[0.15em] text-white/40">Quick Links</p>
+            <div className="space-y-0.5">
+              <a
+                href={process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005"}
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-white/5 hover:text-[var(--color-text)]"
+              >
+                <span className="text-xs font-semibold tracking-[0.08em]">ED</span>
+                EduMatch
+              </a>
+              <a
+                href={process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "http://localhost:3001"}
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-white/5 hover:text-[var(--color-text)]"
+              >
+                <span className="text-xs font-semibold tracking-[0.08em]">CG</span>
+                Content Generator
+              </a>
+              <a
+                href={process.env.NEXT_PUBLIC_OPS_HUB_URL || "http://localhost:3003"}
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-white/5 hover:text-[var(--color-text)]"
+              >
+                <span className="text-xs font-semibold tracking-[0.08em]">OH</span>
+                Ops Hub
+              </a>
+              <a
+                href={process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "http://localhost:3004"}
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-white/5 hover:text-[var(--color-text)]"
+              >
+                <span className="text-xs font-semibold tracking-[0.08em]">MC</span>
+                Marketing Content
+              </a>
+              <a
+                href="/api/auth/signout"
+                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-rose-400 transition-colors hover:bg-rose-400/10"
+              >
+                <span className="text-xs font-semibold tracking-[0.08em]">SO</span>
+                Sign out
+              </a>
+            </div>
+          </div>
         </aside>
 
         <main className="min-w-0 flex-1 p-6">{children}</main>

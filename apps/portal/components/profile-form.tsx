@@ -299,6 +299,55 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               )}
             </button>
           </div>
+
+          <div className="mt-8 space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Quick Links</p>
+            <a
+              href={process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005"}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              EduMatch
+            </a>
+            <a
+              href={process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "http://localhost:3001"}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Content Generator
+            </a>
+            <a
+              href={process.env.NEXT_PUBLIC_OPS_HUB_URL || "http://localhost:3003"}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Ops Hub
+            </a>
+            <a
+              href={process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "http://localhost:3004"}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Marketing Content
+            </a>
+            <a
+              href="/api/auth/signout"
+              className="flex items-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-300 transition hover:border-rose-400/50 hover:bg-rose-400/20"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            </a>
+          </div>
         </div>
       </aside>
 
