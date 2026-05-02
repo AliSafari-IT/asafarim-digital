@@ -245,11 +245,28 @@ const defaultNavItems = [
   { label: "Features", href: "/features", position: 1, group: "main", visibility: "public", appScope: ["content-generator"], placement: "header" },
   { label: "Prompts", href: "/prompts", position: 2, group: "main", visibility: "authenticated", appScope: ["content-generator"], placement: "header" },
 
-  // EduMatch nav items
-  { label: "Home", href: "/", position: 0, group: "main", visibility: "public", appScope: ["edumatch"], placement: "header" },
-  { label: "Student Dashboard", href: "/student", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header" },
-  { label: "Ask Question", href: "/student/inquiry/new", position: 2, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header" },
-  { label: "Tutor Dashboard", href: "/tutor", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header" },
+  // EduMatch nav items - Header
+  { label: "Home", href: "/", position: 0, group: "main", visibility: "public", appScope: ["edumatch"], placement: "header", icon: "home" },
+  { label: "Student", href: "/student", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header", icon: "education" },
+  { label: "Tutor", href: "/tutor", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header", icon: "users" },
+
+  // EduMatch nav items - Student Sidebar
+  { label: "Dashboard", href: "/student", position: 0, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "overview" },
+  { label: "New Inquiry", href: "/student/inquiry/new", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "chat" },
+  { label: "My Inquiries", href: "/student/inquiries", position: 2, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "list" },
+  { label: "My Bookings", href: "/student/bookings", position: 3, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "layers" },
+  { label: "Wallet", href: "/student/wallet", position: 4, group: "account", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "billing" },
+  { label: "Profile", href: "/student/profile", position: 5, group: "account", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "sidebar", icon: "users" },
+
+  // EduMatch nav items - Tutor Sidebar
+  { label: "Dashboard", href: "/tutor", position: 0, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "overview" },
+  { label: "Quote Requests", href: "/tutor/requests", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "chat" },
+  { label: "My Quotes", href: "/tutor/quotes", position: 2, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "list" },
+  { label: "My Bookings", href: "/tutor/bookings", position: 3, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "layers" },
+  { label: "Earnings", href: "/tutor/earnings", position: 4, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "analytics" },
+  { label: "Wallet", href: "/tutor/wallet", position: 0, group: "account", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "billing" },
+  { label: "Profile", href: "/tutor/profile", position: 1, group: "account", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "users" },
+  { label: "Settings", href: "/tutor/settings", position: 2, group: "account", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "sidebar", icon: "settings" },
 
   // Ops Hub nav items (sidebar placement)
   { label: "Overview", href: "/ops-hub", position: 0, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
@@ -270,6 +287,12 @@ const defaultNavItems = [
   { label: "Leads", href: "/marketing-content/leads", position: 4, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
   { label: "Automations", href: "/marketing-content/automations", position: 5, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
   { label: "Analytics", href: "/marketing-content/analytics", position: 6, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+
+  // Cross-app links for EduMatch (appear in sidebar under "Apps" group)
+  { label: "Portal", href: "/", position: 0, group: "apps", visibility: "authenticated", appScope: ["edumatch"], placement: "sidebar", icon: "home", metadata: { appTarget: "portal" } },
+  { label: "Content Generator", href: "/", position: 1, group: "apps", visibility: "authenticated", appScope: ["edumatch"], placement: "sidebar", icon: "sparkles", metadata: { appTarget: "content-generator" } },
+  { label: "Ops Hub", href: "/", position: 2, group: "apps", visibility: "role", requiredRole: "ops_admin", appScope: ["edumatch"], placement: "sidebar", icon: "overview", metadata: { appTarget: "ops-hub" } },
+  { label: "Marketing", href: "/", position: 3, group: "apps", visibility: "authenticated", appScope: ["edumatch"], placement: "sidebar", icon: "analytics", metadata: { appTarget: "marketing-content" } },
 ];
 
 // ─── Default Site Content ────────────────────────────────────

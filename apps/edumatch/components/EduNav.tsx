@@ -1,27 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { AppSwitcher } from "@asafarim/ui";
-import { useTranslation } from "@asafarim/shared-i18n";
-import { CountryLanguageSelector } from "@asafarim/country-language-selector";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
+  CommonNavbar,
+  useNavigation,
   initializeTheme,
   persistTheme,
   applyTheme,
   subscribeThemeChanges,
   type Theme,
+  AppSwitcher,
 } from "@asafarim/ui";
+import { CountryLanguageSelector } from "@asafarim/country-language-selector";
+import type { AppCode, ResolvedNavItem } from "@asafarim/types";
+import { usePathname } from "next/navigation";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
 
-type NavItem = {
-  href: string;
-  label: string;
-};
-
+// Theme toggle component
 function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
@@ -73,11 +71,11 @@ function ThemeToggle() {
   );
 }
 
+// User menu component
 function UserMenu() {
   const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -213,113 +211,48 @@ function UserMenu() {
   );
 }
 
-export function EduNav() {
-  const { data: session } = useSession();
-  const { t } = useTranslation();
-  const user = session?.user;
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const navItems: NavItem[] = [
-    { href: "/", label: t("edumatch.nav.home") },
-    ...(user?.roles?.includes("STUDENT") ? [
-      { href: "/student", label: t("edumatch.dashboard.inquiries") },
-      { href: "/student/inquiry/new", label: t("edumatch.dashboard.askQuestion") },
-    ] : []),
-    ...(user?.roles?.includes("TUTOR") ? [{ href: "/tutor", label: t("edumatch.nav.tutor") }] : []),
-  ];
-
-  // Close mobile menu when viewport grows
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const mq = window.matchMedia("(min-width: 768px)");
-    const handler = (e: MediaQueryListEvent) => {
-      if (e.matches) setMobileOpen(false);
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [mobileOpen]);
-
+// Logo component
+function EduLogo() {
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-sm font-bold text-white shadow-lg shadow-green-500/20">
-            E
-          </div>
-          <span className="text-lg font-bold text-[var(--color-text)]">EduMatch</span>
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => (
-            <NavLink key={item.href} href={item.href} label={item.label} />
-          ))}
-        </nav>
-
-        {/* Right side */}
-        <div className="flex items-center gap-2">
-          <CountryLanguageSelector />
-          <ThemeToggle />
-          <AppSwitcher current="edumatch" variant="default"/>
-          <UserMenu />
-          
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-            onClick={() => setMobileOpen((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] md:hidden"
-          >
-            {mobileOpen ? (
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
-        </div>
+    <Link href="/" className="flex items-center gap-2">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-sm font-bold text-white shadow-lg shadow-green-500/20">
+        E
       </div>
-
-      {/* Mobile Navigation */}
-      {mobileOpen && (
-        <>
-          <div
-            aria-hidden="true"
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 top-[61px] z-20 bg-[var(--color-surface)]/70 backdrop-blur-sm md:hidden"
-          />
-          <nav className="relative z-30 border-t border-[var(--color-border)] bg-[var(--color-panel)] md:hidden">
-            <div className="mx-auto grid w-full max-w-7xl gap-1 px-4 py-4">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-xl px-4 py-3 text-base font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        </>
-      )}
-    </header>
+      <span className="text-lg font-bold text-[var(--color-text)]">EduMatch</span>
+    </Link>
   );
 }
 
-function NavLink({ href, label }: { href: string; label: string }) {
+// Right content component for navbar
+function RightContent() {
   return (
-    <Link
-      href={href}
-      className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-panel)] hover:text-[var(--color-text)]"
-    >
-      {label}
-    </Link>
+    <div className="flex items-center gap-2">
+      <CountryLanguageSelector />
+      <ThemeToggle />
+      <AppSwitcher current="edumatch" variant="default" />
+      <UserMenu />
+    </div>
+  );
+}
+
+// EduMatch-specific wrapper around CommonNavbar
+export function EduNav() {
+  const { items, loading, error } = useNavigation("edumatch" as AppCode, "header");
+  const pathname = usePathname();
+
+  // Handle error state gracefully - fall back to minimal nav
+  if (error) {
+    console.error("Navigation fetch error:", error);
+  }
+
+  return (
+    <CommonNavbar
+      items={items}
+      app="edumatch" as AppCode
+      logo={<EduLogo />}
+      rightContent={<RightContent />}
+      className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl"
+      sticky={true}
+    />
   );
 }
