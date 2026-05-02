@@ -14,6 +14,7 @@ interface NavItemData {
   icon: string | null;
   target: string | null;
   group: string;
+  placement: string | null;
   children: NavItemData[];
   createdAt: string;
   updatedAt: string;
@@ -25,6 +26,11 @@ export default function AdminNavigationPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterGroup, setFilterGroup] = useState("");
+  const [filterVisibility, setFilterVisibility] = useState("");
+  const [filterActive, setFilterActive] = useState<string>("all");
+  const [filterPlacement, setFilterPlacement] = useState("");
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -35,6 +41,31 @@ export default function AdminNavigationPage() {
     }
     setLoading(false);
   }, []);
+
+  const filteredItems = items.filter((item) => {
+    const matchesSearch = searchQuery === "" ||
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.href.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGroup = filterGroup === "" || item.group === filterGroup;
+    const matchesVisibility = filterVisibility === "" || item.visibility === filterVisibility;
+    const matchesActive = filterActive === "all" ||
+      (filterActive === "active" && item.isActive) ||
+      (filterActive === "inactive" && !item.isActive);
+    const matchesPlacement = filterPlacement === "" || item.placement === filterPlacement;
+
+    return matchesSearch && matchesGroup && matchesVisibility && matchesActive && matchesPlacement;
+  });
+
+  const uniqueGroups = Array.from(new Set(items.map((i) => i.group))).sort();
+  const uniquePlacements = Array.from(new Set(items.map((i) => i.placement).filter(Boolean))).sort();
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setFilterGroup("");
+    setFilterVisibility("");
+    setFilterActive("all");
+    setFilterPlacement("");
+  };
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
@@ -84,7 +115,9 @@ export default function AdminNavigationPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--color-text)]">Navigation Management</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">{items.length} top-level items</p>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            {filteredItems.length} of {items.length} top-level items
+          </p>
         </div>
         <button
           onClick={() => { setShowCreate(true); setEditingId(null); }}
@@ -92,6 +125,82 @@ export default function AdminNavigationPage() {
         >
           + New Item
         </button>
+      </div>
+
+      {/* Filters */}
+      <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search label or URL..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            />
+          </div>
+          <div className="w-40">
+            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Group</label>
+            <select
+              value={filterGroup}
+              onChange={(e) => setFilterGroup(e.target.value)}
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            >
+              <option value="">All groups</option>
+              {uniqueGroups.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          <div className="w-40">
+            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Visibility</label>
+            <select
+              value={filterVisibility}
+              onChange={(e) => setFilterVisibility(e.target.value)}
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            >
+              <option value="">All</option>
+              <option value="public">Public</option>
+              <option value="authenticated">Authenticated</option>
+              <option value="role">Role-based</option>
+            </select>
+          </div>
+          <div className="w-40">
+            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Status</label>
+            <select
+              value={filterActive}
+              onChange={(e) => setFilterActive(e.target.value)}
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div className="w-40">
+            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Placement</label>
+            <select
+              value={filterPlacement}
+              onChange={(e) => setFilterPlacement(e.target.value)}
+              className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-[var(--color-text)] focus:border-[var(--color-accent)] focus:outline-none"
+            >
+              <option value="">All</option>
+              <option value="header">Header</option>
+              <option value="sidebar">Sidebar</option>
+              <option value="footer">Footer</option>
+              <option value="command">Command</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={resetFilters}
+              className="rounded-md border border-white/10 px-4 py-2 text-sm text-[var(--color-text-muted)] hover:bg-white/5 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </div>
       </div>
 
       {message && (
@@ -110,7 +219,7 @@ export default function AdminNavigationPage() {
       )}
 
       <div className="space-y-2">
-        {items.map((item) => (
+        {filteredItems.map((item) => (
           <div key={item.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
             {editingId === item.id ? (
               <NavItemForm
