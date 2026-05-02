@@ -2,6 +2,18 @@
 @import "@asafarim/country-language-selector/styles.css";
 
 :root {
+  /* ─── Brand Core ─────────────────────────────────────────── */
+  --brand-midnight: #0D0D0F;
+  --brand-azure: #3A7BFF;
+  --brand-slate: #A3A9B7;
+  --brand-mint: #4FF2C9;
+  --brand-violet: #C084FC;
+  --brand-pink: #F472B6;
+  --brand-text: #F5F7FB;
+  --brand-border-dark: #2A2F3B;
+  --brand-elevated: #14161C;
+
+  /* ─── Portal Semantic Colors ─────────────────────────────── */
   --color-primary: #4c7dff;
   --color-primary-dark: #355fe0;
   --color-accent: #5de4c7;
@@ -14,11 +26,73 @@
   --color-text: #eff4ff;
   --color-text-muted: #9fb0cf;
   --color-danger: #ff7b92;
+  --color-success: #4ff2c9;
+  --color-warning: #ffbe5b;
+
+  /* ─── Gradients ──────────────────────────────────────────── */
+  --gradient-brand: linear-gradient(135deg, #3A7BFF 0%, #4FF2C9 100%);
+  --gradient-headline: linear-gradient(120deg, #6AA3FF 0%, #A78BFA 50%, #5DE4C7 100%);
+  --gradient-violet: linear-gradient(135deg, #C084FC, #F472B6);
+  --gradient-mint: linear-gradient(135deg, #36C6A8, #5DE4C7);
+  --gradient-azure: linear-gradient(135deg, #4C7DFF, #6AA3FF);
+  --gradient-hero-mesh:
+    radial-gradient(circle at 15% 20%, rgba(76,125,255,0.22), transparent 38%),
+    radial-gradient(circle at 85% 10%, rgba(192,132,252,0.18), transparent 40%),
+    radial-gradient(circle at 70% 90%, rgba(93,228,199,0.18), transparent 42%);
+
+  /* ─── Shadows ──────────────────────────────────────────────── */
   --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
   --shadow-glow: 0 20px 40px -22px rgba(76, 125, 255, 0.75);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.50);
+  --shadow-brand-glow: 0 0 0 1px rgba(58, 123, 255, 0.35), 0 12px 36px -20px rgba(79, 242, 201, 0.55);
+
+  /* ─── Radius ───────────────────────────────────────────────── */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-pill: 9999px;
+
+  /* ─── Typography ─────────────────────────────────────────────── */
+  --font-sans: "Manrope", "Geist", "Inter Tight", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Manrope", "Geist", "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", "Consolas", "SFMono-Regular", monospace;
+
+  /* Type Scale */
+  --fs-eyebrow: 0.6875rem;     /* 11px */
+  --fs-xs: 0.75rem;            /* 12px */
+  --fs-sm: 0.875rem;           /* 14px */
+  --fs-base: 1rem;             /* 16px */
+  --fs-lg: 1.125rem;           /* 18px */
+  --fs-xl: 1.25rem;            /* 20px */
+  --fs-2xl: 1.5rem;            /* 24px */
+  --fs-3xl: 1.875rem;          /* 30px */
+  --fs-4xl: 2.25rem;           /* 36px */
+  --fs-5xl: 3rem;              /* 48px */
+  --fs-6xl: 3.75rem;           /* 60px */
+  --fs-7xl: 5.25rem;           /* 84px */
+
+  /* Tracking */
+  --tracking-eyebrow: 0.22em;
+  --tracking-display: -0.05em;
+  --tracking-h1: -0.04em;
+  --tracking-h2: -0.03em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+
+  /* ─── Motion ───────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
 }
 
 html[data-theme="light"] {
+  /* ─── Light Theme Colors ───────────────────────────────────── */
   --color-primary: #2253d8;
   --color-primary-dark: #173fa9;
   --color-accent: #059669;
@@ -31,8 +105,11 @@ html[data-theme="light"] {
   --color-text: #132033;
   --color-text-muted: #5f6f86;
   --color-danger: #d6455d;
+
+  /* ─── Light Theme Shadows ──────────────────────────────────── */
   --shadow-card: 0 32px 90px -48px rgba(34, 83, 216, 0.34);
   --shadow-glow: 0 18px 36px -20px rgba(34, 83, 216, 0.35);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
 }
 
 * {

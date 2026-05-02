@@ -2,42 +2,123 @@
 @import "@asafarim/country-language-selector/styles.css";
 
 :root {
-  --color-midnight: #0d0d0f;
-  --color-azure: #3a7bff;
-  --color-slate: #a3a9b7;
-  --color-mint: #4ff2c9;
+  /* ─── Brand Core ─────────────────────────────────────────── */
+  --brand-midnight: #0D0D0F;
+  --brand-azure: #3A7BFF;
+  --brand-slate: #A3A9B7;
+  --brand-mint: #4FF2C9;
+  --brand-violet: #C084FC;
+  --brand-pink: #F472B6;
+  --brand-text: #F5F7FB;
+  --brand-border-dark: #2A2F3B;
+  --brand-elevated: #14161C;
 
-  --color-primary: var(--color-azure);
+  /* ─── Content Generator Semantic Colors ──────────────────── */
+  --color-primary: #3A7BFF;
   --color-primary-dark: #2f66d6;
-  --color-surface: #0d0d0f;
-  --color-surface-elevated: #14161c;
+  --color-accent: #4FF2C9;
+  --color-surface: #0D0D0F;
+  --color-surface-soft: #14161C;
+  --color-surface-elevated: #14161C;
   --color-surface-glass: rgba(18, 23, 33, 0.72);
-  --color-border: #2a2f3b;
-  --color-text: #f5f7fb;
-  --color-text-secondary: #a3a9b7;
-  --color-success: #4ff2c9;
-  --color-warning: #ffbe5b;
-  --color-danger: #ff6b7a;
+  --color-panel: rgba(20, 22, 28, 0.78);
+  --color-panel-strong: rgba(13, 13, 15, 0.92);
+  --color-border: rgba(42, 47, 59, 0.6);
+  --color-border-strong: rgba(42, 47, 59, 0.9);
+  --color-text: #F5F7FB;
+  --color-text-muted: #A3A9B7;
+  --color-text-secondary: #A3A9B7;
+  --color-success: #4FF2C9;
+  --color-warning: #FFBE5B;
+  --color-danger: #FF6B7A;
 
-  --gradient-brand: linear-gradient(135deg, #3a7bff 0%, #4ff2c9 100%);
+  /* ─── Gradients ──────────────────────────────────────────── */
+  --gradient-brand: linear-gradient(135deg, #3A7BFF 0%, #4FF2C9 100%);
+  --gradient-headline: linear-gradient(120deg, #6AA3FF 0%, #A78BFA 50%, #5DE4C7 100%);
+  --gradient-violet: linear-gradient(135deg, #C084FC, #F472B6);
+  --gradient-mint: linear-gradient(135deg, #36C6A8, #5DE4C7);
+  --gradient-azure: linear-gradient(135deg, #4C7DFF, #6AA3FF);
+  --gradient-hero-mesh:
+    radial-gradient(circle at 15% 20%, rgba(76,125,255,0.22), transparent 38%),
+    radial-gradient(circle at 85% 10%, rgba(192,132,252,0.18), transparent 40%),
+    radial-gradient(circle at 70% 90%, rgba(93,228,199,0.18), transparent 42%);
+
+  /* ─── Shadows ────────────────────────────────────────────── */
   --shadow-card: 0 16px 50px -28px rgba(58, 123, 255, 0.5);
-  --radius-card: 1rem;
+  --shadow-glow: 0 20px 40px -22px rgba(76, 125, 255, 0.75);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.50);
+  --shadow-brand-glow: 0 0 0 1px rgba(58, 123, 255, 0.35), 0 12px 36px -20px rgba(79, 242, 201, 0.55);
+
+  /* ─── Radius ─────────────────────────────────────────────── */
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+  --radius-pill: 9999px;
+  --radius-card: 1rem; /* legacy alias */
+
+  /* ─── Typography ─────────────────────────────────────────── */
+  --font-sans: "Geist", "Manrope", "Inter Tight", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Geist", "Manrope", "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+
+  /* Type Scale */
+  --fs-eyebrow: 0.6875rem;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.25rem;
+  --fs-2xl: 1.5rem;
+  --fs-3xl: 1.875rem;
+  --fs-4xl: 2.25rem;
+  --fs-5xl: 3rem;
+  --fs-6xl: 3.75rem;
+  --fs-7xl: 5.25rem;
+
+  /* Tracking */
+  --tracking-eyebrow: 0.22em;
+  --tracking-display: -0.05em;
+  --tracking-h1: -0.04em;
+  --tracking-h2: -0.03em;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+
+  /* ─── Motion ─────────────────────────────────────────────── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 180ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
 }
 
-[data-theme="light"] {
+html[data-theme="light"] {
+  /* ─── Light Theme Colors ─────────────────────────────────── */
+  --color-primary: #2253D8;
+  --color-primary-dark: #2563eb;
+  --color-accent: #059669;
   --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
   --color-surface-elevated: #f8fafc;
   --color-surface-glass: rgba(255, 255, 255, 0.8);
-  --color-border: #e2e8f0;
+  --color-panel: rgba(255, 255, 255, 0.84);
+  --color-panel-strong: rgba(255, 255, 255, 0.94);
+  --color-border: rgba(226, 232, 240, 0.6);
+  --color-border-strong: rgba(226, 232, 240, 0.9);
   --color-text: #1e293b;
+  --color-text-muted: #64748b;
   --color-text-secondary: #64748b;
-  --color-primary: #3a7bff;
-  --color-primary-dark: #2563eb;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
-  --gradient-brand: linear-gradient(135deg, #3a7bff 0%, #4ff2c9 100%);
+
+  /* ─── Light Theme Shadows ────────────────────────────────── */
   --shadow-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
+  --shadow-glow: 0 18px 36px -20px rgba(34, 83, 216, 0.35);
+  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
 }
 
 * {
