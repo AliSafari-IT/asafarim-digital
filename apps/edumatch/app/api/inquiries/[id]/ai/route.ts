@@ -125,7 +125,7 @@ Guidelines:
                 ? (content.some((c) => c.type === "image_url")
                     ? process.env.OPENAI_MODEL_VISION ?? "gpt-4o"
                     : process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini")
-                : (process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest");
+                : (process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5");
             }
             if (chunk.token) {
               fullOutput += chunk.token;

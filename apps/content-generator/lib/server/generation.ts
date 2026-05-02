@@ -1,5 +1,5 @@
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 
 /**
  * Hard cap on tokens emitted by each provider. The previous default (1200)

@@ -12,7 +12,7 @@
  *   OPENAI_MODEL_VISION     default "gpt-4o"
  *   OPENAI_MODEL_CHAT       default "gpt-4o-mini"
  *   ANTHROPIC_API_KEY       required for fallback
- *   ANTHROPIC_MODEL         default "claude-3-5-sonnet-latest"
+ *   ANTHROPIC_MODEL         default "claude-haiku-4-5"
  */
 
 import { prisma } from "@asafarim/db";
@@ -20,7 +20,7 @@ import { objectExists } from "./storage";
 
 const OPENAI_VISION_MODEL = process.env.OPENAI_MODEL_VISION ?? "gpt-4o";
 const OPENAI_CHAT_MODEL = process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 
 const OPENAI_MAX_TOKENS = parseInt(process.env.OPENAI_MAX_TOKENS ?? "4000", 10);
 const ANTHROPIC_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? "4000", 10);

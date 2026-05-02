@@ -254,7 +254,7 @@ describe("generateWithAnthropic", () => {
     if ("error" in result) throw new Error("Expected success");
     expect(result.output).toBe("Bonjour!");
     expect(result.provider).toBe("anthropic");
-    expect(result.model).toBe("claude-3-5-sonnet-latest");
+    expect(result.model).toBe("claude-haiku-4-5");
     expect(result.promptTokens).toBe(10);
     expect(result.completionTokens).toBe(5);
     expect(result.totalTokens).toBe(15);
