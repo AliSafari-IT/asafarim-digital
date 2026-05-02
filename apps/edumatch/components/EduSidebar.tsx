@@ -64,7 +64,7 @@ export function StudentSidebar({ children }: { children: React.ReactNode }) {
   const sidebar = (
     <CommonSidebar
       items={studentItems}
-      app="edumatch" as AppCode
+      app="edumatch"
       header={<SidebarHeader userRole="student" />}
       footer={<SidebarFooter />}
       width="w-64"
@@ -100,7 +100,7 @@ export function TutorSidebar({ children }: { children: React.ReactNode }) {
   const sidebar = (
     <CommonSidebar
       items={tutorItems}
-      app="edumatch" as AppCode
+      app="edumatch"
       header={<SidebarHeader userRole="tutor" />}
       footer={<SidebarFooter />}
       width="w-64"
