@@ -26,6 +26,7 @@ ENV NEXT_PUBLIC_OPS_HUB_URL=$NEXT_PUBLIC_OPS_HUB_URL
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/content-generator ./apps/content-generator
+COPY packages/types ./packages/types
 COPY packages/ui ./packages/ui
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db

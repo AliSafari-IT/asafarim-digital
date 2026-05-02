@@ -27,6 +27,7 @@ COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
 COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/country-language-selector ./packages/country-language-selector
+COPY packages/types ./packages/types
 COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
