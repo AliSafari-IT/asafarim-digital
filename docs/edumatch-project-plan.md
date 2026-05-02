@@ -361,7 +361,7 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Data models: User, Inquiry, Quote (freezed)
 - Navigation with named routes
 
-**Effort:** 10 days. **Skill payoff:** Flutter fundamentals, state management (Riverpod), Stripe payment sheet integration.
+### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
 ### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
