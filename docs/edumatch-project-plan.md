@@ -190,12 +190,16 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Support for marketplace fees (platform + seller split)
 - **Effort:** 3 days. **Skill payoff:** Shared package architecture, Stripe Connect unified flow.
 
-**0.5.2 App switcher component** ✅
+**0.5.2 Common navbar navigation system** ✅
 
-- Shared React component for unified navbar with app switcher dropdown
-- Shows all apps user has access to based on roles/permissions
-- Preserves session across subdomains (`.asafarim.com` cookie domain)
-- **Effort:** 2 days. **Skill payoff:** Cross-app navigation, shared UI components.
+- Shared types (`APP_CODES`, `AppCode`, `NavItemDto`, `NavPlacement`) in `packages/types/src/navigation.ts`
+- Navigation resolver in `packages/navigation/resolver.ts` with filtering by app scope, placement, group, visibility, and user permissions
+- Updated Prisma schema with new NavItem fields (`appScope`, `placement`, `labelKey`, `requiredPermissions`, `metadata`)
+- Public Navigation API endpoint (`GET /api/navigation`) with caching headers
+- Shared UI components in `packages/ui`: `CommonNavbar`, `CommonSidebar`, `NAV_ICON_MAP`
+- URL resolution strategy for cross-app navigation using `metadata.appTarget`
+- Admin UI filters for navigation management (search, group, visibility, status, placement)
+- **Effort:** 5 days. **Skill payoff:** Shared navigation architecture, resolver pattern, cross-app URL resolution.
 
 **0.5.3 Role/permission seeding** ✅
 
@@ -203,7 +207,7 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - Add permissions for each EduMatch feature (create inquiry, respond as tutor, admin verification, etc.)
 - **Effort:** 1 day. **Skill payoff:** RBAC design for multi-app ecosystem.
 
-**Deliverable:** All apps can import `@asafarim/payments` and use unified checkout; app switcher appears in portal and edumatch navbars.
+**Deliverable:** All apps can import `@asafarim/payments` and use unified checkout; common navbar navigation system provides shared navigation across all apps.
 
 **Actual notes:** Completed via Prisma seed with `UserRole` composite unique key for RBAC. Roles: `edumatch_student`, `edumatch_tutor`, `edumatch_admin`.
 
