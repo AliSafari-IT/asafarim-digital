@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "@asafarim/country-language-selector/styles.css";
-@source "../../packages/ui/src";
+@source "../../packages/ui/src/**/*.{ts,tsx}";
 
 :root {
   --color-bg: #0b1020;
