@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** In Progress (Phase 5 complete, Phase 6 in progress)
+**Status:** In Progress (Phase 6 complete, Phase 7 in progress)
 **Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
 
 ---
@@ -347,27 +347,44 @@ The plan is sized to ~15 weeks of evening / weekend work (including 1 week for s
 - ✅ Admin testing page: `/admin/emails`
 - **Effort:** 3 days. **Skill payoff:** Transactional email patterns.
 
-### Phase 6 — Flutter UI (Weeks 14–15) 🔄 IN PROGRESS
+### Phase 6 — Flutter UI (Weeks 14–15) ✅ COMPLETE
 
-Minimum shippable surface:
+**Actual notes:**
 
-- **Onboarding** (role select, sign-up, profile build)
-- **Student home** (list of past inquiries, "ask new question" CTA)
-- **Intake screen** (text + image + voice capture)
-- **AI response screen** (streamed explanation, "Get tutor quotes" button)
-- **Quote comparison screen** (5 quotes side-by-side)
-- **Booking + checkout screen** (Stripe payment sheet)
-- **Tutor home** (incoming requests, wallet, settings)
+- Flutter project initialized in `apps/mobile/` with Riverpod, Dio, Stripe
+- Onboarding screen with role selection (Student/Tutor)
+- Sign-in screen with Google Sign In integration
+- Student screens: home, new inquiry (multi-step), AI response, quotes, booking
+- Tutor screens: home with earnings cards, quote requests, wallet, bookings
+- Core widgets: RoleCard, LoadingOverlay with global state
+- API service with retry logic and auth token management
+- Data models: User, Inquiry, Quote (freezed)
+- Navigation with named routes
 
 **Effort:** 10 days. **Skill payoff:** Flutter fundamentals, state management (Riverpod), Stripe payment sheet integration.
 
-### Phase 7 — Polish + ship (Week 15+, ongoing)
+### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
 
-- E2E tests with Playwright (web) + integration tests for API.
-- Real device testing on iOS + Android.
-- Privacy policy + terms (template, since this is a practice project).
-- Deploy to TestFlight + Play Console internal track.
-- Invite 5 friends to try it.
+**7.1 E2E Testing (Web)**
+
+- ✅ Playwright configured in `playwright.config.ts`
+- ✅ Student flow E2E tests: onboarding, inquiry creation, AI response
+- ✅ Tutor flow E2E tests: dashboard, wallet, quote requests
+- ✅ Checkout flow E2E tests: booking summary, payment
+- API integration tests: inquiries, quotes, wallet, webhooks
+
+**7.2 Legal Pages**
+
+- ✅ Privacy Policy: GDPR compliance, data collection practices
+- ✅ Terms of Service: student/tutor terms, payment terms
+- ✅ Cookie Policy: essential, analytics, functional cookies
+
+**7.3 Remaining:**
+- Real device testing on iOS + Android
+- Deploy to TestFlight + Play Console internal track
+- Invite 5 friends to try it
+- Lighthouse score optimization
+- Accessibility improvements
 
 ---
 
