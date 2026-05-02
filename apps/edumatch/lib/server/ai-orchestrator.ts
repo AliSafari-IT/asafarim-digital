@@ -425,3 +425,91 @@ export async function* streamOpenAI(
 
   yield { done: true };
 }
+
+/**
+ * Stream an AI response via Anthropic (fallback for OpenAI streaming failures).
+ * Yields partial tokens as they arrive from Anthropic streaming endpoint.
+ */
+export async function* streamAnthropic(
+  content: VisionContent[],
+  systemPrompt: string,
+): AsyncGenerator<{ token?: string; done?: boolean; error?: string }, void, unknown> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    yield { error: "ANTHROPIC_API_KEY not configured.", done: true };
+    return;
+  }
+
+  // Anthropic only supports text content in streaming, extract text
+  const textContent = content
+    .map((c) => (c.type === "text" ? c.text : "[Image attached]"))
+    .join("\n");
+
+  const start = Date.now();
+  const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: ANTHROPIC_MAX_TOKENS,
+      system: systemPrompt,
+      messages: [{ role: "user", content: textContent }],
+      stream: true,
+    }),
+  });
+
+  if (!upstream.ok) {
+    const payload = (await upstream.json().catch(() => ({}))) as unknown;
+    yield { error: getProviderError(payload) ?? `Anthropic ${upstream.status}`, done: true };
+    return;
+  }
+
+  const reader = upstream.body?.getReader();
+  if (!reader) {
+    yield { error: "No response body from Anthropic.", done: true };
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith("data:")) continue;
+      const json = trimmed.replace(/^data:\s*/, "");
+      if (json === "[DONE]") {
+        yield { done: true };
+        return;
+      }
+      try {
+        const parsed = JSON.parse(json) as {
+          type?: string;
+          delta?: { text?: string };
+        };
+        if (parsed.type === "content_block_delta" && parsed.delta?.text) {
+          yield { token: parsed.delta.text };
+        }
+        if (parsed.type === "message_stop") {
+          yield { done: true };
+          return;
+        }
+      } catch {
+        // ignore malformed JSON in stream
+      }
+    }
+  }
+
+  yield { done: true };
+}

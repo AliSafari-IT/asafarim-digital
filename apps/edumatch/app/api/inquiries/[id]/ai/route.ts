@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStudent } from "@/lib/server/profiles";
 import { handleEduError, badRequest, serverError } from "@/lib/server";
-import { streamOpenAI, buildVisionContent, transcribeAudio } from "@/lib/server/ai-orchestrator";
+import { streamOpenAI, streamAnthropic, buildVisionContent, transcribeAudio } from "@/lib/server/ai-orchestrator";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -19,11 +19,10 @@ export const runtime = "nodejs";
  * - If audio attachments exist, transcribes via Whisper first (once, cached).
  * - Builds vision content from description + images.
  * - Streams tokens from OpenAI (gpt-4o for vision, gpt-4o-mini for text-only).
+ * - If OpenAI fails (quota exceeded, etc.), automatically falls back to Anthropic streaming.
  * - On stream completion, persists EduAiResponse and updates inquiry status.
  *
- * Fallback: if OpenAI fails at connection time, returns 502 with error JSON
- * (streaming doesn't support mid-stream failover without complex buffering;
- * clients should retry with the non-streaming enqueue endpoint for fallback).
+ * Fallback: OpenAI → Anthropic (automatic, no client retry needed)
  */
 export async function GET(
   _request: Request,
@@ -72,19 +71,65 @@ Guidelines:
 
     const encoder = new TextEncoder();
     let fullOutput = "";
+    let providerUsed: "openai" | "anthropic" = "openai";
+    let modelUsed = content.some((c) => c.type === "image_url")
+      ? process.env.OPENAI_MODEL_VISION ?? "gpt-4o"
+      : process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini";
+
+    async function* streamWithFallback(): AsyncGenerator<
+      { token?: string; done?: boolean; error?: string; provider?: "openai" | "anthropic" },
+      void,
+      unknown
+    > {
+      // Try OpenAI first
+      let openAIError = "";
+      for await (const chunk of streamOpenAI(content, systemPrompt)) {
+        if (chunk.error) {
+          openAIError = chunk.error;
+          break;
+        }
+        if (chunk.token || chunk.done) {
+          yield { ...chunk, provider: "openai" };
+        }
+        if (chunk.done) return;
+      }
+
+      // If OpenAI failed, try Anthropic fallback
+      if (openAIError) {
+        console.log("[AI] OpenAI failed, trying Anthropic fallback:", openAIError);
+        for await (const chunk of streamAnthropic(content, systemPrompt)) {
+          if (chunk.error) {
+            // Both failed - return aggregated error
+            yield { error: `OpenAI: ${openAIError} | Anthropic: ${chunk.error}` };
+            return;
+          }
+          if (chunk.token || chunk.done) {
+            yield { ...chunk, provider: "anthropic" };
+          }
+        }
+      }
+    }
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of streamOpenAI(content, systemPrompt)) {
+          for await (const chunk of streamWithFallback()) {
             if (chunk.error) {
-              controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify(chunk)}\n\n`));
+              controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: chunk.error })}\n\n`));
               controller.close();
               return;
             }
+            if (chunk.provider) {
+              providerUsed = chunk.provider;
+              modelUsed = chunk.provider === "openai"
+                ? (content.some((c) => c.type === "image_url")
+                    ? process.env.OPENAI_MODEL_VISION ?? "gpt-4o"
+                    : process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini")
+                : (process.env.ANTHROPIC_MODEL ?? "claude-3-5-sonnet-latest");
+            }
             if (chunk.token) {
               fullOutput += chunk.token;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: chunk.token })}\n\n`));
             }
             if (chunk.done) {
               controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
@@ -95,9 +140,7 @@ Guidelines:
                 .create({
                   data: {
                     inquiryId,
-                    modelUsed: content.some((c) => c.type === "image_url")
-                      ? process.env.OPENAI_MODEL_VISION ?? "gpt-4o"
-                      : process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini",
+                    modelUsed,
                     promptVersion: "v1-stream",
                     explanation: fullOutput,
                   },
