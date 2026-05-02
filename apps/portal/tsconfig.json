@@ -15,7 +15,10 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@asafarim/types": ["../../packages/types/src/index.ts"],
+      "@asafarim/navigation": ["../../packages/navigation/src/index.ts"],
+      "@asafarim/navigation/*": ["../../packages/navigation/src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

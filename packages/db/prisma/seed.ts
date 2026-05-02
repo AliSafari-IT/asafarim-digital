@@ -231,13 +231,45 @@ const edumatchPermissions = [
 // ─── Default Nav Items ───────────────────────────────────────
 
 const defaultNavItems = [
-  { label: "Capabilities", href: "/#capabilities", position: 0, group: "main", visibility: "public" },
-  { label: "Work", href: "/#showcase", position: 1, group: "main", visibility: "public" },
-  { label: "Process", href: "/#process", position: 2, group: "main", visibility: "public" },
-  { label: "Stack", href: "/#stack", position: 3, group: "main", visibility: "public" },
-  { label: "Contact", href: "/#contact", position: 4, group: "main", visibility: "public" },
-  { label: "Profile", href: "/profile", position: 5, group: "main", visibility: "authenticated" },
-  { label: "Admin", href: "/admin", position: 6, group: "main", visibility: "role", requiredRole: "admin" },
+  // Portal nav items (header placement)
+  { label: "Capabilities", href: "/#capabilities", position: 0, group: "main", visibility: "public", appScope: ["portal"], placement: "header" },
+  { label: "Work", href: "/#showcase", position: 1, group: "main", visibility: "public", appScope: ["portal"], placement: "header" },
+  { label: "Process", href: "/#process", position: 2, group: "main", visibility: "public", appScope: ["portal"], placement: "header" },
+  { label: "Stack", href: "/#stack", position: 3, group: "main", visibility: "public", appScope: ["portal"], placement: "header" },
+  { label: "Contact", href: "/#contact", position: 4, group: "main", visibility: "public", appScope: ["portal"], placement: "header" },
+  { label: "Profile", href: "/profile", position: 5, group: "main", visibility: "authenticated", appScope: ["portal"], placement: "header" },
+  { label: "Admin", href: "/admin", position: 6, group: "main", visibility: "role", requiredRole: "admin", appScope: ["portal"], placement: "header" },
+
+  // Content Generator nav items
+  { label: "Generator", href: "/", position: 0, group: "main", visibility: "authenticated", appScope: ["content-generator"], placement: "header" },
+  { label: "Features", href: "/features", position: 1, group: "main", visibility: "public", appScope: ["content-generator"], placement: "header" },
+  { label: "Prompts", href: "/prompts", position: 2, group: "main", visibility: "authenticated", appScope: ["content-generator"], placement: "header" },
+
+  // EduMatch nav items
+  { label: "Home", href: "/", position: 0, group: "main", visibility: "public", appScope: ["edumatch"], placement: "header" },
+  { label: "Student Dashboard", href: "/student", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header" },
+  { label: "Ask Question", href: "/student/inquiry/new", position: 2, group: "main", visibility: "role", requiredRole: "edumatch_student", appScope: ["edumatch"], placement: "header" },
+  { label: "Tutor Dashboard", href: "/tutor", position: 1, group: "main", visibility: "role", requiredRole: "edumatch_tutor", appScope: ["edumatch"], placement: "header" },
+
+  // Ops Hub nav items (sidebar placement)
+  { label: "Overview", href: "/ops-hub", position: 0, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Tenants", href: "/ops-hub/tenants", position: 1, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Users", href: "/ops-hub/users", position: 2, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Billing", href: "/ops-hub/billing", position: 3, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "System", href: "/ops-hub/system", position: 4, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Feature Flags", href: "/ops-hub/flags", position: 5, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Lifecycle", href: "/ops-hub/lifecycle", position: 6, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Automations", href: "/ops-hub/automations", position: 7, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+  { label: "Audit Log", href: "/ops-hub/audit", position: 8, group: "main", visibility: "role", requiredRole: "ops_admin", appScope: ["ops-hub"], placement: "sidebar" },
+
+  // Marketing Content nav items
+  { label: "Overview", href: "/marketing-content", position: 0, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "Campaigns", href: "/marketing-content/campaigns", position: 1, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "Content", href: "/marketing-content/content", position: 2, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "SEO", href: "/marketing-content/seo", position: 3, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "Leads", href: "/marketing-content/leads", position: 4, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "Automations", href: "/marketing-content/automations", position: 5, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
+  { label: "Analytics", href: "/marketing-content/analytics", position: 6, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
 ];
 
 // ─── Default Site Content ────────────────────────────────────

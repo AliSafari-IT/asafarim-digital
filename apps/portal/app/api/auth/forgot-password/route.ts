@@ -4,7 +4,7 @@ import { prisma } from "@asafarim/db";
 import { sendPasswordResetEmail } from "@/lib/password-reset-email";
 
 const GENERIC_SUCCESS_MESSAGE =
-  "If that email exists in our system, a reset link has been sent.";
+  "If that email exists in our system and has a password, a reset link has been sent. OAuth users should sign in with their provider.";
 
 function getBaseUrl(): string {
   return (

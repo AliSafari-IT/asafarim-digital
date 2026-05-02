@@ -12,3 +12,9 @@ export { applyTheme, initializeTheme, persistTheme, readTheme, THEME_STORAGE_KEY
 export type { Theme } from "./theme";
 export { subscribeThemeChanges } from "./theme";
 export { readThemeFromCookie } from "./theme";
+
+// ─── Navigation Components ─────────────────────────────────
+export { CommonNavbar, useNavigation } from "./common-navbar";
+export { CommonSidebar, SidebarLayout } from "./common-sidebar";
+export { NAV_ICON_MAP, getNavIcon, DEFAULT_NAV_ICON } from "./nav-icons";
+export * from "./nav-icons";

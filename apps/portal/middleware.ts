@@ -13,6 +13,7 @@ export const middleware = createAuthMiddleware({
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/health",
+    "/api/navigation",
   ],
   roleRoutes: {
     "/admin": ["superadmin", "admin"],

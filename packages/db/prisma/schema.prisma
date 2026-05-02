@@ -213,17 +213,22 @@ model SiteContent {
 }
 
 model NavItem {
-  id           String  @id @default(cuid())
-  label        String
-  href         String
-  position     Int     @default(0)
-  visibility   String  @default("public")
-  requiredRole String?
-  parentId     String?
-  isActive     Boolean @default(true)
-  icon         String?
-  target       String? @default("_self")
-  group        String  @default("main")
+  id                  String   @id @default(cuid())
+  label               String
+  labelKey            String?
+  href                String
+  position            Int      @default(0)
+  visibility          String   @default("public")
+  requiredRole        String?
+  requiredPermissions String[] @default([])
+  appScope            String[] @default(["all"])
+  parentId            String?
+  isActive            Boolean  @default(true)
+  icon                String?
+  target              String?  @default("_self")
+  group               String   @default("main")
+  placement           String   @default("header")
+  metadata            Json?
 
   parent   NavItem?  @relation("NavItemTree", fields: [parentId], references: [id])
   children NavItem[] @relation("NavItemTree")
@@ -235,6 +240,8 @@ model NavItem {
   @@index([position])
   @@index([visibility])
   @@index([parentId])
+  @@index([placement])
+  @@index([appScope])
 }
 
 model SiteSetting {

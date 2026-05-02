@@ -43,3 +43,6 @@ export interface Tenant {
   slug: string;
   plan: TenantPlan;
 }
+
+// ─── Navigation Types ─────────────────────────────────────
+export * from "./navigation";
