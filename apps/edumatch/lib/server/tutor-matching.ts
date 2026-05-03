@@ -12,6 +12,7 @@
 
 import { prisma } from "@asafarim/db";
 import type { GeoPoint } from "./geocoding";
+import { unverifiedTutorsExcluded } from "./tutor-verification";
 
 export type AvailabilitySlot = {
   start: string; // ISO datetime
@@ -72,12 +73,14 @@ export async function findNearbyTutors(
 ): Promise<ScoredTutor[]> {
   const { studentLocation, maxDistanceKm = 50, limit = 20 } = input;
 
+  const requireVerified = unverifiedTutorsExcluded();
   const tutors = await prisma.eduTutorProfile.findMany({
     where: {
       OR: [
         { onlineOnly: true },
         { homeLat: { not: null }, homeLng: { not: null } },
       ],
+      ...(requireVerified ? { verifiedAt: { not: null } } : {}),
     },
     select: {
       userId: true,

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireStudent } from "@/lib/server/profiles";
 import { handleEduError, badRequest, serverError } from "@/lib/server";
 import { streamOpenAI, streamAnthropic, buildVisionContent, transcribeAudio } from "@/lib/server/ai-orchestrator";
+import { moderatePrompt, moderationAllowsGeneration } from "@/lib/server/moderation";
+import { recordEduAuditEvent } from "@/lib/server/audit";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -59,6 +61,74 @@ export async function GET(
     }
 
     const description = inquiry.description + audioText;
+
+    // Moderation pre-check: if the prompt is unsafe, do not open a stream.
+    // Persist the refusal as an EduAiResponse + flip inquiry to REFUSED, then
+    // emit a single SSE event with the redirection text and close.
+    const moderation = moderatePrompt(description);
+    if (!moderationAllowsGeneration(moderation)) {
+      const redirect =
+        moderation.redirectMessage ??
+        "EduMatch AI couldn't safely respond to that prompt. Please rephrase.";
+      const refusalRow = await prisma.eduAiResponse.create({
+        data: {
+          inquiryId,
+          modelUsed: "moderation",
+          promptVersion: "v1-stream",
+          explanation: redirect,
+          moderationOutcome: moderation.outcome,
+          moderationCategory: moderation.category,
+          moderationReason: moderation.reason,
+        },
+        select: { id: true },
+      });
+      await prisma.eduInquiry.update({
+        where: { id: inquiryId },
+        data: {
+          status: "REFUSED",
+          aiSummary: redirect.slice(0, 500),
+          moderationOutcome: moderation.outcome,
+          moderationCategory: moderation.category,
+          moderationReason: moderation.reason,
+        },
+      });
+      void recordEduAuditEvent({
+        actorId: user.id,
+        actorRole: "STUDENT",
+        action: "AI_RESPONSE_REFUSED",
+        entity: "EduInquiry",
+        entityId: inquiryId,
+        prevState: inquiry.status,
+        nextState: "REFUSED",
+        reason: `${moderation.category}: ${moderation.reason}`,
+        metadata: { responseId: refusalRow.id },
+      });
+
+      const enc = new TextEncoder();
+      const refusalStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            enc.encode(
+              `event: moderation\ndata: ${JSON.stringify({
+                outcome: moderation.outcome,
+                category: moderation.category,
+              })}\n\n`,
+            ),
+          );
+          controller.enqueue(enc.encode(`data: ${JSON.stringify({ token: redirect })}\n\n`));
+          controller.enqueue(enc.encode(`event: done\ndata: {}\n\n`));
+          controller.close();
+        },
+      });
+      return new Response(refusalStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
     const content = await buildVisionContent(description, attachments);
     const systemPrompt = `You are EduMatch AI, a helpful tutor for students.
 Guidelines:
@@ -143,13 +213,40 @@ Guidelines:
                     modelUsed,
                     promptVersion: "v1-stream",
                     explanation: fullOutput,
+                    moderationOutcome: moderation.outcome,
+                    moderationCategory: moderation.category,
+                    moderationReason: moderation.reason,
                   },
+                  select: { id: true },
                 })
-                .then(() =>
-                  prisma.eduInquiry.update({
-                    where: { id: inquiryId },
-                    data: { status: "AI_RESPONDED", aiSummary: fullOutput.slice(0, 500) },
-                  }),
+                .then((row) =>
+                  prisma.eduInquiry
+                    .update({
+                      where: { id: inquiryId },
+                      data: {
+                        status: "AI_RESPONDED",
+                        aiSummary: fullOutput.slice(0, 500),
+                        moderationOutcome: moderation.outcome,
+                        moderationCategory: moderation.category,
+                        moderationReason: moderation.reason,
+                      },
+                    })
+                    .then(() =>
+                      recordEduAuditEvent({
+                        actorId: user.id,
+                        actorRole: "STUDENT",
+                        action: "AI_RESPONSE_GENERATED",
+                        entity: "EduAiResponse",
+                        entityId: row.id,
+                        prevState: inquiry.status,
+                        nextState: "AI_RESPONDED",
+                        reason:
+                          moderation.outcome === "REVIEW"
+                            ? `borderline: ${moderation.category}`
+                            : undefined,
+                        metadata: { provider: providerUsed, model: modelUsed },
+                      }),
+                    ),
                 )
                 .catch((e) => console.error("[AI] post-stream persist failed:", e));
             }

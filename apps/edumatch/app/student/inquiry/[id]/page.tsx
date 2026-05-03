@@ -46,7 +46,17 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   TUTOR_REQUESTED: { label: "Tutor Requested", cls: "bg-yellow-100 text-yellow-700" },
   BOOKED: { label: "Booked", cls: "bg-green-100 text-green-700" },
   CLOSED: { label: "Closed", cls: "bg-gray-100 text-gray-500" },
+  REFUSED: { label: "Refused", cls: "bg-red-100 text-red-700" },
 };
+
+/**
+ * AI accuracy/safety disclaimer shown alongside any AI explanation. Mirrors
+ * the server-side AI_DISCLAIMER constant in lib/server/moderation.ts.
+ */
+const AI_DISCLAIMER_TEXT =
+  "EduMatch AI is a study aid, not a final authority. It can be wrong or incomplete. " +
+  "Always check answers against your textbook, teacher, or a verified tutor before relying on them — " +
+  "and never submit AI text as your own work.";
 
 export default function InquiryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +69,11 @@ export default function InquiryDetail() {
   const [streaming, setStreaming] = useState(false);
   const [streamedText, setStreamedText] = useState("");
   const [streamDone, setStreamDone] = useState(false);
+  // Tracks moderation outcome for the current stream — set by the SSE
+  // 'moderation' event when the prompt is refused.
+  const [moderationOutcome, setModerationOutcome] = useState<
+    null | { outcome: string; category: string }
+  >(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
@@ -112,6 +127,7 @@ export default function InquiryDetail() {
     setStreaming(true);
     setStreamedText("");
     setStreamDone(false);
+    setModerationOutcome(null);
 
     const abort = new AbortController();
     abortRef.current = abort;
@@ -139,10 +155,44 @@ export default function InquiryDetail() {
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
 
+        let pendingEvent: string | null = null;
         for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            pendingEvent = line.slice(7).trim();
+            if (pendingEvent === "done") {
+              setStreamDone(true);
+              setStreaming(false);
+              setInquiry((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      status: moderationOutcome ? "REFUSED" : "AI_RESPONDED",
+                    }
+                  : prev,
+              );
+            }
+            continue;
+          }
           if (line.startsWith("data: ")) {
             try {
-              const payload = JSON.parse(line.slice(6)) as { token?: string; done?: boolean; error?: string };
+              const payload = JSON.parse(line.slice(6)) as {
+                token?: string;
+                done?: boolean;
+                error?: string;
+                outcome?: string;
+                category?: string;
+              };
+              if (pendingEvent === "moderation") {
+                if (payload.outcome && payload.category) {
+                  setModerationOutcome({
+                    outcome: payload.outcome,
+                    category: payload.category,
+                  });
+                }
+                pendingEvent = null;
+                continue;
+              }
+              pendingEvent = null;
               if (payload.error) {
                 setError(payload.error);
                 setStreaming(false);
@@ -160,14 +210,8 @@ export default function InquiryDetail() {
               }
             } catch {
               // ignore malformed SSE lines
+              pendingEvent = null;
             }
-          }
-          if (line.startsWith("event: done")) {
-            setStreamDone(true);
-            setStreaming(false);
-            setInquiry((prev) =>
-              prev ? { ...prev, status: "AI_RESPONDED" } : prev,
-            );
           }
         }
       }
@@ -344,6 +388,28 @@ export default function InquiryDetail() {
             </button>
           )}
         </div>
+
+        {/* Always-visible safety/accuracy disclaimer */}
+        <div
+          data-testid="ai-disclaimer"
+          className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800"
+        >
+          <strong>Heads up:</strong> {AI_DISCLAIMER_TEXT}
+        </div>
+
+        {/* Moderation refusal banner */}
+        {moderationOutcome && moderationOutcome.outcome === "REFUSE" && (
+          <div
+            data-testid="ai-refusal"
+            className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+          >
+            <strong>EduMatch AI declined this request.</strong>{" "}
+            <span className="text-red-700">
+              Category: {moderationOutcome.category}. The message below explains
+              what we can help with instead.
+            </span>
+          </div>
+        )}
 
         {hasAiResponse ? (
           <div

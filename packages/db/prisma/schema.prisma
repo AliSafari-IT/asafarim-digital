@@ -61,16 +61,20 @@ model User {
   contentTypeDefinitions ContentTypeDefinition[]
 
   // EduMatch
-  eduStudentProfile  EduStudentProfile?
-  eduTutorProfile    EduTutorProfile?
-  eduInquiries       EduInquiry[]
-  eduQuotes          EduQuote[]
-  eduStudentBookings EduBooking[]       @relation("EduBookingStudent")
-  eduTutorBookings   EduBooking[]       @relation("EduBookingTutor")
-  eduTransactions    EduTransaction[]
-  eduWallet          EduWallet?
-  eduNotifications   EduNotification[]
-  eduMessages        EduMessage[]
+  eduStudentProfile      EduStudentProfile?
+  eduTutorProfile        EduTutorProfile?
+  eduInquiries           EduInquiry[]
+  eduQuotes              EduQuote[]
+  eduStudentBookings     EduBooking[]              @relation("EduBookingStudent")
+  eduTutorBookings       EduBooking[]              @relation("EduBookingTutor")
+  eduTransactions        EduTransaction[]
+  eduWallet              EduWallet?
+  eduNotifications       EduNotification[]
+  eduMessages            EduMessage[]
+  eduNotificationPrefs   EduNotificationPreference?
+  eduTutorVerifications  EduTutorVerification[]    @relation("EduTutorVerificationTutor")
+  eduTutorVerificationsReviewed EduTutorVerification[] @relation("EduTutorVerificationReviewer")
+  eduAuditEventsActor    EduAuditEvent[]           @relation("EduAuditActor")
 
   // Generic user locations (home, work, etc.) - reusable across all apps
   locations UserLocation[]
@@ -806,7 +810,14 @@ model EduInquiry {
   description String  @db.Text
   attachments Json? // [{ type, url, mime, sizeBytes }]
   aiSummary   String? @db.Text
-  status      String  @default("NEW") // NEW, AI_RESPONDED, TUTOR_REQUESTED, BOOKED, CLOSED
+  status      String  @default("NEW") // NEW, AI_RESPONDED, TUTOR_REQUESTED, BOOKED, CLOSED, REFUSED
+
+  // Moderation snapshot taken at the time of inquiry/AI generation. Null until
+  // a moderation decision has been made. Decisions are also logged on each
+  // EduAiResponse so we keep history if the inquiry is re-asked.
+  moderationOutcome  String? // ALLOW, REVIEW, REFUSE
+  moderationCategory String? // CHEATING, EXAM_BYPASS, PLAGIARISM, UNSAFE_PERSONAL, OTHER, NONE
+  moderationReason   String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -819,6 +830,7 @@ model EduInquiry {
   @@index([status])
   @@index([subject])
   @@index([createdAt])
+  @@index([moderationOutcome])
 }
 
 model EduAiResponse {
@@ -837,12 +849,19 @@ model EduAiResponse {
   truncated        Boolean @default(false)
   stopReason       String?
 
+  // Moderation snapshot for this specific generation attempt. ALLOW responses
+  // contain regular AI output; REFUSE responses contain a redirection message.
+  moderationOutcome  String? // ALLOW, REVIEW, REFUSE
+  moderationCategory String? // CHEATING, EXAM_BYPASS, PLAGIARISM, UNSAFE_PERSONAL, OTHER, NONE
+  moderationReason   String? @db.Text
+
   createdAt DateTime @default(now())
 
   inquiry EduInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
 
   @@index([inquiryId])
   @@index([createdAt])
+  @@index([moderationOutcome])
 }
 
 model EduQuoteRequest {
@@ -987,6 +1006,112 @@ model EduMessage {
 
   @@index([bookingId])
   @@index([senderId])
+  @@index([createdAt])
+}
+
+// ─── EduMatch trust & safety ──────────────────────────────────────────────
+//
+// EduTutorProfile.verifiedAt remains the canonical "is verified now?" field.
+// EduTutorVerification records the workflow around it: each review attempt,
+// the checklist results, admin notes, and the resolution. The current row
+// (latest by createdAt) holds the active workflow status; older rows preserve
+// audit history. A tutor is verified when their profile has verifiedAt set,
+// which is written by the admin verification routes when status -> VERIFIED.
+
+model EduTutorVerification {
+  id         String @id @default(cuid())
+  tutorId    String
+  reviewerId String?
+
+  // Workflow status for this review iteration.
+  status String @default("PENDING") // PENDING, NEEDS_CHANGES, VERIFIED, REJECTED
+
+  // Optional structured checklist outcome.
+  // Shape (free-form JSON): {
+  //   identityVerified: boolean,
+  //   credentialsVerified: boolean,
+  //   backgroundCheck: boolean,
+  //   profileComplete: boolean,
+  //   notes?: string,
+  // }
+  checklist Json?
+
+  // Free-form admin notes shown only to admins.
+  adminNotes String? @db.Text
+
+  // If status === NEEDS_CHANGES, this is the message shown to the tutor.
+  tutorMessage String? @db.Text
+
+  // When the review was resolved (VERIFIED, REJECTED, or NEEDS_CHANGES sent).
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tutor    User  @relation("EduTutorVerificationTutor", fields: [tutorId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("EduTutorVerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([tutorId])
+  @@index([status])
+  @@index([reviewerId])
+  @@index([createdAt])
+}
+
+// User-level notification preferences for EduMatch domain events. Created
+// lazily on first lookup; absence of a row means "all defaults" (everything
+// in-app, email enabled where the dispatcher considers it safe).
+model EduNotificationPreference {
+  userId String @id
+
+  // In-app delivery toggles.
+  inAppInquiryReceived    Boolean @default(true)
+  inAppAiResponseReady    Boolean @default(true)
+  inAppQuoteReceived      Boolean @default(true)
+  inAppBookingConfirmed   Boolean @default(true)
+  inAppCancellationUpdate Boolean @default(true)
+  inAppDisputeUpdate      Boolean @default(true)
+  inAppPayoutSent         Boolean @default(true)
+
+  // Email delivery toggles. Defaults are conservative — opt-in for marketing-
+  // adjacent flows, opt-out for transactional safety flows.
+  emailInquiryReceived    Boolean @default(true)
+  emailAiResponseReady    Boolean @default(false)
+  emailQuoteReceived      Boolean @default(true)
+  emailBookingConfirmed   Boolean @default(true)
+  emailCancellationUpdate Boolean @default(true)
+  emailDisputeUpdate      Boolean @default(true)
+  emailPayoutSent         Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Append-only audit trail for EduMatch state changes. Distinct from the
+// generic AuditLog so EduMatch flows can record domain-specific transitions
+// (prevState → nextState) without polluting the platform-wide log. The
+// generic AuditLog remains in use elsewhere.
+model EduAuditEvent {
+  id         String  @id @default(cuid())
+  actorId    String? // null for system events (e.g. webhook-driven payouts)
+  actorRole  String? // STUDENT, TUTOR, ADMIN, SYSTEM
+  action     String // INQUIRY_CREATED, AI_RESPONSE_GENERATED, AI_RESPONSE_REFUSED, ...
+  entity     String // EduInquiry, EduAiResponse, EduQuote, EduBooking, EduTutorProfile, ...
+  entityId   String?
+  prevState  String?
+  nextState  String?
+  reason     String? @db.Text
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  actor User? @relation("EduAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
   @@index([createdAt])
 }
 
