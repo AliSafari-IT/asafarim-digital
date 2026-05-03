@@ -4,12 +4,22 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { SystemHealthPanel } from "@/components/SystemHealthPanel";
 import { formatMoney, formatNumber, formatRelative } from "@/lib/format";
 import { getSystemHealth } from "@/lib/system-health";
+import { requireOps, ForbiddenError } from "@/lib/rbac";
 import Link from "next/link";
 import LiveTimeDisplay from "./LiveTimeDisplay";
 
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
+  // Check ops permissions
+  try {
+    await requireOps("read");
+  } catch (e) {
+    if (e instanceof ForbiddenError) {
+      throw e;
+    }
+    throw e;
+  }
   const [
     totalTenants,
     activeTenants,

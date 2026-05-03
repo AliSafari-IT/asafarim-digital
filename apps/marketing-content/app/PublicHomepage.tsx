@@ -2,69 +2,92 @@
 
 import { useState } from "react";
 import {
-  Activity,
-  Shield,
-  Users,
-  CreditCard,
-  Flag,
-  History,
+  Megaphone,
+  Calendar,
+  Search,
+  Target,
   Zap,
+  BarChart3,
   ArrowRight,
   CheckCircle,
   Lock,
-  Server,
-  BarChart3,
+  Layout,
+  FileText,
+  TrendingUp,
 } from "lucide-react";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
-const currentAppUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL || "http://localhost:3003";
+const currentAppUrl = process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "http://localhost:3004";
 
 const features = [
   {
-    icon: Activity,
-    title: "Tenant Monitoring",
-    description: "Track tenant health, status, and lifecycle from trial to churn. Spot at-risk accounts before they leave.",
-    accent: "from-indigo-500 to-cyan-400",
+    icon: Megaphone,
+    title: "Campaign Planning",
+    description: "Plan and track marketing campaigns from ideation to launch. Coordinate messaging, channels, and timelines.",
+    accent: "from-purple-500 to-pink-400",
   },
   {
-    icon: CreditCard,
-    title: "Billing Visibility",
-    description: "Monitor MRR, subscriptions, invoices, and payment status. Connect to Stripe for real-time revenue data.",
-    accent: "from-cyan-400 to-emerald-400",
+    icon: Calendar,
+    title: "Content Calendar",
+    description: "Organize content work across channels. Schedule blog posts, social media, email sequences, and more.",
+    accent: "from-pink-400 to-rose-400",
   },
   {
-    icon: Users,
-    title: "User Lifecycle",
-    description: "Track user onboarding, activity, and churn. Understand how customers move through your product.",
-    accent: "from-emerald-400 to-amber-400",
+    icon: Search,
+    title: "SEO Visibility",
+    description: "Track keyword opportunities, content gaps, and search performance. Build data-driven SEO roadmaps.",
+    accent: "from-rose-400 to-orange-400",
   },
   {
-    icon: Flag,
-    title: "Feature Flags",
-    description: "Control rollouts, kill switches, and tenant-specific overrides. Manage risk during deployments.",
-    accent: "from-amber-400 to-rose-400",
+    icon: Target,
+    title: "Lead Tracking",
+    description: "Monitor lead flow from campaigns. Track conversion rates, pipeline velocity, and attribution.",
+    accent: "from-orange-400 to-amber-400",
   },
   {
     icon: Zap,
     title: "Automation Monitoring",
-    description: "Watch automation health, track runs, and review failures. Ensure operational jobs run smoothly.",
-    accent: "from-rose-400 to-violet-400",
+    description: "Watch marketing automations, email sequences, and nurture flows. Identify and fix dropped leads.",
+    accent: "from-amber-400 to-yellow-400",
   },
   {
-    icon: History,
-    title: "Audit History",
-    description: "Immutable log of operator actions. Know who changed what, when, and why across all operations.",
-    accent: "from-violet-400 to-indigo-500",
+    icon: BarChart3,
+    title: "Performance Analytics",
+    description: "Review campaign ROI, content engagement, and growth metrics. Make data-driven decisions.",
+    accent: "from-yellow-400 to-green-400",
   },
 ];
 
 const capabilities = [
-  { title: "Churn Risk Detection", description: "AI-assisted risk signals" },
-  { title: "Revenue Analytics", description: "MRR, ARR, plan mix" },
-  { title: "Subscription Health", description: "Status and renewal tracking" },
-  { title: "Invoice Management", description: "Open, paid, and past-due" },
-  { title: "Usage Metrics", description: "Weekly and monthly rollups" },
-  { title: "System Health", description: "Service status and alerts" },
+  { title: "Campaign Roadmaps", description: "Visual planning tools" },
+  { title: "Content Scheduling", description: "Multi-channel calendar" },
+  { title: "Keyword Tracking", description: "SEO opportunity monitoring" },
+  { title: "Lead Attribution", description: "Source-to-revenue tracking" },
+  { title: "Automation Health", description: "Flow monitoring and alerts" },
+  { title: "Growth Dashboards", description: "KPIs and performance trends" },
+];
+
+const useCases = [
+  {
+    title: "Launch Campaign Planning",
+    description: "Coordinate messaging, assets, and channels for product launches and seasonal campaigns.",
+  },
+  {
+    title: "Weekly Content Calendar",
+    description: "Plan and schedule blog posts, social content, and email newsletters in one place.",
+  },
+  {
+    title: "SEO Content Backlog",
+    description: "Track keyword opportunities and prioritize content that drives organic growth.",
+  },
+  {
+    title: "Lead Follow-up Workflow",
+    description: "Monitor lead handoffs from marketing to sales and ensure no prospects fall through cracks.",
+  },
+  {
+    title: "Campaign Performance Review",
+    description: "Analyze campaign results, ROI, and engagement to refine strategy for future initiatives.",
+  },
 ];
 
 export function PublicHomepage() {
@@ -78,36 +101,36 @@ export function PublicHomepage() {
       {/* Background gradients */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(99,102,241,0.15),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(34,211,238,0.12),transparent_38%),radial-gradient(circle_at_50%_85%,rgba(168,85,247,0.10),transparent_40%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(168,85,247,0.15),transparent_40%),radial-gradient(circle_at_85%_10%,rgba(236,72,153,0.12),transparent_38%),radial-gradient(circle_at_50%_85%,rgba(251,191,36,0.10),transparent_40%)]"
       />
 
       {/* Hero Section */}
       <section className="mx-auto w-full max-w-7xl px-6 pt-16 sm:pt-24">
         <div className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-glass)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            SaaS Operations Console
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
+            Growth Workspace
           </span>
 
           <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
-            The control room for your{" "}
-            <span className="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-              SaaS business
+            The command center for{" "}
+            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+              marketing operations
             </span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
-            Monitor tenants, track revenue, manage rollouts, and run operations from one console. 
-            Built for operators who need answers fast.
+            Plan campaigns, organize content, track SEO, monitor leads, and review performance. 
+            Built for marketers who need visibility across the entire growth funnel.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
               href={signInUrl}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition hover:brightness-110"
             >
               <Lock className="h-4 w-4" />
-              Sign In to Console
+              Sign In to Workspace
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
@@ -119,8 +142,8 @@ export function PublicHomepage() {
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-xs text-[var(--color-text-subtle)]">
-            <Shield className="h-3 w-3" />
-            <span>Protected operator access required</span>
+            <Target className="h-3 w-3" />
+            <span>Protected workspace for marketing teams</span>
           </div>
         </div>
       </section>
@@ -128,7 +151,7 @@ export function PublicHomepage() {
       {/* Features Grid */}
       <section className="mx-auto mt-20 w-full max-w-7xl px-6">
         <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight">
-          Everything an operator needs
+          Everything a marketer needs
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
@@ -164,11 +187,34 @@ export function PublicHomepage() {
               key={cap.title}
               className="flex items-start gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 transition hover:border-[var(--color-primary)]"
             >
-              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+              <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-400" />
               <div>
                 <h3 className="text-sm font-semibold">{cap.title}</h3>
                 <p className="text-xs text-[var(--color-text-secondary)]">{cap.description}</p>
               </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Use Cases */}
+      <section className="mx-auto mt-16 w-full max-w-7xl px-6">
+        <h2 className="mb-8 text-center text-2xl font-semibold tracking-tight">
+          How teams use it
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {useCases.map((useCase) => (
+            <div
+              key={useCase.title}
+              className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-6 transition hover:border-[var(--color-primary)]"
+            >
+              <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-surface)]">
+                <FileText className="h-4 w-4 text-[var(--color-primary)]" />
+              </div>
+              <h3 className="text-sm font-semibold tracking-tight">{useCase.title}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+                {useCase.description}
+              </p>
             </div>
           ))}
         </div>
@@ -185,26 +231,28 @@ export function PublicHomepage() {
               Why is sign-in required?
             </h2>
             <p className="mt-3 text-[var(--color-text-secondary)]">
-              Ops Hub contains sensitive business, customer, billing, and operational data. 
-              Access is restricted to authorized operators with proper permissions.
+              Marketing + Content contains sensitive campaign data, content strategies, lead information, 
+              and performance analytics. Access is restricted to authorized users to protect competitive 
+              intelligence and customer data.
             </p>
 
             <div className="mt-8 grid gap-4 text-left sm:grid-cols-2">
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
                 <h3 className="text-sm font-semibold">Protected Data</h3>
                 <ul className="mt-2 space-y-1 text-xs text-[var(--color-text-secondary)]">
-                  <li>• Tenant business information</li>
-                  <li>• Revenue and billing data</li>
-                  <li>• User and customer records</li>
-                  <li>• Feature flag configurations</li>
+                  <li>• Campaign roadmaps and strategies</li>
+                  <li>• Content calendars and assets</li>
+                  <li>• SEO keyword research</li>
+                  <li>• Lead and pipeline data</li>
                 </ul>
               </div>
               <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-                <h3 className="text-sm font-semibold">Required Roles</h3>
+                <h3 className="text-sm font-semibold">Available To</h3>
                 <ul className="mt-2 space-y-1 text-xs text-[var(--color-text-secondary)]">
-                  <li>• ops_viewer — Read-only access</li>
-                  <li>• ops_admin — Full console access</li>
-                  <li>• superadmin — All permissions</li>
+                  <li>• All authenticated portal users</li>
+                  <li>• Marketing team members</li>
+                  <li>• Growth operators</li>
+                  <li>• Content strategists</li>
                 </ul>
               </div>
             </div>
@@ -212,7 +260,7 @@ export function PublicHomepage() {
             <div className="mt-8">
               <a
                 href={registerUrl}
-                className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:brightness-110"
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/25 transition hover:brightness-110"
               >
                 Request Access
                 <ArrowRight className="h-4 w-4" />
@@ -226,7 +274,7 @@ export function PublicHomepage() {
       <footer className="mx-auto mt-16 w-full max-w-7xl px-6 pb-16">
         <div className="flex flex-col items-center justify-between gap-4 border-t border-[var(--color-border)] pt-8 sm:flex-row">
           <div className="flex items-center gap-2">
-            <Server className="h-4 w-4 text-[var(--color-text-secondary)]" />
+            <TrendingUp className="h-4 w-4 text-[var(--color-text-secondary)]" />
             <span className="text-sm text-[var(--color-text-secondary)]">
               Part of the ASafariM Portal ecosystem
             </span>
@@ -237,8 +285,8 @@ export function PublicHomepage() {
             </a>
             <span>·</span>
             <span className="flex items-center gap-1">
-              <BarChart3 className="h-3 w-3" />
-              Operator Console
+              <Layout className="h-3 w-3" />
+              Growth Workspace
             </span>
           </div>
         </div>

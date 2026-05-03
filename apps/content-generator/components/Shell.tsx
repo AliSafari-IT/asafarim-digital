@@ -21,6 +21,7 @@ const nav = [
 ];
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator-qa.asafarim.com";
 
 function GeneratorIcon() {
   return (
@@ -224,11 +225,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
               {t("cg.header.aiEngine")}
             </span>
-            <NotificationsBell />
+            {session?.user && <NotificationsBell />}
             <CountryLanguageSelector />
             <ThemeToggle />
             <AppSwitcher current="content-generator" />
-            <UserMenu />
+            {session?.user ? (
+              <UserMenu />
+            ) : (
+              <a
+                href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(contentGeneratorUrl + "/")}`}
+                className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Sign in
+              </a>
+            )}
           </div>
         </header>
 
