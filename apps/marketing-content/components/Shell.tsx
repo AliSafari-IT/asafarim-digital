@@ -521,7 +521,7 @@ function UserMenu({ user }: { user: { name: string | null; email: string } }) {
                 type="button"
                 onClick={async () => {
                   setOpen(false);
-                  await signOut({ callbackUrl: portalUrl });
+                  await signOut({ callbackUrl: marketingContentUrl });
                 }}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-300 transition hover:bg-rose-500/10"
               >
