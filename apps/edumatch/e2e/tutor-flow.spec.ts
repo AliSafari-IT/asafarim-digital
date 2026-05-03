@@ -24,7 +24,7 @@ test.describe('Tutor Flow', () => {
     const emptyState = page.getByText('No quote requests');
     const requestCard = page.locator('[data-testid="quote-request-card"]');
     
-    await expect(emptyState.or(requestCard.first)).toBeVisible();
+    await expect(emptyState.or(requestCard.first())).toBeVisible();
   });
 
   test('tutor can view wallet and transactions', async ({ page }) => {

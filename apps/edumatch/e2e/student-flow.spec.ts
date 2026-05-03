@@ -56,6 +56,6 @@ test.describe('Student Flow', () => {
     const emptyState = page.getByText('No questions yet');
     const inquiryList = page.locator('[data-testid="inquiry-card"]');
     
-    await expect(emptyState.or(inquiryList.first)).toBeVisible();
+    await expect(emptyState.or(inquiryList.first())).toBeVisible();
   });
 });

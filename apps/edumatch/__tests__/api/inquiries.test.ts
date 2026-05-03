@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createMocks } from 'node-mocks-http';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@asafarim/db';
 import { POST as createInquiry } from '@/app/api/inquiries/route';
 
 describe('Inquiries API', () => {
