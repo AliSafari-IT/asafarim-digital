@@ -18,6 +18,8 @@ function isTrustedCallbackOrigin(origin: string): boolean {
   const allowList = [
     process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL,
     process.env.NEXT_PUBLIC_PORTAL_URL,
+    process.env.NEXT_PUBLIC_OPS_HUB_URL,
+    process.env.NEXT_PUBLIC_EDUMATCH_URL,
   ]
     .filter((value): value is string => Boolean(value))
     .map((value) => {

@@ -62,7 +62,7 @@ importers:
         version: 9.39.4(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.3
-        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.2.3(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       postcss:
         specifier: ^8.5.0
         version: 8.5.9
@@ -168,7 +168,7 @@ importers:
         version: 9.39.4(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.3
-        version: 16.2.3(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
+        version: 16.2.3(@typescript-eslint/parser@8.58.2(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       node-mocks-http:
         specifier: ^1.15.1
         version: 1.17.2(@types/node@22.19.17)
@@ -248,6 +248,9 @@ importers:
       '@asafarim/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      lucide-react:
+        specifier: ^0.462.0
+        version: 0.462.0(react@19.2.5)
       next:
         specifier: ^15.3.0
         version: 15.5.15(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)

@@ -4,6 +4,8 @@ Internal operator console for managing a SaaS business across tenants, users,
 subscriptions, feature access, lifecycle state, metrics, automations, and audit
 history.
 
+Full roadmap: [docs/ops-hub-project-plan.md](../../docs/ops-hub-project-plan.md)
+
 ## Status
 
 Current state: operator MVP.
