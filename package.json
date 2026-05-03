@@ -11,6 +11,12 @@
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
     "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch",
+    "db:generate": "pnpm --filter @asafarim/db prisma generate",
+    "db:migrate": "pnpm --filter @asafarim/db prisma migrate dev",
+    "db:studio": "pnpm --filter @asafarim/db prisma studio",
+    "db:push": "pnpm --filter @asafarim/db prisma db push",
+    "db:reset": "pnpm --filter @asafarim/db prisma db reset",
+    "rs": "pnpm onVPS:dockerRestart",
     "onVPS:dockerDown": "docker compose down",
     "seed": "turbo seed"
   },
