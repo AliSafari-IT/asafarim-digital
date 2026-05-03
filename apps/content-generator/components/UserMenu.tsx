@@ -14,6 +14,7 @@ interface AvatarProps {
 }
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator-qa.asafarim.com";
 
 function resolveSharedAvatarSrc(src?: string | null) {
   if (!src) return null;
@@ -143,10 +144,10 @@ export function UserMenu() {
               onClick={async () => {
                 try {
                   setOpen(false);
-                  await signOut({ callbackUrl: portalUrl });
+                  await signOut({ callbackUrl: contentGeneratorUrl });
                 } catch (error) {
                   console.error("Sign out error:", error);
-                  window.location.href = portalUrl;
+                  window.location.href = contentGeneratorUrl;
                 }
               }}
               className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-[var(--color-danger)] transition hover:bg-[var(--color-danger)]/10"

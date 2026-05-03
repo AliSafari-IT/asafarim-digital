@@ -266,10 +266,19 @@ export function Shell({
                 <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse" />
                 Growth Engine
               </span>
-              <NotificationsBell />
+              {user.email && <NotificationsBell />}
               <ThemeToggle />
               <AppSwitcher current="marketing-content" variant="compact"/>
-              <UserMenu user={user} />
+              {user.email ? (
+                <UserMenu user={user} />
+              ) : (
+                <a
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(marketingContentUrl + "/")}`}
+                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Sign in
+                </a>
+              )}
             </div>
           </header>
 
@@ -512,7 +521,7 @@ function UserMenu({ user }: { user: { name: string | null; email: string } }) {
                 type="button"
                 onClick={async () => {
                   setOpen(false);
-                  await signOut({ callbackUrl: portalUrl });
+                  await signOut({ callbackUrl: marketingContentUrl });
                 }}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-300 transition hover:bg-rose-500/10"
               >

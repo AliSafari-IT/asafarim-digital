@@ -239,23 +239,34 @@ export function Shell({ children, user }: { children: React.ReactNode; user: { n
             </button>
 
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden items-center gap-1 xl:flex">
-                {user?.roles
-                  .filter((r) => r.startsWith("ops_") || r === "superadmin")
-                  .slice(0, 2)
-                  .map((r) => (
-                    <span
-                      key={r}
-                      className="rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]"
-                    >
-                      {r.replace(/_/g, " ")}
-                    </span>
-                  ))}
-              </div>
-              <NotificationsBell />
+              {user.email && (
+                <div className="hidden items-center gap-1 xl:flex">
+                  {user.roles
+                    .filter((r) => r.startsWith("ops_") || r === "superadmin")
+                    .slice(0, 2)
+                    .map((r) => (
+                      <span
+                        key={r}
+                        className="rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]"
+                      >
+                        {r.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                </div>
+              )}
+              {user.email && <NotificationsBell />}
               <ThemeToggle />
               <AppSwitcher current="ops-hub" variant="default"/>
-              <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
+              {user.email ? (
+                <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
+              ) : (
+                <a
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubUrl + "/")}`}
+                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Sign in
+                </a>
+              )}
             </div>
           </header>
 
@@ -487,7 +498,7 @@ function UserMenu({ user }: { user: { name: string | null; email: string; roles:
                 type="button"
                 onClick={async () => {
                   setOpen(false);
-                  await signOut({ callbackUrl: portalUrl });
+                  await signOut({ callbackUrl: opsHubUrl });
                 }}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-rose-300 transition hover:bg-rose-500/10"
               >
