@@ -7,6 +7,11 @@
 
 import { prisma } from "@asafarim/db";
 import { Resend } from "resend";
+import {
+  shouldDeliver,
+  shouldDeliverWith,
+  type NotificationEvent,
+} from "./notification-preferences";
 
 // Notification types
 export type NotificationType =
@@ -15,8 +20,41 @@ export type NotificationType =
   | "QUOTE_ACCEPTED"
   | "QUOTE_DECLINED"
   | "BOOKING_CONFIRMED"
+  | "BOOKING_CANCELLED"
+  | "BOOKING_DISPUTED"
+  | "DISPUTE_RESOLVED"
   | "AI_RESPONSE_READY"
   | "PAYOUT_SENT";
+
+/**
+ * Map low-level notification types to high-level event categories used by
+ * the preference system.
+ */
+export function eventForNotificationType(
+  type: NotificationType,
+): NotificationEvent | null {
+  switch (type) {
+    case "QUOTE_REQUEST_CREATED":
+      return "INQUIRY_RECEIVED";
+    case "QUOTE_SUBMITTED":
+    case "QUOTE_ACCEPTED":
+    case "QUOTE_DECLINED":
+      return "QUOTE_RECEIVED";
+    case "BOOKING_CONFIRMED":
+      return "BOOKING_CONFIRMED";
+    case "BOOKING_CANCELLED":
+      return "CANCELLATION_UPDATE";
+    case "BOOKING_DISPUTED":
+    case "DISPUTE_RESOLVED":
+      return "DISPUTE_UPDATE";
+    case "AI_RESPONSE_READY":
+      return "AI_RESPONSE_READY";
+    case "PAYOUT_SENT":
+      return "PAYOUT_SENT";
+    default:
+      return null;
+  }
+}
 
 export type NotificationPayload = {
   title: string;
@@ -32,6 +70,12 @@ export async function createNotification(
   type: NotificationType,
   payload: NotificationPayload,
 ): Promise<void> {
+  // Respect per-user in-app preference. Unknown types default to delivered.
+  const event = eventForNotificationType(type);
+  if (event) {
+    const ok = await shouldDeliver(userId, event, "inApp");
+    if (!ok) return;
+  }
   await prisma.eduNotification.create({
     data: {
       userId,
@@ -48,8 +92,24 @@ export async function createNotificationsForMany(
   payload: NotificationPayload,
 ): Promise<void> {
   if (userIds.length === 0) return;
+  const event = eventForNotificationType(type);
+
+  let recipients = userIds;
+  if (event) {
+    // Filter recipients by their in-app preference. Single bulk fetch.
+    const prefs = await prisma.eduNotificationPreference.findMany({
+      where: { userId: { in: userIds } },
+    });
+    const denied = new Set<string>();
+    for (const p of prefs) {
+      if (!shouldDeliverWith(p as never, event, "inApp")) denied.add(p.userId);
+    }
+    recipients = userIds.filter((id) => !denied.has(id));
+    if (recipients.length === 0) return;
+  }
+
   await prisma.eduNotification.createMany({
-    data: userIds.map((userId) => ({
+    data: recipients.map((userId) => ({
       userId,
       type,
       payload,
@@ -127,6 +187,23 @@ async function sendEmail(template: EmailTemplate): Promise<void> {
   }
 }
 
+/**
+ * Send an email respecting the recipient's preference for the given event.
+ * Resolves the user's preferences via their email and skips delivery if
+ * they've opted out of email for that event.
+ */
+async function sendEmailForEvent(
+  userId: string | null,
+  event: NotificationEvent | null,
+  template: EmailTemplate,
+): Promise<void> {
+  if (userId && event) {
+    const ok = await shouldDeliver(userId, event, "email");
+    if (!ok) return;
+  }
+  await sendEmail(template);
+}
+
 // ─── Domain Event Helpers ────────────────────────────────────────────────────
 
 /**
@@ -160,7 +237,7 @@ export async function notifyTutorsOfQuoteRequest(opts: {
 
   for (const tutor of tutors) {
     if (!tutor.email) continue;
-    void sendEmail({
+    void sendEmailForEvent(tutor.id, "INQUIRY_RECEIVED", {
       to: tutor.email,
       subject: `New quote request: ${subject}`,
       html: `
@@ -202,7 +279,7 @@ export async function notifyStudentOfQuoteSubmitted(opts: {
   await createNotification(studentId, "QUOTE_SUBMITTED", payload);
 
   if (studentEmail) {
-    void sendEmail({
+    void sendEmailForEvent(studentId, "QUOTE_RECEIVED", {
       to: studentEmail,
       subject: `New quote for your ${subject} inquiry`,
       html: `
@@ -242,7 +319,7 @@ export async function notifyTutorOfQuoteAccepted(opts: {
   await createNotification(tutorId, "QUOTE_ACCEPTED", payload);
 
   if (tutorEmail) {
-    void sendEmail({
+    void sendEmailForEvent(tutorId, "BOOKING_CONFIRMED", {
       to: tutorEmail,
       subject: `Booking confirmed: ${subject}`,
       html: `

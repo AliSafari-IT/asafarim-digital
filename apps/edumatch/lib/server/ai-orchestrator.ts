@@ -17,6 +17,12 @@
 
 import { prisma } from "@asafarim/db";
 import { objectExists } from "./storage";
+import {
+  moderatePrompt,
+  moderationAllowsGeneration,
+  type ModerationDecision,
+} from "./moderation";
+import { recordEduAuditEvent } from "./audit";
 
 const OPENAI_VISION_MODEL = process.env.OPENAI_MODEL_VISION ?? "gpt-4o";
 const OPENAI_CHAT_MODEL = process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini";
@@ -280,6 +286,59 @@ export async function orchestrateResponse(
   const baseDescription = inquiry.description + audioText;
   const systemPrompt = DEFAULT_SYSTEM_PROMPT;
 
+  // 2a) Moderation pre-check. If REFUSE, short-circuit and persist a
+  // refusal-only EduAiResponse + update inquiry without ever calling the
+  // provider. The student-facing redirection message is what gets stored.
+  const moderation: ModerationDecision = moderatePrompt(baseDescription);
+  if (!moderationAllowsGeneration(moderation)) {
+    const refusalOutput =
+      moderation.redirectMessage ??
+      "EduMatch AI couldn't safely respond to that prompt. Please rephrase.";
+
+    const refusalRow = await prisma.eduAiResponse.create({
+      data: {
+        inquiryId,
+        modelUsed: "moderation",
+        promptVersion: "v1",
+        explanation: refusalOutput,
+        moderationOutcome: moderation.outcome,
+        moderationCategory: moderation.category,
+        moderationReason: moderation.reason,
+      },
+      select: { id: true },
+    });
+
+    await prisma.eduInquiry.update({
+      where: { id: inquiryId },
+      data: {
+        status: "REFUSED",
+        aiSummary: refusalOutput.slice(0, 500),
+        moderationOutcome: moderation.outcome,
+        moderationCategory: moderation.category,
+        moderationReason: moderation.reason,
+      },
+    });
+
+    await recordEduAuditEvent({
+      actorId: inquiry.studentId,
+      actorRole: "STUDENT",
+      action: "AI_RESPONSE_REFUSED",
+      entity: "EduInquiry",
+      entityId: inquiryId,
+      prevState: inquiry.status,
+      nextState: "REFUSED",
+      reason: `${moderation.category}: ${moderation.reason}`,
+    });
+
+    return {
+      output: refusalOutput,
+      provider: "openai",
+      model: "moderation",
+      latencyMs: 0,
+      responseId: refusalRow.id,
+    } as AiResponseResult & { responseId?: string };
+  }
+
   // Try OpenAI first (with vision if images present)
   let result: AiResponseResult;
   const errors: string[] = [];
@@ -314,7 +373,7 @@ export async function orchestrateResponse(
     }
   }
 
-  // Persist
+  // Persist (with moderation snapshot — ALLOW or REVIEW for non-refused).
   const responseRow = await prisma.eduAiResponse.create({
     data: {
       inquiryId,
@@ -327,6 +386,9 @@ export async function orchestrateResponse(
       totalTokens: "error" in result ? undefined : result.totalTokens,
       truncated: "error" in result ? false : result.truncated,
       stopReason: "error" in result ? undefined : result.stopReason,
+      moderationOutcome: moderation.outcome,
+      moderationCategory: moderation.category,
+      moderationReason: moderation.reason,
     },
     select: { id: true },
   });
@@ -335,7 +397,25 @@ export async function orchestrateResponse(
   if (!("error" in result)) {
     await prisma.eduInquiry.update({
       where: { id: inquiryId },
-      data: { status: "AI_RESPONDED", aiSummary: result.output.slice(0, 500) },
+      data: {
+        status: "AI_RESPONDED",
+        aiSummary: result.output.slice(0, 500),
+        moderationOutcome: moderation.outcome,
+        moderationCategory: moderation.category,
+        moderationReason: moderation.reason,
+      },
+    });
+
+    await recordEduAuditEvent({
+      actorId: inquiry.studentId,
+      actorRole: "STUDENT",
+      action: "AI_RESPONSE_GENERATED",
+      entity: "EduAiResponse",
+      entityId: responseRow.id,
+      prevState: inquiry.status,
+      nextState: "AI_RESPONDED",
+      reason: moderation.outcome === "REVIEW" ? `borderline: ${moderation.category}` : undefined,
+      metadata: { provider: result.provider, model: result.model },
     });
   }
 
