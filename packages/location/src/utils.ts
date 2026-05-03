@@ -146,14 +146,11 @@ export function parseAddress(formatted: string): {
 /**
  * Get timezone from coordinates using browser API (if available)
  * Note: This is a client-side only function
+ * TODO: Implement coords-based timezone lookup using an API like Google Time Zone
  */
-export function getTimezoneFromCoords(lat: number, lng: number): string | null {
+export function getTimezoneFromCoords(): string | null {
   // Intl.DateTimeFormat can guess timezone from coords in modern browsers
   try {
-    const formatter = new Intl.DateTimeFormat("en", {
-      timeZone: undefined,
-      timeZoneName: "short",
-    });
     // This returns the system's timezone, not coords-based
     // For coords-based, you'd need a timezone API like Google Time Zone
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
