@@ -17,7 +17,8 @@ import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
 import { usePathname } from "next/navigation";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
 // Theme toggle component
 function ThemeToggle() {
@@ -194,10 +195,10 @@ function UserMenu() {
               type="button"
               onClick={async () => {
                 try {
-                  await signOut({ callbackUrl: "/" });
+                  await signOut({ callbackUrl: edumatchUrl });
                 } catch (error) {
                   console.error("Sign out error:", error);
-                  window.location.href = "/";
+                  window.location.href = edumatchUrl;
                 }
               }}
               className="cursor-pointer rounded-xl px-4 py-2.5 text-left text-sm font-medium text-red-500 transition hover:bg-[var(--color-surface)]"
