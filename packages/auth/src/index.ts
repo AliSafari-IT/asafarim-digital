@@ -9,7 +9,8 @@ function getCookieDomain(): string | undefined {
   const domain = process.env.AUTH_COOKIE_DOMAIN;
   if (domain) return domain;
   if (process.env.NODE_ENV === "production") return ".asafarim.com";
-  return undefined;
+  // In development, use localhost to share cookies across ports
+  return "localhost";
 }
 
 function slugifyUsername(value: string): string {
@@ -98,6 +99,32 @@ export const authConfig: NextAuthConfig = {
   },
 
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allows callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) return url;
+      // Allow cross-origin callbacks for trusted domains
+      const trustedOrigins = [
+        process.env.NEXT_PUBLIC_PORTAL_URL,
+        process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL,
+        process.env.NEXT_PUBLIC_OPS_HUB_URL,
+        process.env.NEXT_PUBLIC_EDUMATCH_URL,
+        process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL,
+      ]
+        .filter((u): u is string => Boolean(u))
+        .map((u) => new URL(u).origin);
+      
+      try {
+        const urlOrigin = new URL(url).origin;
+        if (trustedOrigins.includes(urlOrigin)) return url;
+      } catch {
+        // ignore invalid URLs
+      }
+      
+      return baseUrl;
+    },
+
     async jwt({ token, user, trigger }) {
       if (user) {
         const dbUser = await prisma.user.findUnique({

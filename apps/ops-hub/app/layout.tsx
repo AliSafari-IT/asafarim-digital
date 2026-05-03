@@ -50,6 +50,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const cookieTheme = readThemeFromCookie(cookieStore.toString());
   const initialTheme = cookieTheme ?? "dark";
 
+  // Unauthenticated users see public homepage (no Shell, no rbac check)
+  if (!session?.user) {
+    return (
+      <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: themeInitScript,
+            }}
+          />
+        </head>
+        <body>
+          <SessionProvider>{children}</SessionProvider>
+        </body>
+      </html>
+    );
+  }
+
+  // Authenticated users: check ops permissions
   let forbidden: string | null = null;
   try {
     await requireOps("read");
@@ -59,9 +78,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   const user = {
-    name: session?.user?.name ?? null,
-    email: session?.user?.email ?? "",
-    roles: session?.user?.roles ?? [],
+    name: session.user.name ?? null,
+    email: session.user.email ?? "",
+    roles: session.user.roles ?? [],
   };
 
   return (

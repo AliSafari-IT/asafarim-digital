@@ -6,7 +6,7 @@ const portalUrl = process.env.PORTAL_URL || "https://portal-qa.asafarim.com";
 // Middleware simply ensures the user is signed in; role gating is done server-side for
 // clear 403 pages instead of silent redirects.
 export const middleware = createAuthMiddleware({
-  publicRoutes: ["/api/health"],
+  publicRoutes: ["/api/health", "/"],
   signInUrl: `${portalUrl}/sign-in`,
 });
 
