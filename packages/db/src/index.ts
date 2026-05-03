@@ -23,6 +23,7 @@ export type {
   Account,
   Session,
   Tenant,
+  UserLocation,
   VerificationToken,
   Role,
   Permission,

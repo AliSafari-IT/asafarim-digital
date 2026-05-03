@@ -72,6 +72,9 @@ model User {
   eduNotifications   EduNotification[]
   eduMessages        EduMessage[]
 
+  // Generic user locations (home, work, etc.) - reusable across all apps
+  locations UserLocation[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -116,6 +119,52 @@ model Session {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+/**
+ * UserLocation - Reusable location model for any app.
+ * Supports multiple locations per user (home, work, billing, etc.)
+ */
+model UserLocation {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   @default("home") // home, work, billing, shipping, etc.
+  label       String?  // Custom label (e.g., "My Apartment", "Parents' House")
+
+  // Address components
+  formatted   String?  // Full formatted address
+  street1     String?
+  street2     String?
+  city        String?
+  state       String?  // State/Province/Region
+  postalCode  String?
+  country     String?  // ISO 3166-1 alpha-2 (e.g., "US", "NL")
+  countryName String?
+
+  // Geolocation (Decimal degrees, WGS84)
+  lat         Float?
+  lng         Float?
+  accuracy    Float?   // GPS accuracy in meters (if from browser)
+
+  // Metadata
+  timezone    String?  // IANA timezone (e.g., "Europe/Amsterdam")
+  isPrimary   Boolean  @default(false) // Is this the user's primary location?
+  isVerified  Boolean  @default(false) // Verified via geocoding?
+  source      String   @default("manual") // manual, browser, geocoded, ip
+
+  // App-specific scoping (optional - allows apps to have private locations)
+  appScope    String[] @default([]) // e.g., ["edumatch", "portal"]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([lat, lng])
+  @@index([country, city])
+  @@unique([userId, type, label]) // Prevent duplicate labels per type
 }
 
 model VerificationToken {

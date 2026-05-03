@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@asafarim/db";
 import { hashPassword } from "@asafarim/auth";
+import {
+  RegistrationLocationSchema,
+  createLocation,
+  type RegistrationLocationInput,
+} from "@asafarim/location";
 
 function normalizeUsername(value: string): string {
   return value
@@ -47,13 +52,26 @@ async function readAttribution(): Promise<Attribution> {
 
 export async function POST(request: Request) {
   try {
-    const { name, username, email, password } = await request.json();
+    const { name, username, email, password, location } = await request.json();
 
     if (!email || !password || !username) {
       return NextResponse.json(
         { error: "Username, email, and password are required" },
         { status: 400 }
       );
+    }
+
+    // Validate location if provided
+    let validatedLocation: RegistrationLocationInput | undefined;
+    if (location) {
+      const locParsed = RegistrationLocationSchema.safeParse(location);
+      if (!locParsed.success) {
+        return NextResponse.json(
+          { error: "Invalid location data: " + locParsed.error.errors.map((e: { message: string }) => e.message).join(", ") },
+          { status: 400 }
+        );
+      }
+      validatedLocation = locParsed.data;
     }
 
     if (password.length < 8) {
@@ -124,10 +142,34 @@ export async function POST(request: Request) {
       },
     });
 
+    // Create location if provided (e.g., from browser geolocation during signup)
+    let createdLocation = null;
+    if (validatedLocation) {
+      try {
+        createdLocation = await createLocation(prisma, user.id, {
+          type: validatedLocation.type ?? "home",
+          formatted: validatedLocation.formatted,
+          street1: validatedLocation.street1,
+          city: validatedLocation.city,
+          state: validatedLocation.state,
+          postalCode: validatedLocation.postalCode,
+          country: validatedLocation.country,
+          lat: validatedLocation.lat,
+          lng: validatedLocation.lng,
+          source: validatedLocation.source ?? "manual",
+          isPrimary: true,
+        });
+      } catch (locError) {
+        console.error("[register] Failed to create location:", locError);
+        // Don't fail registration if location creation fails
+      }
+    }
+
     return NextResponse.json(
       {
         message: "Account created successfully",
         user,
+        location: createdLocation,
       },
       { status: 201 }
     );

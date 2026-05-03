@@ -23,6 +23,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/edumatch ./apps/edumatch
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
+COPY packages/location ./packages/location
 COPY packages/types ./packages/types
 COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
