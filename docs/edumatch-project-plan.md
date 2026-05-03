@@ -1,492 +1,313 @@
-# EduMatch — Project Plan
+# EduMatch Project Plan
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Status:** In Progress (Phase 6 complete, Phase 7 in progress)
-**Purpose:** Personal practice project to build the same skill set required by an upcoming professional engagement, in an unrelated domain.
-
----
+**Updated:** 2026-05-03
+**Status:** Phase 7 in progress
+**Purpose:** Practice a production-shaped AI marketplace system inside the
+ASafariM Digital monorepo.
 
 ## 1. Vision
 
-EduMatch is a mobile + web app that helps students get unstuck on schoolwork through two pathways:
-
-1. **AI-first (free / freemium):** Snap a photo of a homework problem or record a voice question. The app returns a step-by-step explanation, a short study plan, and recommended practice problems.
-2. **Tutor marketplace (paid):** If the student wants human help, the app routes a standardized request to up to five matched tutors (by subject, level, location, online/in-person preference). Tutors return comparable quotes; the student books one and pays through the platform.
-
-Revenue model: 15% commission on tutor bookings, optional premium AI tier (€4.99/month for unlimited explanations + saved study plans).
-
-Geographic scope for MVP: one city or region (pick something small — e.g. a single university town).
-
----
-
-## 2. Why this project
-
-I'm building EduMatch as a deliberate skill-development exercise. The architecture is intentionally similar in *shape* to backend/marketplace systems I expect to work on professionally — multi-role auth, multimodal AI intake, geo-based matching, Stripe Connect payouts, PDF generation, mobile + web — but the domain (education) is different enough to be unmistakably my own work.
-
-**Skills I'll come out of this with:**
-
-- Full-stack Node.js + Postgres + Supabase
-- Stripe Connect (split payments, webhooks, payouts, wallets)
-- Multimodal AI integration (OpenAI vision + Whisper)
-- Geo queries with PostGIS or Google Maps APIs
-- Object storage (DigitalOcean Spaces or S3)
-- PDF generation (Puppeteer)
-- Flutter / FlutterFlow basics
-- CI/CD with GitHub Actions
-- Observability (Sentry + PostHog)
-
----
-
-## 3. Tech stack
-
-| Layer | Choice | Rationale |
-|---|---|---|
-| Mobile + web frontend | Flutter (with FlutterFlow for layouts) | Cross-platform, single codebase, the skill I most want to grow |
-| Backend API | Node.js + TypeScript + Fastify (or Express) | Familiar territory, fast iteration |
-| Database | Supabase (Postgres + Auth + Realtime) | Auth, RLS, and Postgres in one |
-| Auth | Supabase Auth + JWT | Built-in, supports OAuth + email |
-| Object storage | DigitalOcean Spaces (S3-compatible) | Cheap, region close to EU |
-| Payments | Stripe Connect (Express accounts) | Industry standard for marketplace payouts |
-| AI providers | OpenAI (GPT-4o + Whisper for voice) primary, Claude as failover | Multimodal in one API |
-| Geo | PostGIS extension + Google Maps Distance Matrix | Spatial queries + travel-time estimates |
-| Email | Resend or Mailgun | Simple API, decent free tier |
-| Observability | Sentry (errors) + PostHog (product analytics) | Free tier for solo dev |
-| CI/CD | GitHub Actions | Standard |
-| Hosting (backend) | Fly.io or Railway | Cheap, easy Postgres add-ons |
-| Hosting (frontend web) | Vercel or Cloudflare Pages | Free tier, fast |
-
----
-
-## 4. High-level architecture
-
-```
-[Flutter app (iOS / Android / Web)]
-            │
-            ▼
-[Node.js API — REST + a few GraphQL endpoints]
-            │
-   ┌────────┼─────────┬──────────────┬──────────────┐
-   ▼        ▼         ▼              ▼              ▼
-[Supabase  [DO Spaces  [OpenAI /     [Stripe       [Google Maps
- Postgres]  object      Anthropic]    Connect]      APIs]
-            storage]
-   │
-   ▼
-[Background workers — Bull queue]
-   ├─ AI processing jobs
-   ├─ Email notifications
-   ├─ Stripe webhook handling
-   └─ PDF generation
-```
-
----
-
-## 5. Data model
-
-Initial schema. Field types abbreviated; full DDL will live in `db/migrations/`.
-
-### `users`
-- `id` (uuid, pk)
-- `email` (unique)
-- `role` (enum: STUDENT, TUTOR, ADMIN)
-- `display_name`
-- `created_at`, `updated_at`
-
-### `student_profiles`
-- `user_id` (fk → users)
-- `grade_level` (enum: K12, UNDERGRAD, GRAD)
-- `subjects_of_interest` (text[])
-- `home_address` (jsonb), `home_location` (geography point)
-
-### `tutor_profiles`
-- `user_id` (fk → users)
-- `bio`, `subjects_taught` (text[]), `levels_taught` (text[])
-- `hourly_rate_cents`
-- `online_only` (bool), `service_radius_km` (int)
-- `home_location` (geography point)
-- `stripe_account_id`, `payout_enabled` (bool)
-- `verified_at` (nullable timestamp — admin verification)
-- `rating_avg`, `rating_count`
-
-### `inquiries` *(equivalent to "leads")*
-- `id` (uuid, pk)
-- `student_id` (fk → users)
-- `subject`, `grade_level`, `description` (text)
-- `attachments` (jsonb — array of `{type, url, mime}`)
-- `ai_summary` (text — what the AI extracted)
-- `status` (enum: NEW, AI_RESPONDED, TUTOR_REQUESTED, BOOKED, CLOSED)
-- `created_at`
-
-### `ai_responses`
-- `id`, `inquiry_id` (fk)
-- `model_used`, `prompt_version`
-- `explanation` (markdown), `study_plan` (jsonb), `practice_problems` (jsonb)
-- `token_cost`, `latency_ms`
-- `created_at`
-
-### `quote_requests`
-- `id`, `inquiry_id` (fk), `student_id`
-- `requested_at`, `expires_at`
-
-### `quotes`
-- `id`, `quote_request_id` (fk), `tutor_id`
-- `hourly_rate_cents`, `estimated_hours`, `total_cents`
-- `availability_slots` (jsonb)
-- `notes` (text)
-- `pdf_url`
-- `status` (enum: PENDING, SENT, ACCEPTED, DECLINED, EXPIRED)
-
-### `bookings`
-- `id`, `quote_id` (fk), `student_id`, `tutor_id`
-- `scheduled_at`, `duration_minutes`, `mode` (ONLINE / IN_PERSON)
-- `meeting_url` (nullable)
-- `stripe_payment_intent_id`
-- `status` (enum: SCHEDULED, COMPLETED, CANCELLED, DISPUTED)
-
-### `transactions`
-- `id`, `booking_id` (fk), `tutor_id`
-- `gross_cents`, `platform_fee_cents`, `net_cents`
-- `stripe_charge_id`, `type` (CHARGE / REFUND / PAYOUT)
-- `created_at`
-
-### `wallets`
-- `tutor_id` (pk, fk → users)
-- `balance_cents`, `pending_cents`
-- `payout_threshold_cents`, `last_payout_at`
-
-### `notifications`
-- `id`, `user_id` (fk), `type`, `payload` (jsonb)
-- `read_at` (nullable), `sent_at`
-
-### `messages` *(in-app chat between student and booked tutor)*
-- `id`, `booking_id` (fk), `sender_id`, `body`, `created_at`
-
-Seed data: ~20 subjects (Mathematics, Physics, English Lit, etc.), ~5 grade levels, 10 fake tutor accounts in one test region.
-
----
-
-## 6. Phased implementation plan
-
-The plan is sized to ~15 weeks of evening / weekend work (including 1 week for shared infrastructure). Adjust ruthlessly as I learn.
-
-### Phase 0 — Setup (Week 1)
-
-- Initialize monorepo: `apps/api`, `apps/mobile`, `db/`, `docs/`.
-- Provision Supabase project, DigitalOcean Spaces bucket, Stripe test account.
-- Set up GitHub repo, GitHub Actions skeleton (lint + test on PR).
-- Wire Sentry + PostHog with placeholder events.
-- **Deliverable:** "Hello world" API responding on Fly.io, "Hello world" Flutter app running on iOS simulator + web.
-
-### Phase 0.5 — Shared Infrastructure (Week 2) ✅ COMPLETE
-
-> **Purpose:** Build cross-cutting shared packages that all apps will use for unified auth, payments, and navigation. This enables the "one login, one basket" architecture.
-
-**0.5.1 Payments package (`@asafarim/payments`)** ✅
-
-- Stripe client wrapper with unified checkout session creation
-- Cart/basket service for cross-app purchases (add items from any app, checkout once)
-- Webhook handlers for `payment_intent.succeeded`, `checkout.session.completed`
-- Support for marketplace fees (platform + seller split)
-- **Effort:** 3 days. **Skill payoff:** Shared package architecture, Stripe Connect unified flow.
-
-**0.5.2 Common navbar navigation system** ✅
-
-- Shared types (`APP_CODES`, `AppCode`, `NavItemDto`, `NavPlacement`) in `packages/types/src/navigation.ts`
-- Navigation resolver in `packages/navigation/resolver.ts` with filtering by app scope, placement, group, visibility, and user permissions
-- Updated Prisma schema with new NavItem fields (`appScope`, `placement`, `labelKey`, `requiredPermissions`, `metadata`)
-- Public Navigation API endpoint (`GET /api/navigation`) with caching headers
-- Shared UI components in `packages/ui`: `CommonNavbar`, `CommonSidebar`, `NAV_ICON_MAP`
-- URL resolution strategy for cross-app navigation using `metadata.appTarget`
-- Admin UI filters for navigation management (search, group, visibility, status, placement)
-- **Effort:** 5 days. **Skill payoff:** Shared navigation architecture, resolver pattern, cross-app URL resolution.
-
-**0.5.3 Role/permission seeding** ✅
-
-- Add EduMatch-specific roles: `edumatch:student`, `edumatch:tutor`, `edumatch:admin`
-- Add permissions for each EduMatch feature (create inquiry, respond as tutor, admin verification, etc.)
-- **Effort:** 1 day. **Skill payoff:** RBAC design for multi-app ecosystem.
-
-**Deliverable:** All apps can import `@asafarim/payments` and use unified checkout; common navbar navigation system provides shared navigation across all apps.
-
-**Actual notes:** Completed via Prisma seed with `UserRole` composite unique key for RBAC. Roles: `edumatch_student`, `edumatch_tutor`, `edumatch_admin`.
-
----
-
-### Phase 1 — Foundations (Weeks 3–5) ✅ COMPLETE
-
-**1.1 Database migrations + seeding** ✅
-
-- Run Prisma migrations for EduMatch models (already in schema)
-- Enable PostGIS extension for geospatial queries
-- Seed subjects (Mathematics, Physics, etc.), grade levels, test tutors in test region
-- Document RLS policies in `db/POLICIES.md`.
-- **Effort:** 3 days. **Skill payoff:** Postgres schema design, migrations, RLS.
-
-**1.2 Auth + role-based access** ✅
-
-- EduMatch-specific auth middleware (check `edumatch:student` or `edumatch:tutor` role)
-- Extend `@asafarim/auth` with EduMatch session hooks
-- Email verification + password reset flows
-- 2FA via TOTP for tutors (since they receive payouts)
-- **Effort:** 5 days. **Skill payoff:** Auth flows, JWTs, 2FA edge cases.
-
-**1.3 User profile APIs** ✅
-
-- CRUD for `EduStudentProfile` + `EduTutorProfile`
-- Address geocoding via Google Maps API on save (update `homeLocation` geography field)
-- File upload endpoints for profile photos
-- **Effort:** 4 days. **Skill payoff:** REST design, validation (zod), PostGIS integration.
-
-**Actual notes:**
-- Migrations run with PostGIS enabled
-- Profile APIs at `/api/student/profile` and `/api/tutor/profile` with POST/GET/PATCH
-- Zod validation for profile inputs
-- Homepage role checks fixed to use seeded role names (`edumatch_student`/`edumatch_tutor`)
-- 2FA and email verification deferred to later phase
-
-### Phase 2 — Intake + AI (Weeks 6–8) ✅ COMPLETE
-
-**2.1 Intake API + file uploads** ✅
-
-- POST `/inquiries` with multipart upload to DO Spaces via presigned URLs.
-- Validate file types (jpeg, png, mp4 ≤ 50 MB, m4a / wav for voice).
-- Persist `inquiries` row, push job onto queue.
-- **Effort:** 5 days. **Skill payoff:** Multipart uploads, presigned URLs, queue handoff.
-
-**2.2 AI orchestrator** ✅
-
-- Worker consumes intake jobs.
-- Routes to OpenAI: vision for image, Whisper for audio, GPT-4o for text + reasoning.
-- Composes a structured response: `{explanation, study_plan, practice_problems}`.
-- Stores prompt version, token cost, latency in `ai_responses`.
-- Failover to Claude on OpenAI 5xx.
-- **Effort:** 8 days. **Skill payoff:** Multimodal AI, prompt versioning, observability around model calls.
-
-**2.3 Realtime AI response delivery to client** ✅
-
-- Server-sent events (or Supabase Realtime) push the AI response back to the Flutter client as it streams.
-- **Effort:** 3 days. **Skill payoff:** Streaming UX, realtime patterns.
-
-**Actual notes:**
-- Intake form upgraded to 3-step UI (Subject+Level → Question → Review) with character counter
-- Presign endpoint at `/api/uploads/presign` for file uploads
-- AI streaming via SSE at `/api/inquiries/[id]/ai` with token-by-token display
-- Auto-trigger AI on inquiry creation via `orchestrateResponse()` (fire-and-forget, in-process)
-- Quote request flow: `/api/inquiries/[id]/quote-request` → creates `EduQuoteRequest` + finds nearby tutors
-- Tutor quote submission at `/api/quote-requests/[id]/quotes` with rate/hours/slots/notes
-- Student quotes page at `/student/inquiry/[id]/quotes` with accept/decline → creates `EduBooking`
-- Tutor requests page at `/tutor/requests` with collapsible quote submission forms
-- PostGIS spatial queries for nearby tutor matching (`ST_DWithin`)
-
-### Phase 3 — Marketplace + matching (Weeks 9–10) 🔄 NEXT
-
-**3.1 Tutor matching** 🔄
-
-- Given an inquiry's subject + grade level + student location, return up to 5 ranked tutors.
-- Ranking signals: distance (PostGIS), rating, price tier, online_only fit.
-- API endpoint + admin debug view.
-- **Effort:** 5 days. **Skill payoff:** Spatial queries, ranking design.
-
-**3.2 Quote request + standardized quotes** 🔄
-
-- POST `/quote-requests` creates a `quote_requests` row + 5 `quotes` (status PENDING).
-- Notification fires to each matched tutor.
-- Tutor app shows pending requests; tutor fills in `hourly_rate`, `estimated_hours`, `availability_slots`, optional `notes`. System pre-fills hourly rate from their profile.
-- **Effort:** 5 days. **Skill payoff:** Multi-actor workflows, request/response state machines.
-
-**Actual notes:**
-- Quote request and submission APIs already implemented (`/api/inquiries/[id]/quote-request`, `/api/quote-requests/[id]/quotes`)
-- PostGIS nearby tutor matching implemented (`ST_DWithin` in `listAvailableQuoteRequestsForTutor`)
-- Tutor matching scoring implemented in `tutor-matching.ts` with ranking algorithm (distance, rating, subject match, level match, online preference, verification)
-- Notification system implemented: `lib/server/notifications.ts` with in-app + email delivery via Resend
-- Notification API routes: `GET /api/notifications`, `POST /api/notifications` (mark-all-read), `POST /api/notifications/[id]/mark-read`
-- Notifications wired into: quote-request creation (tutors notified), quote accept (tutor notified), quote decline (tutor notified)
-- Admin debug view for tutor matching implemented: `app/admin/tutor-matching/page.tsx` + `POST /api/admin/tutor-matching/debug`
-- Added `edumatch.admin.debug_matching` permission to RBAC seed
-- Remaining: tutor app (Flutter), rate limiting
-
-### Phase 4 — Payments + payouts (Weeks 11–12) ✅ COMPLETE
-
-**4.1 Stripe Connect onboarding**
-
-- ✅ Tutor onboarding flow: `/tutor/connect/onboard` with success/refresh pages
-- ✅ Express account creation with `transfers` and `card_payments` capabilities
-- ✅ Webhook handler for `account.updated` sets `payout_enabled`
-- **Effort:** 3 days. **Skill payoff:** Connect onboarding, webhooks.
-
-**4.2 Booking + checkout**
-
-- ✅ Student checkout page: `/student/checkout/[quoteId]` with booking summary
-- ✅ PaymentIntent creation with 15% platform fee + split to tutor
-- ✅ Booking confirmation page with status polling
-- ✅ Webhook updates booking to `SCHEDULED` on payment success
-- **Effort:** 6 days. **Skill payoff:** Stripe Connect split payments, webhook idempotency.
-
-**4.3 Wallet + payouts**
-
-- ✅ Tutor wallet dashboard with balance/pending cards
-- ✅ Transaction history display
-- ✅ Request payout button with threshold checks (€50 min, weekly cooldown)
-- ✅ `POST /api/tutors/wallet` triggers Stripe payout
-- **Effort:** 5 days. **Skill payoff:** Cron jobs, financial bookkeeping invariants.
-
-### Phase 5 — PDFs + notifications (Week 13) ✅ COMPLETE
-
-**5.1 Quote PDF generation**
-
-- ✅ PDF service: `lib/server/pdf.ts` with Puppeteer
-- ✅ Handlebars template: `lib/emails/quote-pdf.html`
-- ✅ BullMQ worker: `lib/workers/pdf-generation.ts`
-- ✅ Signed URL generation (1 hour expiry)
-- ✅ Download endpoint: `/api/quotes/[id]/pdf`
-- **Effort:** 4 days. **Skill payoff:** Headless browser PDFs, signed URLs.
-
-**5.2 Email notifications**
-
-- ✅ Resend integration: `lib/server/email.ts`
-- ✅ 6 email templates with Handlebars
-- ✅ Email queue worker with retry logic (3 attempts)
-- ✅ Notification preferences API: `/api/me/notifications`
-- ✅ Admin testing page: `/admin/emails`
-- **Effort:** 3 days. **Skill payoff:** Transactional email patterns.
-
-### Phase 6 — Flutter UI (Weeks 14–15) ✅ COMPLETE
-
-**Actual notes:**
-
-- Flutter project initialized in `apps/mobile/` with Riverpod, Dio, Stripe
-- Onboarding screen with role selection (Student/Tutor)
-- Sign-in screen with Google Sign In integration
-- Student screens: home, new inquiry (multi-step), AI response, quotes, booking
-- Tutor screens: home with earnings cards, quote requests, wallet, bookings
-- Core widgets: RoleCard, LoadingOverlay with global state
-- API service with retry logic and auth token management
-- Data models: User, Inquiry, Quote (freezed)
-- Navigation with named routes
-
-### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
-
-### Phase 7 — Polish + ship (Week 15+) 🔄 IN PROGRESS
-
-**7.1 E2E Testing (Web)**
-
-- ✅ Playwright configured in `playwright.config.ts`
-- ✅ Student flow E2E tests: onboarding, inquiry creation, AI response
-- ✅ Tutor flow E2E tests: dashboard, wallet, quote requests
-- ✅ Checkout flow E2E tests: booking summary, payment
-- API integration tests: inquiries, quotes, wallet, webhooks
-
-**7.2 Legal Pages**
-
-- ✅ Privacy Policy: GDPR compliance, data collection practices
-- ✅ Terms of Service: student/tutor terms, payment terms
-- ✅ Cookie Policy: essential, analytics, functional cookies
-
-**7.3 Remaining:**
-- Real device testing on iOS + Android
-- Deploy to TestFlight + Play Console internal track
-- Invite 5 friends to try it
-- Lighthouse score optimization
-- Accessibility improvements
-
----
-
-## 7. Skill mapping
-
-| EduMatch module | Skill it builds |
-|---|---|
-| Auth + RBAC | Multi-role auth, 2FA, JWT middleware |
-| Schema + migrations | Postgres design, RLS, migration tooling |
-| Intake API + uploads | Multipart, presigned URLs, queue handoff |
-| AI orchestrator | Multimodal AI, prompt versioning, model failover |
-| Tutor matching | Spatial queries, ranking, geo APIs |
-| Quote workflow | Multi-actor state machines, notifications |
-| Stripe Connect | Connect onboarding, split payments, webhooks |
-| Wallet + payouts | Financial invariants, scheduled jobs |
-| PDF generation | Headless browser, templating |
-| Realtime AI delivery | Server-sent events, streaming UX |
-| Flutter UI | Cross-platform UI, state management, payment sheet |
-
----
-
-## 8. Risks I'm acknowledging up front
-
-- **AI cost overrun.** Token bills can balloon fast. Set hard per-user daily caps in code from day one. Use cheaper models (gpt-4o-mini, Whisper) where quality is sufficient.
-- **Stripe Connect onboarding requires real KYC.** Fine for test mode, but if I want to demo to anyone live I'll need a real bank account and will face Stripe's verification process.
-- **Flutter learning curve.** First time shipping Flutter. Realistic expectation: the Phase 6 estimate may double. That's fine — it's the point.
-- **Scope creep.** Easy to add chat, ratings, dispute resolution, group sessions. I will resist; ship the loop first, polish second.
-- **Domain accuracy.** Math/science explanations from LLMs are sometimes confidently wrong. Add a "this might be wrong, double-check" disclaimer in the UI from day one.
-
----
-
-## 9. Out of scope for v1
-
-- In-app video calls (use Zoom/Meet links from tutor profile)
-- Group classes
-- Tutor-to-tutor or student-to-student social features
-- Multi-language (English only at launch)
-- iOS / Android push notifications (email only at launch)
-- Admin web dashboard (use Supabase Studio + SQL)
-
----
-
-## 10. Repo layout
-
-```
-edumatch/
-├── apps/
-│   ├── api/             # Node.js + TypeScript backend
-│   │   ├── src/
-│   │   │   ├── routes/
-│   │   │   ├── workers/
-│   │   │   ├── lib/
-│   │   │   └── server.ts
-│   │   └── tests/
-│   └── mobile/          # Flutter app
-│       ├── lib/
-│       │   ├── screens/
-│       │   ├── widgets/
-│       │   ├── services/
-│       │   └── main.dart
-│       └── test/
-├── db/
-│   ├── migrations/
-│   ├── seeds/
-│   └── POLICIES.md
-├── docs/
-│   ├── project-plan.md  # this file
-│   ├── adr/             # architecture decision records
-│   └── api/             # OpenAPI spec
-├── .github/workflows/
-└── README.md
+EduMatch helps students move from confusion to booked help through one loop:
+
+1. A student asks a homework question by typing, uploading a file, or describing
+   the problem.
+2. AI returns a clear explanation, study plan, and next-step guidance.
+3. If the student wants human support, EduMatch matches nearby or online tutors.
+4. Tutors send comparable quotes.
+5. The student accepts a quote, pays through Stripe, and receives confirmation.
+6. The tutor completes the booking and receives platform-managed earnings.
+
+The product is intentionally small enough to ship but broad enough to practice
+the hard parts: multi-role auth, AI orchestration, geospatial matching, payment
+splits, PDF generation, transactional notifications, and a companion mobile app.
+
+## 2. Current Implementation Snapshot
+
+EduMatch is no longer planned as a separate Fastify/Supabase app. The current
+implementation is a Next.js app in the ASafariM Digital monorepo:
+
+- Web/API app: `apps/edumatch`
+- Mobile companion: `apps/mobile`
+- Shared database schema: `packages/db/prisma/schema.prisma`
+- Shared auth: `@asafarim/auth`
+- Shared navigation: `@asafarim/navigation`
+- Shared UI/i18n packages: `@asafarim/ui`, `@asafarim/shared-i18n`
+
+Completed capabilities:
+
+- Student/tutor/admin role derivation.
+- Student inquiry intake and upload presigning.
+- AI response generation and streaming.
+- Tutor profile setup, geocoding, and PostGIS-based matching.
+- Quote requests, quote submission, quote comparison, accept/decline flow.
+- Stripe Connect onboarding, checkout, wallet, payout request, and webhooks.
+- Quote PDF generation and signed URLs.
+- Resend email notifications.
+- Student and tutor dashboards.
+- Legal pages.
+- API documentation page.
+- Flutter mobile scaffold for the same domain.
+
+## 3. Product Principles
+
+- Ship the full learning loop before adding breadth.
+- Keep every quote comparable: hourly rate, estimated hours, total, availability,
+  and tutor note.
+- Make AI helpful but not authoritative; education answers need uncertainty and
+  review language.
+- Keep money movement explicit and auditable.
+- Prefer small regional MVP behavior over generic global marketplace complexity.
+- Use shared monorepo primitives when they already exist.
+
+## 4. Architecture
+
+```text
+Student/Tutor Web UI (Next.js)
+          |
+          v
+EduMatch API routes (Next.js App Router)
+          |
+          +-- shared auth/session via @asafarim/auth
+          +-- Prisma/Postgres via @asafarim/db
+          +-- PostGIS tutor matching
+          +-- OpenAI primary and Anthropic failover
+          +-- BullMQ/Redis async jobs
+          +-- DigitalOcean Spaces/S3 storage
+          +-- Stripe Connect payments
+          +-- Resend email notifications
+          +-- Puppeteer/Handlebars PDFs
+
+Flutter mobile app
+          |
+          v
+Same EduMatch API surface
 ```
 
----
+## 5. Data Model
 
-## 11. First-week concrete checklist
+Core EduMatch models live in `packages/db/prisma/schema.prisma`:
 
-- [ ] Create GitHub repo `edumatch`, push monorepo skeleton
-- [ ] Provision Supabase project, save connection string in `.env.local`
-- [ ] Provision DO Spaces bucket + access keys
-- [ ] Create Stripe test account, get test API keys
-- [ ] Get OpenAI API key + set spending cap to €20/month
-- [ ] `apps/api`: Fastify boots, `/health` returns `{ok: true}`, deployed to Fly.io
-- [ ] `apps/mobile`: Flutter app boots on iOS simulator + Chrome
-- [ ] GitHub Actions: lint + test runs green on push
-- [ ] First migration: `users` table, RLS policies
-- [ ] First commit message in conventional commits format
+- `EduStudentProfile`: student preferences and grade/subject context.
+- `EduTutorProfile`: subjects, levels, rates, location, service radius, Stripe
+  status, rating metadata, and verification state.
+- `EduInquiry`: student question, attachments, subject, level, status.
+- `EduAiResponse`: explanation, study plan, model metadata, cost/latency.
+- `EduQuoteRequest`: tutor matching request tied to an inquiry.
+- `EduQuote`: tutor quote, availability, PDF URL, and status.
+- `EduBooking`: accepted quote, payment intent, schedule, mode, and status.
+- `EduTransaction`: booking charge, platform fee, tutor net, refunds, payouts.
+- `EduWallet`: tutor balance, pending funds, payout threshold, cooldown state.
+- `EduNotification`: in-app and email notification state.
+- `EduMessage`: future in-app booking conversation thread.
 
----
+Runtime roles:
 
-## 12. Learning resources I'm pre-loading
+- `STUDENT`: user has an `EduStudentProfile`.
+- `TUTOR`: user has an `EduTutorProfile`.
+- `ADMIN`: user has global `admin` or `superadmin` RBAC.
 
-- **Stripe Connect** — official Connect docs, end-to-end. Especially the "destination charges with application fees" pattern.
-- **Flutter** — flutter.dev official tutorial, Riverpod docs, then build a throwaway todo app before touching EduMatch UI.
-- **PostGIS** — `postgis.net` intro + a quick tutorial on `ST_DWithin` and `geography` vs. `geometry`.
-- **OpenAI multimodal** — official cookbook for vision and Whisper; pay attention to streaming.
-- **Supabase RLS** — Supabase docs on row-level security patterns; this is where most beginners trip.
+## 6. Milestones
 
----
+### Phase 0 - Monorepo Setup (Complete)
 
-*This plan is a living document. Update it after each phase with what actually happened, what surprised me, and what I'd do differently next time.*
+Deliverables:
+
+- Next.js app scaffold in `apps/edumatch`.
+- Docker, health check, env template, and local dev scripts.
+- Shared app conventions aligned with portal/content-generator/ops-hub.
+
+### Phase 0.5 - Shared Infrastructure (Complete)
+
+Deliverables:
+
+- Shared payment package groundwork.
+- Shared navigation types, resolver, API, and UI components.
+- EduMatch roles and permissions seeded into the shared RBAC model.
+
+### Phase 1 - Foundations (Complete)
+
+Deliverables:
+
+- Prisma schema additions for EduMatch domain models.
+- Student/tutor/admin role helpers.
+- Profile APIs and pages.
+- PostGIS extension bootstrap.
+- Google Maps geocoding helper.
+
+### Phase 2 - Student Intake and AI (Complete)
+
+Deliverables:
+
+- Upload presigning with MIME, filename, and size validation.
+- Inquiry creation/list/detail endpoints.
+- AI orchestrator with OpenAI primary and Anthropic failover.
+- Streaming AI response endpoint.
+- Async AI job route using BullMQ.
+- Student dashboard and inquiry detail UI.
+
+### Phase 3 - Tutor Matching and Quotes (Complete)
+
+Deliverables:
+
+- PostGIS `ST_DWithin` matching by subject, level, rating, verification, and
+  distance.
+- Quote request creation from an inquiry.
+- Tutor request inbox.
+- Standard quote submission.
+- Student quote comparison.
+- Accept/decline lifecycle and booking creation.
+
+### Phase 4 - Payments and Wallets (Complete)
+
+Deliverables:
+
+- Stripe Connect Express onboarding.
+- PaymentIntent checkout with platform fee and tutor transfer destination.
+- Booking confirmation status polling.
+- Stripe webhook handling.
+- Tutor wallet balance, pending funds, transaction history, and payout request.
+- Minimum payout and cooldown checks.
+
+### Phase 5 - PDFs and Notifications (Complete)
+
+Deliverables:
+
+- Quote PDF rendering with Puppeteer and Handlebars.
+- Signed PDF URLs in S3-compatible storage.
+- Resend notification service.
+- Email templates for inquiry received, AI ready, quote received, booking
+  confirmed, and payout sent.
+
+### Phase 6 - Mobile Companion (Complete)
+
+Deliverables:
+
+- Flutter scaffold in `apps/mobile`.
+- Riverpod, Dio, secure storage, Stripe, maps, media, and notification packages.
+- Student and tutor screen skeletons.
+- Shared models and API service.
+- Role onboarding and sign-in screens.
+
+### Phase 7 - Polish and Release Hardening (In Progress)
+
+Goal: make the existing loop demonstrable end to end.
+
+Deliverables:
+
+- API integration tests for inquiries, AI jobs, quotes, checkout, wallet, and
+  Stripe webhooks.
+- Playwright E2E coverage for student inquiry, quote acceptance, and tutor quote
+  submission.
+- Seed data that can drive a complete demo without manual database edits.
+- Accessibility pass on dashboards, forms, modals, and status messages.
+- Lighthouse pass for public and authenticated web surfaces.
+- Mobile real-device checks for iOS and Android.
+- QA deployment to `edumatch-qa.asafarim.com`.
+- Internal TestFlight and Play Console tracks.
+
+Acceptance criteria:
+
+- A fresh database seed supports a complete student/tutor demo.
+- A student can create an inquiry, receive AI help, request tutors, accept a
+  quote, pay, and view confirmation.
+- A tutor can onboard, see matching requests, submit a quote, see booking state,
+  and view wallet impact.
+- Failed AI/payment/email paths show clear user and operator feedback.
+
+### Phase 8 - Trust, Safety, and Quality Controls
+
+Goal: make EduMatch safer for education and payments.
+
+Deliverables:
+
+- AI answer disclaimer and confidence UI.
+- Prompt/output moderation for unsafe academic integrity requests.
+- Tutor verification checklist and admin review state.
+- Booking cancellation and refund policy states.
+- Basic dispute intake form.
+- Notification preference center.
+- Audit events for quote, booking, payout, and admin actions.
+
+### Phase 9 - Learning Experience Upgrade
+
+Goal: turn one-off answers into study progress.
+
+Deliverables:
+
+- Saved study plans.
+- Practice problem generator.
+- "Explain another way" and "quiz me" follow-up actions.
+- Subject progress dashboard.
+- Tutor handoff summary that includes the AI attempt and student confusion
+  points.
+- PDF study packet export.
+
+### Phase 10 - Marketplace Growth
+
+Goal: make tutor supply and demand manageable.
+
+Deliverables:
+
+- Tutor availability calendar.
+- Online/in-person preference filters.
+- Quote expiry and reminder automation.
+- Tutor response time and acceptance metrics.
+- Ratings after completed bookings.
+- Admin matching dashboard with reason codes and override tools.
+
+## 7. Release Plan
+
+1. Local demo release: seeded demo loop, no external beta users.
+2. QA release: deployed web app, test-mode Stripe only, invited internal users.
+3. Mobile internal release: TestFlight/Play Console internal tracks pointed at QA.
+4. Closed pilot: 5 to 10 known testers, one region, test payments only unless a
+   real compliance decision is made.
+5. Portfolio release: screenshots, architecture notes, and demo script, with
+   private data removed.
+
+## 8. Testing Plan
+
+- Unit tests for validation, role helpers, matching score, quote lifecycle, and
+  wallet invariants.
+- API integration tests for auth gating, ownership checks, and status
+  transitions.
+- Stripe webhook tests with replay/idempotency cases.
+- Playwright tests for student and tutor happy paths.
+- Mobile widget tests for role onboarding and critical forms.
+- Manual QA scripts for email, PDF, and storage URLs.
+
+## 9. Operational Risks
+
+- AI answers can be wrong. Mitigation: disclaimer, moderation, answer review
+  language, and tutor handoff.
+- Stripe Connect has real compliance constraints. Mitigation: keep pilot in test
+  mode until the compliance path is explicit.
+- Wallet accounting bugs are high impact. Mitigation: append-only transaction
+  records, webhook idempotency, tests, and admin audit views.
+- Geo matching can produce bad results. Mitigation: visible match reasons,
+  manual admin diagnostics, and online fallback.
+- Mobile auth can diverge from web auth. Mitigation: define token/session
+  contract before deeper mobile investment.
+
+## 10. Out of Scope for v1
+
+- Native video calls.
+- Group classes.
+- Public tutor discovery without a student inquiry.
+- Multi-language launch.
+- Complex dispute workflows.
+- Full LMS integrations.
+- Tutor tax reporting.
+
+## 11. Documentation Ownership
+
+- App operations: `apps/edumatch/README.md`
+- Mobile operations: `apps/mobile/README.md`
+- Product and milestone plan: this file
+- API details: `apps/edumatch/app/docs/page.tsx` and route handlers
+- Database truth: `packages/db/prisma/schema.prisma`
+
+Update this plan whenever a phase changes status or a major product decision
+changes the shape of the roadmap.

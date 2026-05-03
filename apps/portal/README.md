@@ -1,78 +1,106 @@
-# Portal App
+# Portal
 
-Main public-facing website for asafarim-digital.
+Main public-facing ASafariM Digital website and shared entry point for the
+monorepo apps. It owns the public homepage, account entry, shared navigation
+integration, and showcase redirects into the product apps.
+
+## Status
+
+Current state: public portal plus app launcher.
+
+Implemented:
+
+- Next.js app with shared auth, database, location, i18n, navigation, and UI
+  packages.
+- Public homepage and showcase links.
+- Redirect routes for Content Generator, Ops Hub, Marketing Content, and
+  EduMatch-style app entry points.
+- Shared auth/session behavior with the rest of the ASafariM app suite.
+- Typecheck script for portal-specific validation.
+
+Planned:
+
+- App catalog driven entirely by shared navigation data.
+- Role-aware launch tiles and environment-aware health badges.
+- Unified account/billing entry point for cross-app purchases.
+- Production-ready landing content and SEO refresh.
 
 ## Stack
 
-- Next.js (App Router)
-- React + TypeScript
-- Tailwind CSS
+- Next.js App Router
+- React 19 and TypeScript
+- Tailwind CSS v4
+- NextAuth via `@asafarim/auth`
+- Prisma via `@asafarim/db`
+- Shared packages: location, navigation, i18n, country/language selector, UI
+- Nodemailer for portal mail flows
 
 ## Local Development
 
-From repo root:
+From the repo root:
 
 ```bash
+pnpm install
 pnpm --filter portal dev
 ```
 
-Runs on:
-- `http://localhost:3000`
+App: `http://localhost:3000`
 
-## Available Scripts
+## Scripts
 
 ```bash
 pnpm --filter portal dev
 pnpm --filter portal build
 pnpm --filter portal start
+pnpm --filter portal typecheck
 pnpm --filter portal lint
 pnpm --filter portal clean
 ```
 
-## Key Pages/Flows
+## Showcase Redirects
 
-- Homepage at `/`
-- Showcase section includes a Content Generator card
-- Card route: `/showcase/content-generator`
-  - Redirect handler is implemented in:
-    - `app/showcase/content-generator/page.tsx`
+| Portal route | Target app | Default local target |
+| --- | --- | --- |
+| `/showcase/content-generator` | Content Generator | `http://localhost:3001` |
+| `/showcase/ops-hub` | Ops Hub | `http://localhost:3003` |
+| `/showcase/marketing-content` | Marketing Content | `http://localhost:3004` |
 
-- Card route: `/showcase/ops-hub/`
-  - Redirect handler is implemented in:
-    - `app/showcase/ops-hub/page.tsx`
+Redirect pages resolve environment variables first, then fall back to local or
+QA/production host conventions.
 
-## Content Generator Redirect Behavior
-
-Redirect target order:
-1. `CONTENT_GENERATOR_URL`
-2. `NEXT_PUBLIC_CONTENT_GENERATOR_URL`
-3. Fallback:
-   - dev: `http://localhost:3001`
-   - non-dev: `https://content-generator-qa.asafarim.com`
-
-This allows local development + QA subdomain routing without code changes.
-
-## Environment Variables
-
-Typical vars used by portal runtime:
+## Environment
 
 ```env
-PORTAL_URL=https://portal-qa.asafarim.com
-CONTENT_GENERATOR_URL=https://content-generator-qa.asafarim.com
-NEXT_PUBLIC_CONTENT_GENERATOR_URL=https://content-generator-qa.asafarim.com
+PORTAL_URL=http://localhost:3000
+NEXT_PUBLIC_PORTAL_URL=http://localhost:3000
+
+CONTENT_GENERATOR_URL=http://localhost:3001
+NEXT_PUBLIC_CONTENT_GENERATOR_URL=http://localhost:3001
+OPS_HUB_URL=http://localhost:3003
+NEXT_PUBLIC_OPS_HUB_URL=http://localhost:3003
+MARKETING_CONTENT_URL=http://localhost:3004
+NEXT_PUBLIC_MARKETING_CONTENT_URL=http://localhost:3004
+
+DATABASE_URL=postgresql://...
+AUTH_SECRET=...
+AUTH_URL=http://localhost:3000
+AUTH_TRUST_HOST=true
+AUTH_COOKIE_DOMAIN=
+AUTH_GOOGLE_ID=...
+AUTH_GOOGLE_SECRET=...
 ```
 
-## Production/QA Notes
+## Deployment Notes
 
-- Portal domain is typically served via nginx vhost:
-  - `infra/nginx/portal-qa.asafarim.com.conf`
-- `/showcase/content-generator` is redirected to content-generator subdomain.
+- Local app port: `3000`.
+- QA host convention: `https://portal-qa.asafarim.com`.
+- Nginx config convention: `infra/nginx/portal-qa.asafarim.com.conf`.
+- Portal redirects should be checked whenever an app moves between localhost,
+  QA, and production subdomains.
 
-## Troubleshooting
+## Documentation Tasks
 
-### 404 on `/showcase/content-generator`
-
-- Confirm redirect page exists in app router.
-- Confirm portal is deployed with latest code.
-- Confirm `CONTENT_GENERATOR_URL` is set correctly.
-- Confirm content-generator vhost is active.
+- Keep this README focused on portal behavior.
+- Document product-specific details in each app README.
+- When adding a new app card, update the route table here and the root compose
+  deployment notes if the app is containerized.
