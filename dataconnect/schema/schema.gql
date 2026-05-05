@@ -1,0 +1,44 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+  role: String
+}
+
+type DesignAsset @table {
+  name: String!
+  type: String!
+  category: String!
+  createdAt: Timestamp!
+  description: String
+  codeSnippet: String
+  exampleImageURL: String
+  value: String
+}
+
+type Project @table {
+  name: String!
+  createdAt: Timestamp!
+  user: User
+  description: String
+  projectURL: String
+}
+
+type ContentTemplate @table {
+  name: String!
+  type: String!
+  createdAt: Timestamp!
+  description: String
+  templateBody: String
+  inputParameters: String
+}
+
+type GeneratedContent @table {
+  createdAt: Timestamp!
+  generatedText: String!
+  user: User
+  contentTemplate: ContentTemplate
+  inputUsed: String
+  projectUsedIn: Project
+}

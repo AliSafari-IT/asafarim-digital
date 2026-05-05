@@ -77,7 +77,7 @@ class EduMatchApp extends ConsumerWidget {
         backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

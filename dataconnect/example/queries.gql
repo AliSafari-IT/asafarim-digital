@@ -1,0 +1,47 @@
+query ListAllContentTemplates @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  contentTemplates(limit: 50, orderBy: [{createdAt: DESC}]) {
+    id
+    name
+    type
+    description
+    createdAt
+  }
+}
+
+query GetUserProjects @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  projects(where: {userId: {eq_expr: "auth.uid"}}, orderBy: [{createdAt: DESC}]) {
+    id
+    name
+    description
+    createdAt
+    projectURL
+  }
+}
+
+query GetDesignAssetByType($assetType: String!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  designAssets(where: {type: {eq: $assetType}}, orderBy: [{name: ASC}]) {
+    id
+    name
+    category
+    exampleImageURL
+    codeSnippet
+  }
+}
+
+query ListRecentGeneratedContent @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  generatedContents(orderBy: [{createdAt: DESC}], limit: 10) {
+    id
+    generatedText
+    createdAt
+    user {
+      displayName
+    }
+    contentTemplate {
+      name
+      type
+    }
+    projectUsedIn {
+      name
+    }
+  }
+}

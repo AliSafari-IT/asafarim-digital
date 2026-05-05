@@ -9,7 +9,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Load environment variables
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: '.env');
   
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -43,12 +43,13 @@ void main() async {
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     return const FirebaseOptions(
-      apiKey: 'your-api-key',
-      appId: 'your-app-id',
-      messagingSenderId: 'your-sender-id',
-      projectId: 'your-project-id',
-      authDomain: 'your-auth-domain',
-      storageBucket: 'your-storage-bucket',
+      apiKey: 'AIzaSyCZrvMR5FHiq-j2LAKxNGdTqPMhcKCXvJg',
+      appId: '1:527911629676:web:e68d8e92faf2019e183949',
+      messagingSenderId: '527911629676',
+      projectId: 'asafarim-digital',
+      authDomain: 'asafarim-digital.firebaseapp.com',
+      storageBucket: 'asafarim-digital.firebasestorage.app',
+      measurementId: 'G-07DVBLWBGZ',
     );
   }
 }

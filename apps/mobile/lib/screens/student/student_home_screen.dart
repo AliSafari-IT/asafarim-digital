@@ -14,7 +14,7 @@ class StudentHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final inquiriesAsync = ref.watch(studentInquiriesProvider);
-    final user = ref.watch(authProvider).valueOrNull;
+    final user = ref.watch(authProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(

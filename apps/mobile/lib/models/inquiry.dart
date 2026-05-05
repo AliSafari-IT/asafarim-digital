@@ -4,7 +4,7 @@ part 'inquiry.freezed.dart';
 part 'inquiry.g.dart';
 
 @freezed
-class Inquiry with _$Inquiry {
+abstract class Inquiry with _$Inquiry {
   const factory Inquiry({
     required String id,
     required String subject,

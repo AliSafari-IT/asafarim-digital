@@ -13,7 +13,7 @@ class TutorHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final walletAsync = ref.watch(tutorWalletProvider);
-    final user = ref.watch(authProvider).valueOrNull;
+    final user = ref.watch(authProvider).asData?.value;
 
     return Scaffold(
       appBar: AppBar(

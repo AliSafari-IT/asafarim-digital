@@ -30,9 +30,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: PageView(
                 controller: _pageController,
                 onPageChanged: (page) => setState(() => _currentPage = page),
-                children: const [
-                  _WelcomePage(),
-                  _RoleSelectionPage(),
+                children: [
+                  _WelcomePage(pageController: _pageController),
+                  const _RoleSelectionPage(),
                 ],
               ),
             ),
@@ -65,7 +65,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 class _WelcomePage extends StatelessWidget {
-  const _WelcomePage();
+  final PageController pageController;
+  const _WelcomePage({required this.pageController});
 
   @override
   Widget build(BuildContext context) {
@@ -108,8 +109,7 @@ class _WelcomePage extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                final controller = PageController.of(context);
-                controller?.nextPage(
+                pageController.nextPage(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 );

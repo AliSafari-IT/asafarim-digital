@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final loadingProvider = StateProvider<bool>((ref) => false);
+final loadingProvider = NotifierProvider<_LoadingNotifier, bool>(_LoadingNotifier.new);
+
+class _LoadingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void setLoading(bool value) => state = value;
+}
 
 class LoadingOverlay extends ConsumerWidget {
   final Widget child;
@@ -40,6 +46,6 @@ class LoadingOverlay extends ConsumerWidget {
 }
 
 extension LoadingOverlayExtension on WidgetRef {
-  void showLoading() => read(loadingProvider.notifier).state = true;
-  void hideLoading() => read(loadingProvider.notifier).state = false;
+  void showLoading() => read(loadingProvider.notifier).setLoading(true);
+  void hideLoading() => read(loadingProvider.notifier).setLoading(false);
 }

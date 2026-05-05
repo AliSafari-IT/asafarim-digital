@@ -4,7 +4,7 @@ part 'quote.freezed.dart';
 part 'quote.g.dart';
 
 @freezed
-class Quote with _$Quote {
+abstract class Quote with _$Quote {
   const factory Quote({
     required String id,
     required String tutorId,

@@ -30,5 +30,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/AliSafari-IT/asafarim-digital.git"
+  },
+  "dependencies": {
+    "dataconnect-generated": "link:../../../Users/saal/AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated"
   }
 }
