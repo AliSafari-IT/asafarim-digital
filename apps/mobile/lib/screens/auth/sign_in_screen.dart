@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_web/google_sign_in_web.dart' as google_sign_in_web;
 import '../../providers/auth_provider.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
@@ -12,6 +15,21 @@ class SignInScreen extends ConsumerStatefulWidget {
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   bool _isLoading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      GoogleSignIn.instance.authenticationEvents
+          .where((e) => e is GoogleSignInAuthenticationEventSignIn)
+          .listen((event) {
+        final signInEvent = event as GoogleSignInAuthenticationEventSignIn;
+        ref
+            .read(authProvider.notifier)
+            .handleWebGoogleSignIn(signInEvent.user);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +110,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   Widget _buildGoogleSignInButton() {
+    if (kIsWeb && !GoogleSignIn.instance.supportsAuthenticate()) {
+      return SizedBox(
+        height: 50,
+        child: google_sign_in_web.renderButton(),
+      );
+    }
+
     return ElevatedButton.icon(
       onPressed: _isLoading
           ? null

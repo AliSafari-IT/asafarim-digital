@@ -45,6 +45,22 @@ class AuthNotifier extends AsyncNotifier<User?> {
     });
   }
 
+  Future<void> handleWebGoogleSignIn(GoogleSignInAccount googleUser) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final auth = await googleUser.authorizationClient
+          .authorizationForScopes(['email', 'profile']);
+      final token = await _apiService.signInWithGoogle(
+        accessToken: auth?.accessToken ?? '',
+        idToken: '',
+      );
+
+      await _storage.write(key: 'auth_token', value: token);
+      _apiService.setToken(token);
+      return _apiService.getMe();
+    });
+  }
+
   Future<void> signOut() async {
     await GoogleSignIn.instance.signOut();
     await _storage.delete(key: 'auth_token');

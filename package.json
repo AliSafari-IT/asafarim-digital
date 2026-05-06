@@ -16,6 +16,9 @@
     "db:studio": "pnpm --filter @asafarim/db prisma studio",
     "db:push": "pnpm --filter @asafarim/db prisma db push",
     "db:reset": "pnpm --filter @asafarim/db prisma db reset",
+    "build:apk": "pnpm --filter mobile build:apk",
+    "android": "pnpm --filter mobile android",
+    "build:release": "pnpm --filter mobile build:release",
     "rs": "pnpm onVPS:dockerRestart",
     "onVPS:dockerDown": "docker compose down",
     "seed": "turbo seed"
