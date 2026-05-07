@@ -17,11 +17,18 @@ import {
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 
+const UI_MODE_TO_API_MODE: Record<string, "story" | "slideshow" | "documentary"> = {
+  cinematic: "story",
+  slideshow: "slideshow",
+  social: "documentary",
+};
+
 export function ViontoPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [userNotes, setUserNotes] = useState("");
 
   const pipelineSteps = [
     {
@@ -59,13 +66,15 @@ export function ViontoPage() {
   const handleGenerate = useCallback(async (_projectId: string) => {
     setIsGenerating(true);
     try {
+      const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch("/api/story/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: "demo-project",
-          locale: "en",
-          mode: "story",
+          locale: locale.split("-")[0] ?? "en",
+          mode: apiMode,
+          userNotes: userNotes.trim() || undefined,
         }),
       });
       if (!res.ok) {
@@ -96,7 +105,7 @@ export function ViontoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, []);
+  }, [locale, activeMode, userNotes]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -187,6 +196,20 @@ export function ViontoPage() {
                     {t(`vionto.mode.${mode}`)}
                   </button>
                 ))}
+              </div>
+
+              <div className="mt-3">
+                <label htmlFor="user-notes" className="text-xs font-medium text-[var(--color-text-muted)]">
+                  Notes for the narrator
+                </label>
+                <textarea
+                  id="user-notes"
+                  className="mt-1 min-h-[60px] w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                  value={userNotes}
+                  onChange={(e) => setUserNotes(e.target.value)}
+                  placeholder="e.g. Focus on the sunset and family moments. Keep it nostalgic."
+                  maxLength={2000}
+                />
               </div>
             </section>
 
