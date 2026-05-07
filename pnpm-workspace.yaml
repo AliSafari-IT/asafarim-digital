@@ -2,3 +2,17 @@ packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+allowBuilds:
+  '@prisma/client': false
+  '@prisma/engines': false
+  '@scarf/scarf': false
+  '@tree-sitter-grammars/tree-sitter-yaml': false
+  core-js-pure: false
+  esbuild: true
+  msgpackr-extract: false
+  prisma: false
+  puppeteer: true
+  sharp: true
+  tree-sitter: false
+  tree-sitter-json: false
+  unrs-resolver: false
