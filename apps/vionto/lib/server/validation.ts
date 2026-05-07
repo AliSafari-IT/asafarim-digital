@@ -90,3 +90,29 @@ export function formatZodError(err: z.ZodError): string {
     })
     .join("; ");
 }
+
+// ─── Project schemas ──────────────────────────────────────────────────
+
+export const createProjectSchema = z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  mode: z.enum(["story", "slideshow", "documentary"]).default("story"),
+  locale: z.string().min(2).max(10).default("en"),
+  aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
+  resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
+});
+
+export const updateProjectSchema = createProjectSchema.partial();
+
+// ─── Pagination schema ────────────────────────────────────────────────
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+});
+
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;

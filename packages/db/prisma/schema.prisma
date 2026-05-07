@@ -1192,6 +1192,7 @@ model ViontoProject {
   status               String   @default("draft") // draft, ready, rendering, completed, archived
 
   aspectRatio          String   @default("16:9") // 16:9, 9:16, 1:1, 4:3
+  resolution           String?  // 720p, 1080p, 4k; null = auto
   targetDurationSeconds Int?    // User target; null = auto
 
   // Deletion/retention policy for this project

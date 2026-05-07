@@ -388,6 +388,9 @@ importers:
       '@asafarim/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@asafarim/vionto-schemas':
+        specifier: workspace:*
+        version: link:../../packages/vionto-schemas
       '@aws-sdk/client-s3':
         specifier: ^3.700.0
         version: 3.1038.0
@@ -463,14 +466,14 @@ importers:
         version: 2.4.3
       next-auth:
         specifier: ^5.0.0-beta.28
-        version: 5.0.0-beta.30(next@15.5.15(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(nodemailer@6.10.1)(react@19.2.5)
+        version: 5.0.0-beta.30(next@16.2.3(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
     devDependencies:
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
       next:
-        specifier: ^15.3.0
-        version: 15.5.15(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+        specifier: ^16.2.3
+        version: 16.2.3(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
@@ -621,6 +624,16 @@ importers:
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)
       typescript:
         specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/vionto-schemas:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.4.0
         version: 5.9.3
 
 packages:
