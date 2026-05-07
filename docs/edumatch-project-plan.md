@@ -1,8 +1,8 @@
-# EduMatch Project Plan
+﻿# EduMatch Project Plan
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Updated:** 2026-05-07
+**Updated:** 2026-05-08
 **Status:** Phase 7 in progress
 **Purpose:** Practice a production-shaped AI marketplace system inside the
 ASafariM Digital monorepo.
@@ -314,7 +314,7 @@ changes the shape of the roadmap.
 
 ## 12. Progress Notes
 
-### 2026-05-07 — Prisma 7 rollback during mobile/start-script work
+### 2026-05-07 â€” Prisma 7 rollback during mobile/start-script work
 
 What actually happened:
 
@@ -344,3 +344,7 @@ What I would do differently next time:
 - Treat Prisma major upgrades as explicit migration tasks, not routine install
   prompt follow-ups.
 - Keep startup scripts fail-fast when shared package builds fail.
+
+### 2026-05-08 - Vionto production infra follow-through
+
+Although this plan tracks EduMatch, the same monorepo production infrastructure patterns were extended to Vionto for Issue 030. Implemented Redis-backed Compose wiring, Vionto web and worker health/readiness checks, `DO_SPACES_*` storage env documentation, Nginx upload limits aligned to Vionto quotas, and deploy workflow changes to build/start/verify the worker. What surprised me: several Issue 030 items already existed partially, but the naming mismatch between old `S3_*` envs and the storage layer's `DO_SPACES_*` contract would have made production storage readiness misleading. Next time, I would verify env names against runtime code before treating infra checklists as complete.

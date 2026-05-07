@@ -1,4 +1,4 @@
-name: Deploy ASafariM-Digital to VPS
+﻿name: Deploy ASafariM-Digital to VPS
 
 on:
   push:
@@ -134,7 +134,7 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/vionto.asafarim.com.conf /etc/nginx/sites-enabled/vionto.asafarim.com.conf
             sudo nginx -t
             sudo systemctl reload nginx
-            docker compose up -d postgres
+            docker compose up -d postgres redis
             docker compose rm -f db-migrate || true
             echo "Docker disk usage before cleanup:"
             docker system df || true
@@ -152,6 +152,7 @@ jobs:
             docker compose build --pull marketing-content
             docker compose build --pull edumatch
             docker compose build --pull vionto
+            docker compose build --pull vionto-worker
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
@@ -182,7 +183,7 @@ jobs:
               echo "SiteContent already present (${SITE_CONTENT_COUNT}). Skipping seed. (Use workflow_dispatch with force_seed=true to override.)"
             fi
 
-            docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto
+            docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto vionto-worker
             docker system prune -f
             echo "Deployment complete!"
             docker compose ps
@@ -202,17 +203,19 @@ jobs:
               MC_OK=false
               EDUMATCH_OK=false
               VIONTO_OK=false
+              VIONTO_WORKER_OK=false
               curl -sf http://localhost:3000/api/health > /dev/null 2>&1 && PORTAL_OK=true
               curl -sf http://localhost:3002/api/health > /dev/null 2>&1 && CG_OK=true
               curl -sf http://localhost:3003/api/health > /dev/null 2>&1 && OPS_OK=true
               curl -sf http://localhost:3004/api/health > /dev/null 2>&1 && MC_OK=true
               curl -sf http://localhost:3005/api/health > /dev/null 2>&1 && EDUMATCH_OK=true
               curl -sf http://localhost:3006/api/health > /dev/null 2>&1 && VIONTO_OK=true
-              if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ] && [ "$OPS_OK" = true ] && [ "$MC_OK" = true ] && [ "$EDUMATCH_OK" = true ] && [ "$VIONTO_OK" = true ]; then
+              docker compose exec -T vionto-worker wget --spider -q http://localhost:3007 > /dev/null 2>&1 && VIONTO_WORKER_OK=true
+              if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ] && [ "$OPS_OK" = true ] && [ "$MC_OK" = true ] && [ "$EDUMATCH_OK" = true ] && [ "$VIONTO_OK" = true ] && [ "$VIONTO_WORKER_OK" = true ]; then
                 echo "All services healthy after ${i}x5s"
                 exit 0
               fi
-              echo "Attempt $i/$RETRIES: portal=$PORTAL_OK cg=$CG_OK ops=$OPS_OK mc=$MC_OK edumatch=$EDUMATCH_OK vionto=$VIONTO_OK — waiting 5s..."
+              echo "Attempt $i/$RETRIES: portal=$PORTAL_OK cg=$CG_OK ops=$OPS_OK mc=$MC_OK edumatch=$EDUMATCH_OK vionto=$VIONTO_OK vionto_worker=$VIONTO_WORKER_OK — waiting 5s..."
               sleep 5
             done
             echo "=== Portal logs ==="
@@ -227,6 +230,8 @@ jobs:
             docker logs asafarim-edumatch --tail=50
             echo "=== Vionto logs ==="
             docker logs asafarim-vionto --tail=50
+            echo "=== Vionto worker logs ==="
+            docker logs asafarim-vionto-worker --tail=50
             echo "Health check failed after 90s"
             exit 1
           ENDVERIFY
