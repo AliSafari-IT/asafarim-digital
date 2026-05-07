@@ -76,6 +76,10 @@ model User {
   eduTutorVerificationsReviewed EduTutorVerification[] @relation("EduTutorVerificationReviewer")
   eduAuditEventsActor    EduAuditEvent[]           @relation("EduAuditActor")
 
+  // Vionto
+  viontoProjects       ViontoProject[]
+  viontoAuditEvents    ViontoAuditEvent[]        @relation("ViontoAuditActor")
+
   // Generic user locations (home, work, etc.) - reusable across all apps
   locations UserLocation[]
 
@@ -361,6 +365,9 @@ model Tenant {
   savedPrompts           SavedPrompt[]
   contentGenerations     ContentGeneration[]
   contentTypeDefinitions ContentTypeDefinition[]
+
+  // Vionto
+  viontoProjects ViontoProject[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1163,4 +1170,240 @@ model CartItem {
   @@index([productType])
   @@index([productId])
   @@index([sellerId])
+}
+
+// ─── Vionto — Photo-to-Story Video Pipeline ──────────────────
+
+model ViontoProject {
+  id                   String   @id @default(cuid())
+  userId               String
+  tenantId             String?
+
+  title                String
+  description          String?  @db.Text
+
+  // Story mode: narrative arc vs. simple slideshow
+  mode                 String   @default("story") // story, slideshow, documentary
+
+  // Target locale for narration / captions
+  locale               String   @default("en-US")
+
+  // Lifecycle: draft -> ready -> rendering -> completed -> archived
+  status               String   @default("draft") // draft, ready, rendering, completed, archived
+
+  aspectRatio          String   @default("16:9") // 16:9, 9:16, 1:1, 4:3
+  targetDurationSeconds Int?    // User target; null = auto
+
+  // Deletion/retention policy for this project
+  retentionPolicy      String   @default("soft_delete") // soft_delete, hard_delete, archive
+
+  // Relations
+  assets       ViontoAsset[]
+  scripts      ViontoScript[]
+  audioTracks  ViontoAudioTrack[]
+  renderJobs   ViontoRenderJob[]
+  exports      ViontoExport[]
+
+  // Ownership
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ViontoAsset {
+  id                  String  @id @default(cuid())
+  projectId           String
+  userId              String
+
+  // Asset classification
+  type                String  @default("source_image") // source_image, thumbnail, extracted_frame, overlay
+
+  // Display / storage URLs
+  originalUrl         String?
+  thumbnailUrl        String?
+  storageKey          String? // S3 / object-store key for original
+  thumbnailStorageKey String? // S3 / object-store key for thumbnail
+
+  // Dimensions
+  width               Int?
+  height              Int?
+  fileSizeBytes       Int?
+
+  // Ordering within the project timeline
+  orderIndex          Int     @default(0)
+
+  // EXIF and technical metadata (JSON blob)
+  metadata            Json?
+
+  // Ownership
+  project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([type])
+  @@index([orderIndex])
+}
+
+model ViontoScript {
+  id              String  @id @default(cuid())
+  projectId       String
+  userId          String
+
+  // Generation provenance
+  promptVersion   String? // Which prompt template / version produced this
+  provider        String? // openai, anthropic, custom, manual
+
+  // Content
+  narrationText   String? @db.Text // Plain-text narration
+  srtText         String? @db.Text // SubRip subtitle text
+
+  // User override tracking
+  isUserEdited    Boolean @default(false)
+
+  project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([isUserEdited])
+}
+
+model ViontoAudioTrack {
+  id              String  @id @default(cuid())
+  projectId       String
+  userId          String
+
+  // Classification
+  type            String  @default("narration") // narration, music, sfx
+  source          String  @default("tts") // tts, upload, generated
+
+  // Voice / instrument metadata
+  voiceId         String?
+  voiceName       String?
+
+  // Duration in seconds
+  durationSeconds Int?
+
+  // Storage
+  storageKey      String?
+
+  // Mix settings: volume, fadeIn, fadeOut, startOffset (JSON)
+  mixSettings     Json?
+
+  project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([type])
+}
+
+model ViontoRenderJob {
+  id             String   @id @default(cuid())
+  projectId      String
+  userId         String
+
+  // External queue / worker ID (e.g. BullMQ, Celery, etc.)
+  queueId        String?
+
+  // State machine
+  state          String   @default("queued") // queued, running, paused, completed, failed, cancelled
+
+  // Progress 0-100
+  progressPercent Int     @default(0)
+
+  // Worker logs (last N lines)
+  logs           String?  @db.Text
+
+  // Retry handling
+  retryCount     Int      @default(0)
+  errorSummary   String?  @db.Text
+
+  // Timing
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // Relations
+  project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  exports ViontoExport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([state])
+  @@index([queueId])
+  @@index([createdAt])
+}
+
+model ViontoExport {
+  id              String  @id @default(cuid())
+  projectId       String
+  renderJobId     String?
+  userId          String
+
+  // Output storage
+  storageKey      String
+
+  // Technical metadata
+  durationSeconds Int?
+  fileSizeBytes   Int?
+  format          String  @default("mp4") // mp4, mov, webm
+  resolution      String? // 1080p, 4k, 720p
+
+  // Signed URL for direct download (time-limited)
+  signedUrl       String?
+  signedUrlExpiresAt DateTime?
+
+  // Relations
+  project    ViontoProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  renderJob  ViontoRenderJob? @relation(fields: [renderJobId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([renderJobId])
+  @@index([userId])
+  @@index([format])
+}
+
+// Domain-specific audit trail for Vionto operations.
+// Complements the generic AuditLog with render-pipeline transitions.
+model ViontoAuditEvent {
+  id         String  @id @default(cuid())
+  actorId    String? // null for system / worker events
+  actorRole  String? // CREATOR, ADMIN, SYSTEM, WORKER
+  action     String // PROJECT_CREATED, ASSET_UPLOADED, SCRIPT_GENERATED, RENDER_STARTED, RENDER_COMPLETED, EXPORT_DOWNLOADED, ...
+  entity     String // ViontoProject, ViontoAsset, ViontoScript, ViontoRenderJob, ViontoExport
+  entityId   String?
+  prevState  String?
+  nextState  String?
+  reason     String? @db.Text
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  actor User? @relation("ViontoAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entity])
+  @@index([entityId])
+  @@index([action])
+  @@index([createdAt])
 }
