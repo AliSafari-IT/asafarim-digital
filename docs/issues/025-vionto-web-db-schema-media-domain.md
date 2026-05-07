@@ -1,8 +1,8 @@
 # Vionto Web Issue 3 - Database Schema for Media Projects
 
-**Status:** Ready for development  
+**Status:** In Progress  
 **Priority:** High  
-**Assignee:** TBD  
+**Assignee:** AI Assistant  
 **Labels:** `vionto`, `web`, `database`, `prisma`, `media`
 
 ## Objective
@@ -17,14 +17,18 @@ Add Vionto domain models to `packages/db` for projects, assets, scripts, audio, 
 
 ## Scope
 
-- [ ] Add `ViontoProject` with owner, tenant, title, mode, locale, status, aspect ratio, and target duration.
-- [ ] Add `ViontoAsset` for originals, thumbnails, dimensions, order, metadata, and storage keys.
-- [ ] Add `ViontoScript` for prompt version, provider metadata, narration text, SRT text, and user-edited flag.
-- [ ] Add `ViontoAudioTrack` for narration, music, voice, duration, and mix settings.
-- [ ] Add `ViontoRenderJob` for queue id, state, progress, logs, retry count, and error summary.
-- [ ] Add `ViontoExport` for output storage key, duration, file size, format, and signed-link metadata.
-- [ ] Add audit/usage records tied to user and tenant.
-- [ ] Create migration and seed records for roles/permissions/app registry.
+- [x] Add `ViontoProject` with owner, tenant, title, mode, locale, status, aspect ratio, and target duration.
+  - `packages/db/prisma/schema.prisma` — added with relations to assets, scripts, audio, renders, exports.
+- [x] Add `ViontoAsset` for originals, thumbnails, dimensions, order, metadata, and storage keys.
+- [x] Add `ViontoScript` for prompt version, provider metadata, narration text, SRT text, and user-edited flag.
+- [x] Add `ViontoAudioTrack` for narration, music, voice, duration, and mix settings.
+- [x] Add `ViontoRenderJob` for queue id, state, progress, logs, retry count, and error summary.
+- [x] Add `ViontoExport` for output storage key, duration, file size, format, and signed-link metadata.
+- [x] Add audit/usage records tied to user and tenant.
+  - `ViontoAuditEvent` model added with actor relation and domain-specific action/entity tracking.
+- [x] Create migration and seed records for roles/permissions/app registry.
+  - Migration `20260507203954_add_vionto_media_domain` generated and applied.
+  - App registry + roles/permissions already seeded in prior #024 work.
 
 ## Acceptance Criteria
 
