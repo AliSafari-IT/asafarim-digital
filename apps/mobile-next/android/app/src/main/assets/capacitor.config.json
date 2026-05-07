@@ -1,0 +1,8 @@
+{
+	"appId": "com.asafarim.edumatch",
+	"appName": "EduMatch",
+	"webDir": "out",
+	"server": {
+		"androidScheme": "https"
+	}
+}
