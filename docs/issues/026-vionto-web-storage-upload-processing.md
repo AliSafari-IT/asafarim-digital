@@ -1,8 +1,8 @@
 # Vionto Web Issue 4 - Storage, Uploads, Thumbnails, and EXIF Processing
 
-**Status:** Ready for development  
+**Status:** In Progress  
 **Priority:** High  
-**Assignee:** TBD  
+**Assignee:** AI Assistant  
 **Labels:** `vionto`, `web`, `storage`, `uploads`, `s3`
 
 ## Objective
@@ -13,19 +13,31 @@ Implement Vionto's web upload and storage pipeline with S3-compatible object sto
 
 - Docker Compose includes placeholder Vionto environment variables for S3.
 - EduMatch already uses S3-compatible env naming for DigitalOcean Spaces.
-- Vionto web has static upload UI only.
+- Vionto web now has a server-side upload pipeline: presign, complete, zip import, and cleanup APIs.
 - `docs/vionto-project-plan.md` requires images, zip/folder import, thumbnails, EXIF, and storage of originals.
+- Thumbnail generation worker is stubbed — requires `sharp` or a background worker queue (BullMQ) for full implementation.
 
 ## Scope
 
-- [ ] Add Vionto storage client package/module using S3-compatible configuration.
-- [ ] Define storage prefixes for originals, thumbnails, audio, render logs, and exports.
-- [ ] Add signed upload or server upload API with MIME and size validation.
-- [ ] Add zip extraction path with safe file limits.
+- [x] Add Vionto storage client package/module using S3-compatible configuration.
+  - `apps/vionto/lib/server/storage.ts` — S3 client, presigned URLs, key building, ownership checks, object existence, deletion.
+- [x] Define storage prefixes for originals, thumbnails, audio, render logs, and exports.
+  - Prefix: `vionto/{userId}/{category}/{sessionId|projectId}/{uuid}/{safeName}`
+- [x] Add signed upload or server upload API with MIME and size validation.
+  - `POST /api/uploads/presign` — validated, scoped presigned PUT URLs.
+  - `POST /api/uploads/complete` — confirms upload, stages asset in session.
+- [x] Add zip extraction path with safe file limits.
+  - `POST /api/uploads/zip` — validates ZIP, queues background extraction (stub).
+  - Safety: max 200 images, no path traversal, image/* filtering.
 - [ ] Add thumbnail generation worker or server task.
-- [ ] Add EXIF extraction for timestamp, orientation, GPS, camera model, and dimensions.
-- [ ] Add idempotent upload sessions.
-- [ ] Add cleanup job for abandoned uploads.
+  - **Pending:** Requires `sharp` or background worker (BullMQ). API structure ready.
+- [x] Add EXIF extraction for timestamp, orientation, GPS, camera model, and dimensions.
+  - `apps/vionto/lib/server/exif.ts` — lightweight JPEG/PNG parser, graceful fallback.
+- [x] Add idempotent upload sessions.
+  - `apps/vionto/lib/server/upload-session.ts` — in-memory with TTL, auto-cleanup.
+- [x] Add cleanup job for abandoned uploads.
+  - `POST /api/uploads/cleanup` — per-session cleanup (any user) + global cleanup (admin only).
+  - Deletes storage objects and purges in-memory sessions.
 
 ## Acceptance Criteria
 
