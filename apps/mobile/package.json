@@ -4,12 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "android": "flutter build apk --debug",
+    "devices": "flutter devices",
     "build:apk": "flutter build apk --debug",
     "build:release": "flutter build apk --release",
     "build:windows": "flutter build windows",
     "build:all": "flutter build apk --debug && flutter build apk --release && flutter build windows",
-    "dev": "flutter run"
+    "dev": "flutter run",
+    "android": "flutter run -d ZY22JS2RFH",
+    "web": "flutter run -d chrome"
   },
   "keywords": [],
   "author": "",

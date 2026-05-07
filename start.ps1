@@ -17,10 +17,17 @@ Usage: .\start.ps1 [COMMAND] [OPTIONS]
 Commands:
   install       Install dependencies using pnpm
   build         Build all apps (requires dependencies installed)
-  dev           Start development servers for all apps
+  dev           Start all browser apps plus mobile-next on Android
+  dev:web       Start all browser apps without mobile-next Android
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
+  dev:mobile-next
+                Start only the mobile-next app in development mode
+  mobile-next:android
+                Build mobile-next, sync Capacitor, then open Android Studio
+  mobile-next:run:android
+                Build mobile-next, sync Capacitor, then run on Android device/emulator
   db:push       Sync Prisma schema to local database (no migration file)
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -33,8 +40,9 @@ Default behavior (no args): runs 'install dev'
 "@
 }
 
-$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub", "apps/edumatch")
+$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub", "apps/edumatch", "apps/mobile-next")
 $PackageDirs = @("packages/auth", "packages/db", "packages/ui", "packages/types", "packages/config")
+$MobileNextPort = if ($env:PORT) { $env:PORT } else { "3002" }
 
 function Test-WorkspaceReady {
     foreach ($dir in ($AppDirs + $PackageDirs)) {
@@ -110,8 +118,28 @@ function Build-Packages {
 function Run-Dev {
     Confirm-Deps
     Build-Packages
-    Write-Host "[dev] Starting all dev servers..." -ForegroundColor Cyan
-    pnpm dev
+    Write-Host "[dev] Starting browser apps and mobile-next Android..." -ForegroundColor Cyan
+    $jobs = @()
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("dev:portal") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--filter", "content-generator", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("dev:ops") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--filter", "edumatch", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--filter", "mobile-next", "exec", "next", "dev", "-H", "0.0.0.0", "-p", $MobileNextPort) -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    Start-Sleep -Seconds 10
+    Start-MobileNext-AndroidRun
+    Wait-Process -InputObject $jobs
+}
+
+function Start-Dev-Web {
+    Confirm-Deps
+    Build-Packages
+    Write-Host "[dev] Starting browser development servers..." -ForegroundColor Cyan
+    $jobs = @()
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("dev:portal") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--filter", "content-generator", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("dev:ops") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--filter", "edumatch", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    Wait-Process -InputObject $jobs
 }
 
 function Run-Dev-Portal {
@@ -133,6 +161,46 @@ function Start-Dev-Edumatch {
     Build-Packages
     Write-Host "[dev] Starting edumatch..." -ForegroundColor Cyan
     pnpm dev:edumatch
+}
+
+function Start-Dev-MobileNext {
+    Confirm-Deps
+    Write-Host "[dev] Starting mobile-next on port $MobileNextPort..." -ForegroundColor Cyan
+    pnpm --filter mobile-next exec next dev -H 0.0.0.0 -p $MobileNextPort
+}
+
+function Invoke-MobileNextBuild {
+    Confirm-Deps
+    Write-Host "[mobile-next] Building static export..." -ForegroundColor Cyan
+    pnpm --filter mobile-next build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
+function Sync-MobileNext-Android {
+    Invoke-MobileNextBuild
+    Write-Host "[mobile-next] Syncing Capacitor Android project..." -ForegroundColor Cyan
+    pnpm --dir "$scriptDir/apps/mobile-next" exec cap sync android
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
+function Open-MobileNext-Android {
+    Sync-MobileNext-Android
+    Write-Host "[mobile-next] Opening Android Studio..." -ForegroundColor Cyan
+    pnpm --dir "$scriptDir/apps/mobile-next" exec cap open android
+}
+
+function Start-MobileNext-AndroidRun {
+    Write-Host "[mobile-next] Running Android app on connected device/emulator..." -ForegroundColor Cyan
+    $pnpmArgs = @("--dir", "$scriptDir/apps/mobile-next", "exec", "cap", "run", "android")
+    if ($env:ANDROID_TARGET) {
+        $pnpmArgs += @("--target", $env:ANDROID_TARGET)
+    }
+    Start-Process -FilePath "pnpm" -ArgumentList $pnpmArgs -WorkingDirectory $scriptDir -NoNewWindow
+}
+
+function Start-MobileNext-Android {
+    Sync-MobileNext-Android
+    Start-MobileNext-AndroidRun
 }
 
 function Run-Clean {
@@ -193,9 +261,13 @@ foreach ($cmd in $Commands) {
         "install"    { Run-Install }
         "build"      { Run-Build }
         "dev"        { Run-Dev }
+        "dev:web"    { Start-Dev-Web }
         "dev:portal" { Run-Dev-Portal }
         "dev:ops"    { Start-Dev-Ops }
         "dev:edumatch" { Start-Dev-Edumatch }
+        "dev:mobile-next" { Start-Dev-MobileNext }
+        "mobile-next:android" { Open-MobileNext-Android }
+        "mobile-next:run:android" { Start-MobileNext-Android }
         "db:push"    { Invoke-DbPush }
         "db:seed"    { Invoke-DbSeed }
         "db:reset"   { Invoke-DbReset }

@@ -2,8 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:google_sign_in_web/google_sign_in_web.dart' as google_sign_in_web;
 import '../../providers/auth_provider.dart';
+import 'google_sign_in_web_stub.dart'
+    if (dart.library.js_interop) 'google_sign_in_web_impl.dart' as web_sign_in;
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -113,7 +114,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     if (kIsWeb && !GoogleSignIn.instance.supportsAuthenticate()) {
       return SizedBox(
         height: 50,
-        child: google_sign_in_web.renderButton(),
+        child: web_sign_in.buildGoogleSignInButton(),
       );
     }
 

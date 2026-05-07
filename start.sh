@@ -12,10 +12,17 @@ Usage: ./start.sh [COMMAND] [OPTIONS]
 Commands:
   install       Install dependencies using pnpm
   build         Build all apps (requires dependencies installed)
-  dev           Start development servers for all apps
+  dev           Start all browser apps plus mobile-next on Android
+  dev:web       Start all browser apps without mobile-next Android
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
+  dev:mobile-next
+                Start only the mobile-next app in development mode
+  mobile-next:android
+                Build mobile-next, sync Capacitor, then open Android Studio
+  mobile-next:run:android
+                Build mobile-next, sync Capacitor, then run on Android device/emulator
   db:push       Sync Prisma schema to local database
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -29,14 +36,19 @@ Examples:
   ./start.sh install build
   ./start.sh install dev
   ./start.sh dev
+  ./start.sh dev:web
+  PORT=3002 ./start.sh dev:mobile-next
+  ./start.sh mobile-next:android
+  ./start.sh mobile-next:run:android
   ./start.sh clean
 
 Default behavior (no args): runs 'install dev'
 EOF
 }
 
-APP_DIRS=("apps/portal" "apps/content-generator" "apps/ops-hub")
+APP_DIRS=("apps/portal" "apps/content-generator" "apps/ops-hub" "apps/mobile-next")
 PACKAGE_DIRS=("packages/auth" "packages/db" "packages/ui" "packages/types" "packages/config")
+MOBILE_NEXT_PORT="${PORT:-3002}"
 
 test_workspace_ready() {
   for dir in "${APP_DIRS[@]}" "${PACKAGE_DIRS[@]}"; do
@@ -87,10 +99,31 @@ run_build() {
   echo "✅ Build complete"
 }
 
+run_dev_web() {
+  confirm_deps
+  echo "🚀 Starting browser development servers..."
+  pnpm dev:portal & \
+  pnpm --filter content-generator dev & \
+  pnpm dev:ops & \
+  pnpm --filter edumatch dev & \
+  wait
+}
+
 run_dev() {
   confirm_deps
-  echo "🚀 Starting development servers..."
-  pnpm dev
+  echo "🚀 Starting browser apps and mobile-next Android..."
+  pnpm dev:portal & \
+  pnpm --filter content-generator dev & \
+  pnpm dev:ops & \
+  pnpm --filter edumatch dev & \
+  pnpm --filter mobile-next exec next dev -H 0.0.0.0 -p "$MOBILE_NEXT_PORT" & \
+  sleep 10
+  if [ -n "${ANDROID_TARGET:-}" ]; then
+    pnpm --dir "$SCRIPT_DIR/apps/mobile-next" exec cap run android --external --target "$ANDROID_TARGET" &
+  else
+    pnpm --dir "$SCRIPT_DIR/apps/mobile-next" exec cap run android --external &
+  fi
+  wait
 }
 
 run_dev_portal() {
@@ -109,6 +142,36 @@ start_dev_edumatch() {
   confirm_deps
   echo "🚀 Starting edumatch development server..."
   pnpm --filter edumatch dev
+}
+
+start_dev_mobile_next() {
+  confirm_deps
+  echo "🚀 Starting mobile-next development server on port $MOBILE_NEXT_PORT..."
+  pnpm --filter mobile-next exec next dev -p "$MOBILE_NEXT_PORT"
+}
+
+build_mobile_next() {
+  confirm_deps
+  echo "📱 Building mobile-next..."
+  pnpm --filter mobile-next build
+}
+
+sync_mobile_next_android() {
+  build_mobile_next
+  echo "🔄 Syncing Capacitor Android project..."
+  pnpm --dir "$SCRIPT_DIR/apps/mobile-next" exec cap sync android
+}
+
+open_mobile_next_android() {
+  sync_mobile_next_android
+  echo "🤖 Opening mobile-next Android project in Android Studio..."
+  pnpm --dir "$SCRIPT_DIR/apps/mobile-next" exec cap open android
+}
+
+run_mobile_next_android() {
+  sync_mobile_next_android
+  echo "🤖 Running mobile-next Android app on connected device or emulator..."
+  pnpm --dir "$SCRIPT_DIR/apps/mobile-next" exec cap run android
 }
 
 run_clean() {
@@ -170,6 +233,9 @@ while [ $# -gt 0 ]; do
     dev)
       run_dev
       ;;
+    dev:web)
+      run_dev_web
+      ;;
     dev:portal)
       run_dev_portal
       ;;
@@ -178,6 +244,15 @@ while [ $# -gt 0 ]; do
       ;;
     dev:edumatch)
       start_dev_edumatch
+      ;;
+    dev:mobile-next)
+      start_dev_mobile_next
+      ;;
+    mobile-next:android)
+      open_mobile_next_android
+      ;;
+    mobile-next:run:android)
+      run_mobile_next_android
       ;;
     db:push)
       run_db_push
