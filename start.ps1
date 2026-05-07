@@ -121,6 +121,7 @@ function Run-Dev {
     $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/ops-hub", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
     $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/marketing-content", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
     $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/edumatch", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/vionto", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
     if (Test-Path (Join-Path $scriptDir "apps/mobile-next/package.json")) {
         $mobileNextPort = if ($env:PORT) { $env:PORT } else { "3002" }
         $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/mobile-next", "exec", "next", "dev", "-H", "0.0.0.0", "-p", $mobileNextPort) -WorkingDirectory $scriptDir -NoNewWindow -PassThru
