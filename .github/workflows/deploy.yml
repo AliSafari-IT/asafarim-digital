@@ -41,9 +41,14 @@ jobs:
 
       - name: Validate deployment secrets
         run: |
-          test -n "${{ secrets.VPS_HOST }}" || (echo "VPS_HOST is not set" && exit 1)
-          test -n "${{ secrets.VPS_USER }}" || (echo "VPS_USER is not set" && exit 1)
+          test -n "${{ secrets.VPS_HOST }}"    || (echo "VPS_HOST is not set"    && exit 1)
+          test -n "${{ secrets.VPS_USER }}"    || (echo "VPS_USER is not set"    && exit 1)
           test -n "${{ secrets.VPS_SSH_KEY }}" || (echo "VPS_SSH_KEY is not set" && exit 1)
+          test -n "${{ secrets.DO_SPACES_KEY }}"      || echo "::warning::DO_SPACES_KEY not set — Vionto storage uploads will fail"
+          test -n "${{ secrets.DO_SPACES_SECRET }}"   || echo "::warning::DO_SPACES_SECRET not set — Vionto storage uploads will fail"
+          test -n "${{ secrets.REDIS_URL }}"          || echo "::warning::REDIS_URL not set — Vionto job queue will not function"
+          test -n "${{ secrets.OPENAI_API_KEY }}"     || echo "::warning::OPENAI_API_KEY not set — Vionto AI generation will not function"
+          test -n "${{ secrets.ELEVENLABS_API_KEY }}" || echo "::warning::ELEVENLABS_API_KEY not set — Vionto TTS will not function"
 
       - name: Add VPS to known hosts
         run: |
