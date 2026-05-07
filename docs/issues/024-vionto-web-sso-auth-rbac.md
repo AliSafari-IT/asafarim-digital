@@ -1,8 +1,8 @@
 # Vionto Web Issue 2 - Web SSO, RBAC, and Account Gating
 
-**Status:** Ready for development  
+**Status:** In Progress  
 **Priority:** High  
-**Assignee:** TBD  
+**Assignee:** AI Assistant  
 **Labels:** `vionto`, `web`, `auth`, `sso`, `rbac`
 
 ## Objective
@@ -11,19 +11,28 @@ Integrate Vionto web with shared SSO, RBAC, account limits, and tenant-aware acc
 
 ## Source Review Notes
 
-- `packages/auth` currently trusts Portal, Content Generator, Ops Hub, EduMatch, and Marketing Content origins.
-- Vionto origin is not yet included in trusted redirect handling.
-- `packages/db` already supports users, roles, permissions, tenants, plans, feature flags, usage metrics, and subscriptions.
-- `apps/vionto` does not currently call `auth()`.
+- `packages/auth` now trusts Vionto origin (`NEXT_PUBLIC_VIONTO_URL`) in the `redirect` callback.
+- `apps/vionto` has middleware (`createAuthMiddleware`), `SessionProvider`, and `lib/server/auth.ts` helpers.
+- `packages/db` seed includes Vionto permissions and roles (`vionto_creator`, `vionto_admin`).
+- Account limits / quota gating remains pending (Milestone 5 feature).
 
 ## Scope
 
-- [ ] Add Vionto web URLs to trusted auth redirects and environment examples.
-- [ ] Add Vionto auth routes/sign-in pages or reuse shared auth pages consistently.
-- [ ] Protect authenticated workspace routes.
-- [ ] Define Vionto permissions for project create, render, export, admin support, and billing access.
+- [x] Add Vionto web URLs to trusted auth redirects and environment examples.
+  - `packages/auth/src/index.ts`: `NEXT_PUBLIC_VIONTO_URL` added to `trustedOrigins`.
+  - `docker-compose.yml` and `apps/vionto/.env.example` updated with auth env vars.
+- [x] Add Vionto auth routes/sign-in pages or reuse shared auth pages consistently.
+  - `apps/vionto/app/api/auth/[...nextauth]/route.ts` exports shared `handlers` from `@asafarim/auth`.
+  - `apps/vionto/components/SessionProvider.tsx` wraps layout for client-side session.
+- [x] Protect authenticated workspace routes.
+  - `apps/vionto/middleware.ts`: public routes (`/`, `/api/health`, `/api/navigation`); all others redirect to portal sign-in.
+  - `apps/vionto/lib/server/auth.ts`: `getAuthedUser`, `requireAuth`, and HTTP response helpers.
+- [x] Define Vionto permissions for project create, render, export, admin support, and billing access.
+  - `packages/db/prisma/seed.ts`: 12 Vionto permissions + `vionto_creator` and `vionto_admin` roles seeded.
 - [ ] Add account limits using tenant plan and feature flag data.
-- [ ] Add deactivated-user and unverified-account handling.
+  - **Pending:** Requires Milestone 5 quota/rendering pipeline to enforce render count, storage, and max images per project.
+- [x] Add deactivated-user and unverified-account handling.
+  - Already covered by `@asafarim/auth` (`signIn` callback blocks `!isActive` users; middleware returns 403 for deactivated sessions).
 
 ## Acceptance Criteria
 
