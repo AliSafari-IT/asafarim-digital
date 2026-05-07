@@ -378,3 +378,35 @@ Remaining integration work:
 - Add database schema through `packages/db`.
 - Add queue and worker services for media processing.
 - Add deployment host configuration for `vionto.asafarim.com`.
+
+## 16. Progress Notes
+
+### 2026-05-07 — Issue #023 foundation slice
+
+What landed:
+
+- Added `vionto` to `APP_CODES` in `@asafarim/types`.
+- Seeded `AppRegistry` entry for Vionto in `packages/db/prisma/seed.ts`.
+- Seeded header `NavItem`s for Vionto (Home / Create / Uploads / Script / Export).
+- Standardized `apps/vionto/app/api/health/route.ts` to match other apps.
+- Added `apps/vionto/app/api/navigation/route.ts` that mirrors the EduMatch
+  resolver (Prisma + `@asafarim/auth` + `@asafarim/navigation`).
+- Added shared workspace deps to `apps/vionto/package.json`:
+  `@asafarim/auth`, `@asafarim/db`, `@asafarim/navigation`, `@asafarim/types`,
+  `@asafarim/ui`, `next-auth`.
+- Added `apps/vionto/components/ViontoNav.tsx` and rendered `CommonNavbar` via
+  `useNavigation("vionto", "header")` from `@asafarim/ui` in the root layout.
+
+Deferred to follow-ups:
+
+- Robots, sitemap, OG image route, and richer `metadata`.
+- Portal app switcher entry for Vionto.
+- Mobile/tablet polish and resolver tests.
+- `infra/nginx/vionto.asafarim.com.conf` so the production subdomain stops 404'ing.
+- Running `pnpm --filter vionto typecheck/build` and `pnpm db:seed` to
+  materialize the seed changes (skipped because dev servers were running).
+
+What I'd do differently next time:
+
+- Stop dev servers before package installs that trigger `prisma generate`,
+  to avoid the Prisma DLL `EPERM` rename failure.
