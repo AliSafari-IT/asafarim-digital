@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { ViontoNav } from "@/components/ViontoNav";
 import { SessionProvider } from "@/components/SessionProvider";
+import { I18nProvider } from "@asafarim/shared-i18n";
+import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
+import { viontoDictionaries } from "@/lib/i18n-dictionaries";
 import "./globals.css";
 
 const appUrl = process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com";
@@ -43,14 +47,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const initialLocale = resolveLocaleFromCookie(cookieStore.toString());
+
   return (
-    <html lang="en">
+    <html lang={initialLocale} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col">
-        <SessionProvider>
-          <ViontoNav />
-          <div className="flex-1">{children}</div>
-        </SessionProvider>
+        <I18nProvider initialLocale={initialLocale} dictionaries={viontoDictionaries}>
+          <SessionProvider>
+            <ViontoNav />
+            <div className="flex-1">{children}</div>
+          </SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   );

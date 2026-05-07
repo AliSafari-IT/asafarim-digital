@@ -47,4 +47,11 @@ export type {
   EduMessage,
   Cart,
   CartItem,
+  ViontoProject,
+  ViontoAsset,
+  ViontoScript,
+  ViontoAudioTrack,
+  ViontoRenderJob,
+  ViontoExport,
+  ViontoAuditEvent,
 } from "@prisma/client";

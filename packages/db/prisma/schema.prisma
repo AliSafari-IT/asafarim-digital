@@ -1262,6 +1262,7 @@ model ViontoScript {
   // Generation provenance
   promptVersion   String? // Which prompt template / version produced this
   provider        String? // openai, anthropic, custom, manual
+  model           String? // e.g. gpt-4.1-mini, claude-haiku-4-5
 
   // Content
   narrationText   String? @db.Text // Plain-text narration
@@ -1269,6 +1270,12 @@ model ViontoScript {
 
   // User override tracking
   isUserEdited    Boolean @default(false)
+
+  // Audit / quality metadata
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  latencyMs        Int?
 
   project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
