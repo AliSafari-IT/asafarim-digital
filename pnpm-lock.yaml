@@ -394,6 +394,12 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.700.0
         version: 3.1038.0
+      bullmq:
+        specifier: ^5.34.0
+        version: 5.76.4
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.10.1
       lucide-react:
         specifier: ^0.462.0
         version: 0.462.0(react@19.2.5)
