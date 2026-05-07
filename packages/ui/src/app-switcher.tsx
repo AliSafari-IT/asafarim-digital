@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useOutsideClick } from "./use-outside-click";
 
-export type AppKey = "portal" | "content-generator" | "ops-hub" | "marketing-content" | "edumatch";
+export type AppKey = "portal" | "content-generator" | "ops-hub" | "marketing-content" | "edumatch" | "vionto";
 
 export interface AppVisibility {
   key: AppKey;
@@ -84,6 +84,18 @@ const apps: Array<{
     ring: "ring-green-500/30",
     visibility: { key: "edumatch", public: true }, // Visible to all, role-based features inside
   },
+  {
+    key: "vionto",
+    name: "Vionto",
+    tagline: "Photo-to-story video creator",
+    tag: "Video",
+    urlEnv: "NEXT_PUBLIC_VIONTO_URL",
+    fallback: process.env.NEXT_PUBLIC_VIONTO_URL || "https://vionto.asafarim.com",
+    mark: "V",
+    gradient: "from-orange-500 to-pink-500",
+    ring: "ring-orange-500/30",
+    visibility: { key: "vionto", public: true }, // Visible to all authenticated users
+  },
 ];
 
 export { apps };
@@ -142,6 +154,7 @@ function getGradientStyle(key: string): string {
     "ops-hub": "linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)",
     "marketing-content": "linear-gradient(135deg, #ec4899 0%, #f97316 100%)",
     edumatch: "linear-gradient(135deg, #10b981 0%, #0ea5e9 100%)",
+    vionto: "linear-gradient(135deg, #f97316 0%, #ec4899 100%)",
   };
   return gradients[key] || gradients.portal;
 }
