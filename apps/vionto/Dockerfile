@@ -8,8 +8,15 @@ WORKDIR /repo
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/vionto ./apps/vionto
+COPY packages/auth ./packages/auth
+COPY packages/db ./packages/db
+COPY packages/types ./packages/types
+COPY packages/navigation ./packages/navigation
+COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @asafarim/db build
+RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter vionto build
 
 FROM node:20-alpine AS runner
