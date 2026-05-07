@@ -124,6 +124,45 @@ const defaultRoles = [
     isDefault: true,
     permissions: ["content.view"],
   },
+  // Vionto roles
+  {
+    name: "vionto_creator",
+    displayName: "Vionto Creator",
+    description: "Creator role for Vionto — can create projects, start renders, and download exports.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "vionto.project.create",
+      "vionto.project.view",
+      "vionto.project.edit",
+      "vionto.project.delete",
+      "vionto.render.start",
+      "vionto.render.view",
+      "vionto.export.download",
+      "vionto.export.share",
+    ],
+  },
+  {
+    name: "vionto_admin",
+    displayName: "Vionto Admin",
+    description: "Admin role for Vionto — full access including analytics, billing, and support tools.",
+    isSystem: true,
+    isDefault: false,
+    permissions: [
+      "vionto.project.create",
+      "vionto.project.view",
+      "vionto.project.edit",
+      "vionto.project.delete",
+      "vionto.project.admin_view",
+      "vionto.render.start",
+      "vionto.render.view",
+      "vionto.export.download",
+      "vionto.export.share",
+      "vionto.admin.view_analytics",
+      "vionto.admin.manage_billing",
+      "vionto.admin.support",
+    ],
+  },
   // EduMatch roles
   {
     name: "edumatch_student",
@@ -226,6 +265,27 @@ const edumatchPermissions = [
   { name: "edumatch.admin.manage_subjects", displayName: "Manage Subjects", group: "edumatch", description: "Manage subject categories" },
   { name: "edumatch.admin.debug_matching", displayName: "Debug Tutor Matching", group: "edumatch", description: "Test tutor matching algorithm" },
   { name: "edumatch.users.view", displayName: "View EduMatch Users", group: "edumatch", description: "View EduMatch user list" },
+];
+
+// ─── Vionto Permissions ──────────────────────────────────────
+
+const viontoPermissions = [
+  // Projects
+  { name: "vionto.project.create", displayName: "Create Project", group: "vionto", description: "Create a new Vionto photo-story project" },
+  { name: "vionto.project.view", displayName: "View Project", group: "vionto", description: "View own Vionto projects" },
+  { name: "vionto.project.edit", displayName: "Edit Project", group: "vionto", description: "Edit own Vionto project settings and script" },
+  { name: "vionto.project.delete", displayName: "Delete Project", group: "vionto", description: "Delete own Vionto projects" },
+  { name: "vionto.project.admin_view", displayName: "Admin View Projects", group: "vionto", description: "View all Vionto projects as admin" },
+  // Rendering
+  { name: "vionto.render.start", displayName: "Start Render", group: "vionto", description: "Trigger a video render job" },
+  { name: "vionto.render.view", displayName: "View Render Status", group: "vionto", description: "View render job status and logs" },
+  // Exports
+  { name: "vionto.export.download", displayName: "Download Export", group: "vionto", description: "Download rendered MP4 exports" },
+  { name: "vionto.export.share", displayName: "Share Export", group: "vionto", description: "Generate public share link for a rendered video" },
+  // Admin
+  { name: "vionto.admin.view_analytics", displayName: "View Analytics", group: "vionto", description: "View Vionto usage and render analytics" },
+  { name: "vionto.admin.manage_billing", displayName: "Manage Billing", group: "vionto", description: "Manage Vionto plans and billing" },
+  { name: "vionto.admin.support", displayName: "Admin Support", group: "vionto", description: "Access admin support tools for Vionto" },
 ];
 
 // ─── Default Nav Items ───────────────────────────────────────
@@ -732,7 +792,7 @@ async function main() {
 
   // 1. Upsert permissions (combine default + EduMatch)
   console.log("  → Seeding permissions...");
-  const allPermissions = [...defaultPermissions, ...edumatchPermissions];
+  const allPermissions = [...defaultPermissions, ...edumatchPermissions, ...viontoPermissions];
   const permissionMap: Record<string, string> = {};
   for (const p of allPermissions) {
     const result = await prisma.permission.upsert({
@@ -742,7 +802,7 @@ async function main() {
     });
     permissionMap[p.name] = result.id;
   }
-  console.log(`    ✓ ${allPermissions.length} permissions seeded (${edumatchPermissions.length} EduMatch)`);
+  console.log(`    ✓ ${allPermissions.length} permissions seeded (${edumatchPermissions.length} EduMatch, ${viontoPermissions.length} Vionto)`);
 
   // 2. Upsert roles and connect permissions
   console.log("  → Seeding roles...");

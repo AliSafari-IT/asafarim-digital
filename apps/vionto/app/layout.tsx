@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ViontoNav } from "@/components/ViontoNav";
+import { SessionProvider } from "@/components/SessionProvider";
 import "./globals.css";
 
 const appUrl = process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com";
@@ -36,14 +37,20 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.svg",
   },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
-        <ViontoNav />
-        <div className="flex-1">{children}</div>
+        <SessionProvider>
+          <ViontoNav />
+          <div className="flex-1">{children}</div>
+        </SessionProvider>
       </body>
     </html>
   );
