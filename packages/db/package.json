@@ -12,6 +12,7 @@
     "db:push": "dotenv -e ../../.env -- prisma db push",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "db:seed-vionto": "dotenv -e ../../.env -- tsx prisma/seed-vionto-plans.ts",
     "seed": "pnpm run db:seed",
     "build": "prisma generate",
     "typecheck": "tsc --noEmit",

@@ -5,7 +5,7 @@
 export interface CartItem {
   id: string;
   cartId: string;
-  productType: 'edumatch_tutoring' | 'edumatch_premium' | 'content_generator' | 'ops_hub_plan' | 'other';
+  productType: 'edumatch_tutoring' | 'edumatch_premium' | 'content_generator' | 'ops_hub_plan' | 'vionto' | 'other';
   productId: string;
   productName: string;
   description?: string;
