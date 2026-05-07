@@ -16,6 +16,7 @@ Commands:
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
+  dev:vionto    Start only the vionto app in development mode
   db:push       Sync Prisma schema to local database
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -35,7 +36,7 @@ Default behavior (no args): runs 'install dev'
 EOF
 }
 
-APP_DIRS=("apps/portal" "apps/content-generator" "apps/ops-hub")
+APP_DIRS=("apps/portal" "apps/content-generator" "apps/ops-hub" "apps/edumatch" "apps/vionto")
 PACKAGE_DIRS=("packages/auth" "packages/db" "packages/ui" "packages/types" "packages/config")
 
 test_workspace_ready() {
@@ -111,6 +112,12 @@ start_dev_edumatch() {
   pnpm --filter edumatch dev
 }
 
+start_dev_vionto() {
+  confirm_deps
+  echo "Starting vionto development server..."
+  pnpm --filter vionto dev
+}
+
 run_clean() {
   echo "🧹 Cleaning up..."
   pnpm clean
@@ -178,6 +185,9 @@ while [ $# -gt 0 ]; do
       ;;
     dev:edumatch)
       start_dev_edumatch
+      ;;
+    dev:vionto)
+      start_dev_vionto
       ;;
     db:push)
       run_db_push

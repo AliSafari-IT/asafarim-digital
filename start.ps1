@@ -17,10 +17,11 @@ Usage: .\start.ps1 [COMMAND] [OPTIONS]
 Commands:
   install       Install dependencies using pnpm
   build         Build all apps (requires dependencies installed)
-  dev           Start development servers for all apps
+  dev           Start browser apps plus mobile-next on Android when available
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
+  dev:vionto    Start only the vionto app in development mode
   db:push       Sync Prisma schema to local database (no migration file)
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -33,7 +34,7 @@ Default behavior (no args): runs 'install dev'
 "@
 }
 
-$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub", "apps/edumatch")
+$AppDirs = @("apps/portal", "apps/content-generator", "apps/ops-hub", "apps/edumatch", "apps/marketing-content", "apps/vionto", "apps/mobile-next")
 $PackageDirs = @("packages/auth", "packages/db", "packages/ui", "packages/types", "packages/config")
 
 function Test-WorkspaceReady {
@@ -102,37 +103,63 @@ function Run-Build {
 function Build-Packages {
     Write-Host "[build-packages] Rebuilding workspace packages..." -ForegroundColor Cyan
     pnpm --filter @asafarim/ui build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     pnpm --filter @asafarim/auth build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     pnpm --filter @asafarim/db build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Write-Host "[build-packages] Done." -ForegroundColor Green
 }
 
 function Run-Dev {
     Confirm-Deps
     Build-Packages
-    Write-Host "[dev] Starting all dev servers..." -ForegroundColor Cyan
-    pnpm dev
+    Write-Host "[dev] Starting browser development servers..." -ForegroundColor Cyan
+    $jobs = @()
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/portal", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/content-generator", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/ops-hub", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/marketing-content", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/edumatch", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+    if (Test-Path (Join-Path $scriptDir "apps/mobile-next/package.json")) {
+        $mobileNextPort = if ($env:PORT) { $env:PORT } else { "3002" }
+        $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/mobile-next", "exec", "next", "dev", "-H", "0.0.0.0", "-p", $mobileNextPort) -WorkingDirectory $scriptDir -NoNewWindow -PassThru
+        Start-Sleep -Seconds 10
+        $androidArgs = @("--dir", "apps/mobile-next", "exec", "cap", "run", "android")
+        if ($env:ANDROID_TARGET) {
+            $androidArgs += @("--target", $env:ANDROID_TARGET)
+        }
+        Start-Process -FilePath "pnpm" -ArgumentList $androidArgs -WorkingDirectory $scriptDir -NoNewWindow
+    }
+    Wait-Process -InputObject $jobs
 }
 
 function Run-Dev-Portal {
     Confirm-Deps
     Build-Packages
     Write-Host "[dev] Starting portal..." -ForegroundColor Cyan
-    pnpm dev:portal
+    pnpm --dir apps/portal dev
 }
 
 function Start-Dev-Ops {
     Confirm-Deps
     Build-Packages
     Write-Host "[dev] Starting ops-hub..." -ForegroundColor Cyan
-    pnpm dev:ops
+    pnpm --dir apps/ops-hub dev
 }
 
 function Start-Dev-Edumatch {
     Confirm-Deps
     Build-Packages
     Write-Host "[dev] Starting edumatch..." -ForegroundColor Cyan
-    pnpm dev:edumatch
+    pnpm --dir apps/edumatch dev
+}
+
+function Start-Dev-Vionto {
+    Confirm-Deps
+    Build-Packages
+    Write-Host "[dev] Starting vionto..." -ForegroundColor Cyan
+    pnpm --dir apps/vionto dev
 }
 
 function Run-Clean {
@@ -196,6 +223,7 @@ foreach ($cmd in $Commands) {
         "dev:portal" { Run-Dev-Portal }
         "dev:ops"    { Start-Dev-Ops }
         "dev:edumatch" { Start-Dev-Edumatch }
+        "dev:vionto" { Start-Dev-Vionto }
         "db:push"    { Invoke-DbPush }
         "db:seed"    { Invoke-DbSeed }
         "db:reset"   { Invoke-DbReset }

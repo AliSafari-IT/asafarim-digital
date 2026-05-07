@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Updated:** 2026-05-03
+**Updated:** 2026-05-07
 **Status:** Phase 7 in progress
 **Purpose:** Practice a production-shaped AI marketplace system inside the
 ASafariM Digital monorepo.
@@ -311,3 +311,36 @@ Deliverables:
 
 Update this plan whenever a phase changes status or a major product decision
 changes the shape of the roadmap.
+
+## 12. Progress Notes
+
+### 2026-05-07 — Prisma 7 rollback during mobile/start-script work
+
+What actually happened:
+
+- A Prisma update prompt led to an attempted `prisma@latest` update in
+  `packages/db`.
+- Prisma 7 rejected the existing datasource `url = env("DATABASE_URL")`
+  schema style, causing `P1012` during `prisma generate`.
+- `@prisma/client` exports then appeared broken to `@asafarim/db` and
+  `@asafarim/auth` builds.
+- `packages/db` was restored to pinned `prisma` and `@prisma/client`
+  `6.19.3`.
+- `@auth/prisma-adapter` was pinned to `2.8.0` to avoid drifting toward a
+  Prisma 7 peer path.
+- `pnpm install`, `@asafarim/auth` build, and `@asafarim/db` build succeeded
+  again.
+
+What surprised me:
+
+- The original `packages/db` `prisma` range used `^6.6.0`, which allowed too
+  much drift for a schema/tooling package with major-version breaking changes.
+- `start.ps1` continued after package build failures, making the dev startup
+  look healthier than it was.
+
+What I would do differently next time:
+
+- Pin Prisma CLI and client versions together for `packages/db`.
+- Treat Prisma major upgrades as explicit migration tasks, not routine install
+  prompt follow-ups.
+- Keep startup scripts fail-fast when shared package builds fail.

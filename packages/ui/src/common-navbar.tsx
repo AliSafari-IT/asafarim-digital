@@ -194,10 +194,16 @@ export function useNavigation(app: AppCode, placement?: string, group?: string) 
         if (group) params.set("group", group);
 
         const res = await fetch(`/api/navigation?${params}`);
+        if (res.status === 401 || res.status === 403) {
+          setItems([]);
+          setError(null);
+          return;
+        }
         if (!res.ok) throw new Error(`Failed to fetch navigation: ${res.status}`);
 
         const data = await res.json();
         setItems(data.items || []);
+        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Unknown error"));
       } finally {
