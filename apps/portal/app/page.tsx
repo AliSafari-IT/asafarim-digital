@@ -44,6 +44,12 @@ export default async function PortalHome() {
             description: "Campaign, lead, SEO, and marketing automation workspace for growth teams.",
             path: "/showcase/marketing-content",
           }),
+          softwareApplicationSchema({
+            name: "Vionto",
+            description: "AI-powered photo-to-story video creator for transforming image collections into narrated MP4 memories.",
+            path: "/showcase/vionto",
+            category: "MultimediaApplication",
+          }),
         ]}
       />
       <HomeContent content={content} />

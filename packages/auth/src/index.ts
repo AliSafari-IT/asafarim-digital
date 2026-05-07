@@ -111,6 +111,7 @@ export const authConfig: NextAuthConfig = {
         process.env.NEXT_PUBLIC_OPS_HUB_URL,
         process.env.NEXT_PUBLIC_EDUMATCH_URL,
         process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL,
+        process.env.NEXT_PUBLIC_VIONTO_URL,
       ]
         .filter((u): u is string => Boolean(u))
         .map((u) => new URL(u).origin);
