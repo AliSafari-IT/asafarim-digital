@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
-import { ViontoNav } from "@/components/ViontoNav";
 import { SessionProvider } from "@/components/SessionProvider";
 import { I18nProvider } from "@asafarim/shared-i18n";
 import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
@@ -56,7 +55,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <body className="flex min-h-screen flex-col">
         <I18nProvider initialLocale={initialLocale} dictionaries={viontoDictionaries}>
           <SessionProvider>
-            <ViontoNav />
             <div className="flex-1">{children}</div>
           </SessionProvider>
         </I18nProvider>
