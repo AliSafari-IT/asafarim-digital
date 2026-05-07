@@ -33,13 +33,18 @@ jobs:
             revert
           scopes: |
             edumatch
+            vionto
             portal
+            content-generator
+            marketing-content
+            ops-hub
             auth
             db
             ui
             payments
             shared
             infra
+            workers
           requireScope: false
 
       - name: Check PR Description

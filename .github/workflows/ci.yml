@@ -136,8 +136,79 @@ jobs:
           NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
           NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
 
+      - name: Build Vionto (App)
+        run: pnpm --filter vionto build
+        env:
+          NEXT_PUBLIC_VIONTO_URL: http://localhost:3006
+          NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+
   # ───────────────────────────────────────────
-  # 4. Test (if tests exist)
+  # 4. Vionto Docker Config & Dockerfile Lint
+  # ───────────────────────────────────────────
+  vionto-docker-check:
+    name: Vionto Docker Config & Dockerfile Lint
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint]
+    timeout-minutes: 10
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose config
+        run: docker compose config --quiet
+
+      - name: Lint Vionto web Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: apps/vionto/Dockerfile
+          failure-threshold: error
+
+      - name: Lint Vionto worker Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: infra/docker/Dockerfile.vionto-worker
+          failure-threshold: error
+
+  # ───────────────────────────────────────────
+  # 5. Vionto Required Secrets Audit
+  # ───────────────────────────────────────────
+  secrets-check:
+    name: Vionto Required Secrets Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    steps:
+      - name: Audit Vionto production secrets
+        run: |
+          MISSING=()
+          [ -z "$S_DO_SPACES_KEY" ]       && MISSING+=("DO_SPACES_KEY")
+          [ -z "$S_DO_SPACES_SECRET" ]    && MISSING+=("DO_SPACES_SECRET")
+          [ -z "$S_DO_SPACES_BUCKET" ]    && MISSING+=("DO_SPACES_BUCKET")
+          [ -z "$S_DO_SPACES_REGION" ]    && MISSING+=("DO_SPACES_REGION")
+          [ -z "$S_REDIS_URL" ]           && MISSING+=("REDIS_URL")
+          [ -z "$S_OPENAI_API_KEY" ]      && MISSING+=("OPENAI_API_KEY")
+          [ -z "$S_ELEVENLABS_API_KEY" ]  && MISSING+=("ELEVENLABS_API_KEY")
+          [ -z "$S_VIONTO_URL" ]          && MISSING+=("NEXT_PUBLIC_VIONTO_URL")
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo "::warning title=Missing Vionto Secrets::Required secrets not configured: ${MISSING[*]}"
+            echo "Set these in Settings → Secrets & Variables → Actions before deploying Vionto to production."
+          else
+            echo "✓ All required Vionto secrets are configured."
+          fi
+        env:
+          S_DO_SPACES_KEY: ${{ secrets.DO_SPACES_KEY }}
+          S_DO_SPACES_SECRET: ${{ secrets.DO_SPACES_SECRET }}
+          S_DO_SPACES_BUCKET: ${{ secrets.DO_SPACES_BUCKET }}
+          S_DO_SPACES_REGION: ${{ secrets.DO_SPACES_REGION }}
+          S_REDIS_URL: ${{ secrets.REDIS_URL }}
+          S_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          S_ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          S_VIONTO_URL: ${{ secrets.NEXT_PUBLIC_VIONTO_URL }}
+
+  # ───────────────────────────────────────────
+  # 7. Test (if tests exist)
   # ───────────────────────────────────────────
   test:
     name: Run Tests
@@ -177,7 +248,7 @@ jobs:
         run: pnpm test --if-present || echo "No tests configured"
 
   # ───────────────────────────────────────────
-  # 5. Database Schema Validation
+  # 8. Database Schema Validation
   # ───────────────────────────────────────────
   schema-check:
     name: Database Schema Validation
