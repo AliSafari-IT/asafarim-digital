@@ -78,6 +78,18 @@ function readConfig(): StorageConfig | null {
 
 let cachedClient: { client: S3Client; config: StorageConfig } | null = null;
 
+export function getStorageStatus(): { configured: boolean; bucket?: string; region?: string; endpoint?: string; publicUrl?: string } {
+  const config = readConfig();
+  if (!config) return { configured: false };
+  return {
+    configured: true,
+    bucket: config.bucket,
+    region: config.region,
+    endpoint: config.endpoint,
+    publicUrl: config.publicUrl,
+  };
+}
+
 function getClient(): { client: S3Client; config: StorageConfig } | null {
   if (cachedClient) return cachedClient;
   const config = readConfig();

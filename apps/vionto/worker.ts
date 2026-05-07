@@ -1,24 +1,27 @@
-/**
- * Vionto Render Worker — BullMQ worker for FFmpeg pipeline jobs.
+﻿/**
+ * Vionto Render Worker â€” BullMQ worker for FFmpeg pipeline jobs.
  *
- * Processes render manifests from Redis, runs TTS → images → audio mix →
- * FFmpeg encode → upload, and updates the render job row in Postgres.
+ * Processes render manifests from Redis, runs TTS â†’ images â†’ audio mix â†’
+ * FFmpeg encode â†’ upload, and updates the render job row in Postgres.
  */
 
 import { Worker } from "bullmq";
 import Redis from "ioredis";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { join } from "node:path";
 import { prisma } from "@asafarim/db";
 import { safeParseManifest } from "./lib/server/render-manifest";
 import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./lib/server/ffmpeg";
 import { synthesizeSpeech } from "./lib/server/tts";
-import { buildKey } from "./lib/server/storage";
+import { buildKey, getStorageStatus } from "./lib/server/storage";
 import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
+const WORKER_HEALTH_PORT = Number.parseInt(process.env.WORKER_HEALTH_PORT ?? "3007", 10);
 const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+let isShuttingDown = false;
 
 /** Failure classification for telemetry and retry decisions. */
 function classifyError(err: unknown): { category: string; retryable: boolean } {
@@ -123,7 +126,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     // --- TTS ---
     let narrationWavPath: string | undefined;
     if (manifest.narrationText) {
-      logLines.push("Synthesizing narration…");
+      logLines.push("Synthesizing narrationâ€¦");
       const voiceId = manifest.audioTracks.find((t) => t.type === "narration")?.storageKey ?? "alloy";
       const ttsResult = await synthesizeSpeech(manifest.narrationText, voiceId);
       if (!ttsResult.ok) {
@@ -136,7 +139,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     await updateState(jobId, "running", { progressPercent: 20 });
 
     // --- Prepare image segments ---
-    logLines.push("Generating image segments…");
+    logLines.push("Generating image segmentsâ€¦");
     const { steps, concatListPath } = buildRenderCommand(manifest, workDir, {
       narrationWavPath,
       outputPath: join(workDir, "output.mp4"),
@@ -163,12 +166,12 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     }
 
     // --- Final encode ---
-    logLines.push("Final encode…");
+    logLines.push("Final encodeâ€¦");
     await runFfmpeg(steps[steps.length - 1], workDir, logLines);
     await updateState(jobId, "running", { progressPercent: 80 });
 
     // --- Upload output ---
-    logLines.push("Uploading output…");
+    logLines.push("Uploading outputâ€¦");
     const outputKey = buildKey(manifest.userId, "renders", manifest.projectId, `render-${jobId}.mp4`);
     // For now we write the output locally if S3 is stubbed; in production a separate uploader reads the file
     // and streams it to S3.
@@ -240,11 +243,43 @@ worker.on("failed", (job, err) => {
   console.error(`[worker] failed job ${job?.id}: ${err.message}`);
 });
 
+const healthServer = createServer(async (_req, res) => {
+  const checks = {
+    worker: !isShuttingDown,
+    redis: false,
+    database: false,
+    storage: getStorageStatus(),
+  };
+
+  try {
+    checks.redis = (await redis.ping()) === "PONG";
+  } catch {}
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = true;
+  } catch {}
+
+  const ok = checks.worker && checks.redis && checks.database && checks.storage.configured;
+  res.writeHead(ok ? 200 : 503, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({
+    ok,
+    service: "vionto-worker",
+    queue: QUEUE_NAME,
+    checks,
+    timestamp: new Date().toISOString(),
+  }));
+});
+
+healthServer.listen(WORKER_HEALTH_PORT, "0.0.0.0", () => {
+  console.log(`[worker] health server listening on ${WORKER_HEALTH_PORT}`);
+});
+
 console.log(`[worker] Vionto render worker started on queue '${QUEUE_NAME}'`);
 
 // Graceful shutdown
 function shutdown(signal: string) {
-  console.log(`[worker] ${signal} received. Closing…`);
+  console.log(`[worker] ${signal} received. Closingâ€¦`);
   worker.close().then(() => redis.disconnect()).then(() => process.exit(0));
 }
 process.on("SIGINT", () => shutdown("SIGINT"));
