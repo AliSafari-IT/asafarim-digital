@@ -294,6 +294,13 @@ const defaultNavItems = [
   { label: "Automations", href: "/marketing-content/automations", position: 5, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
   { label: "Analytics", href: "/marketing-content/analytics", position: 6, group: "main", visibility: "authenticated", appScope: ["marketing-content"], placement: "sidebar" },
 
+  // Vionto nav items (header placement)
+  { label: "Home", href: "/", position: 0, group: "main", visibility: "public", appScope: ["vionto"], placement: "header", icon: "home" },
+  { label: "Create", href: "/#create", position: 1, group: "main", visibility: "public", appScope: ["vionto"], placement: "header", icon: "sparkles" },
+  { label: "Uploads", href: "/#uploads", position: 2, group: "main", visibility: "public", appScope: ["vionto"], placement: "header", icon: "image" },
+  { label: "Script", href: "/#script", position: 3, group: "main", visibility: "public", appScope: ["vionto"], placement: "header", icon: "chat" },
+  { label: "Export", href: "/#export", position: 4, group: "main", visibility: "public", appScope: ["vionto"], placement: "header", icon: "download" },
+
   // Cross-app links for EduMatch (appear in sidebar under "Apps" group)
   { label: "Portal", href: "/", position: 0, group: "apps", visibility: "authenticated", appScope: ["edumatch"], placement: "sidebar", icon: "home", metadata: { appTarget: "portal" } },
   { label: "Content Generator", href: "/", position: 1, group: "apps", visibility: "authenticated", appScope: ["edumatch"], placement: "sidebar", icon: "sparkles", metadata: { appTarget: "content-generator" } },
@@ -911,6 +918,14 @@ async function main() {
       description: "Campaigns, MQLs, growth dashboards, content calendar.",
       url: process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ?? "https://marketing-content.asafarim.com",
       healthUrl: (process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ?? "https://marketing-content.asafarim.com") + "/api/health",
+      environment: "qa",
+    },
+    {
+      code: "vionto",
+      name: "Vionto",
+      description: "AI-powered photo-to-story narrated MP4 video creator.",
+      url: process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com",
+      healthUrl: (process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com") + "/api/health",
       environment: "qa",
     },
   ];

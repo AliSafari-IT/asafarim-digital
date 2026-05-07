@@ -6,6 +6,7 @@ export const APP_CODES = [
   "ops-hub",
   "marketing-content",
   "edumatch",
+  "vionto",
 ] as const;
 
 export type AppCode = (typeof APP_CODES)[number];
