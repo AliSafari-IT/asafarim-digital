@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CommonNavbar, useNavigation } from "@asafarim/ui";
+import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import type { AppCode } from "@asafarim/types";
 
 function ViontoLogo() {
@@ -19,6 +20,14 @@ function ViontoLogo() {
   );
 }
 
+function NavActions() {
+  return (
+    <div className="flex items-center gap-2">
+      <CountryLanguageSelector />
+    </div>
+  );
+}
+
 export function ViontoNav() {
   const { items, error } = useNavigation("vionto" as AppCode, "header");
 
@@ -31,6 +40,7 @@ export function ViontoNav() {
       items={items}
       app="vionto"
       logo={<ViontoLogo />}
+      rightContent={<NavActions />}
       sticky
     />
   );
