@@ -143,21 +143,29 @@ jobs:
             docker compose rm -f db-migrate || true
             echo "Docker disk usage before cleanup:"
             docker system df || true
-            echo "Pruning unused Docker builder cache before rebuild..."
-            docker builder prune -af || true
-            docker image prune -af || true
-            docker container prune -f || true
+            # Only prune if disk is >80% full to avoid wiping caches every deploy
+            DISK_PCT=$(df -h / | awk 'NR==2 {gsub(/%/,""); print $5}')
+            if [ "$DISK_PCT" -gt 80 ] 2>/dev/null || [ -z "$DISK_PCT" ]; then
+              echo "Disk usage ${DISK_PCT:-unknown}%, pruning old images/containers..."
+              docker image prune -f --filter "until=72h" || true
+              docker container prune -f || true
+            else
+              echo "Disk usage ${DISK_PCT}% — skipping aggressive prune to preserve build cache"
+            fi
             echo "Docker disk usage after cleanup:"
             docker system df || true
-            # Rebuild images sequentially to avoid ENOSPC from parallel pnpm installs
-            docker compose build --pull db-migrate
-            docker compose build --pull portal
-            docker compose build --pull content-generator
-            docker compose build --pull ops-hub
-            docker compose build --pull marketing-content
-            docker compose build --pull edumatch
-            docker compose build --pull vionto
-            docker compose build --pull vionto-worker
+            # Rebuild images sequentially with BuildKit inline cache to reuse layers
+            export DOCKER_BUILDKIT=1
+            export COMPOSE_DOCKER_CLI_BUILD=1
+            export BUILDKIT_INLINE_CACHE=1
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache db-migrate
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache portal
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache content-generator
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache ops-hub
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache marketing-content
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache edumatch
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache vionto
+            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache vionto-worker
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'

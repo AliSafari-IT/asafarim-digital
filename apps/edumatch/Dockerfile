@@ -30,6 +30,7 @@ COPY packages/ui ./packages/ui
 COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/country-language-selector ./packages/country-language-selector
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 RUN pnpm install --frozen-lockfile
 # Explicitly generate Prisma client before building
 RUN cd packages/db && npx prisma generate
