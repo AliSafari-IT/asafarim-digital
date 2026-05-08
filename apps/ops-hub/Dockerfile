@@ -29,6 +29,8 @@ COPY packages/types ./packages/types
 COPY packages/ui ./packages/ui
 
 RUN pnpm install --frozen-lockfile
+# Explicitly generate Prisma client before building
+RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter ops-hub build

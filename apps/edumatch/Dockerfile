@@ -31,6 +31,8 @@ COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/country-language-selector ./packages/country-language-selector
 
 RUN pnpm install --frozen-lockfile
+# Explicitly generate Prisma client before building
+RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter edumatch build
