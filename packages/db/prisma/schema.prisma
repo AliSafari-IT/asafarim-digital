@@ -1281,6 +1281,12 @@ model ViontoAsset {
   // Ordering within the project timeline
   orderIndex          Int     @default(0)
 
+  // AI-generated caption for vision-aware story generation
+  caption             String?  @db.Text
+  captionProvider     String?  // openai, anthropic, google, manual
+  captionModel        String?  // e.g. gpt-4o-mini, claude-3-haiku
+  captionGeneratedAt  DateTime?
+
   // EXIF and technical metadata (JSON blob)
   metadata            Json?
 

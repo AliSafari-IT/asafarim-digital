@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "@asafarim/shared-i18n";
 import { Captions, Save, RefreshCw, Wand2 } from "lucide-react";
 
@@ -31,6 +31,17 @@ export function ScriptEditor({ versions, projectId, onGenerate, onSave, isGenera
   const [saving, setSaving] = useState(false);
 
   const activeVersion = versions[activeIndex] ?? null;
+
+  useEffect(() => {
+    const nextIndex = Math.min(activeIndex, Math.max(versions.length - 1, 0));
+    if (nextIndex !== activeIndex) {
+      setActiveIndex(nextIndex);
+    }
+
+    const v = versions[nextIndex];
+    setNarration(v?.narrationText ?? "");
+    setSrt(v?.srtText ?? "");
+  }, [versions, activeIndex]);
 
   const selectVersion = useCallback(
     (idx: number) => {

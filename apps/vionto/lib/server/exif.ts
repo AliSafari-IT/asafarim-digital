@@ -6,6 +6,8 @@
  * or `sharp` metadata. This module gracefully handles missing metadata.
  */
 
+import { prisma } from "@asafarim/db";
+
 export type ExifData = {
   timestamp?: string;
   orientation?: number;
@@ -224,4 +226,172 @@ function formatShutterSpeed(seconds: number | undefined): string | undefined {
   if (seconds >= 1) return `${Math.round(seconds * 10) / 10}s`;
   const denom = Math.round(1 / seconds);
   return `1/${denom}s`;
+}
+
+/**
+ * Summary of EXIF data aggregated from multiple project assets.
+ */
+export type ExifSummary = {
+  imageCount: number;
+  dateRange?: { start: string; end: string };
+  locations?: { latitude: number; longitude: number; count: number }[];
+  cameraHints?: {
+    makes: string[];
+    models: string[];
+    orientations: number[];
+  };
+  aspectRatioHints?: string[];
+  totalSizeBytes?: number;
+};
+
+function getAssetExif(metadata: unknown): ExifData | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const record = metadata as Record<string, unknown>;
+  const exif = record.exif && typeof record.exif === "object" ? record.exif : record;
+  return exif as ExifData;
+}
+
+/**
+ * Build an EXIF summary from project assets for story generation context.
+ * Aggregates date ranges, locations, camera info, and image count.
+ */
+export async function buildExifSummary(projectId: string): Promise<ExifSummary> {
+  const assets = await prisma.viontoAsset.findMany({
+    where: { projectId, type: "source_image" },
+    select: {
+      metadata: true,
+      width: true,
+      height: true,
+      fileSizeBytes: true,
+      createdAt: true,
+    },
+    orderBy: { orderIndex: "asc" },
+  });
+
+  const summary: ExifSummary = {
+    imageCount: assets.length,
+  };
+
+  if (assets.length === 0) return summary;
+
+  const timestamps: string[] = [];
+  const locations: Map<string, { latitude: number; longitude: number; count: number }> = new Map();
+  const makes = new Set<string>();
+  const models = new Set<string>();
+  const orientations = new Set<number>();
+  const aspectRatios = new Set<string>();
+  let totalSizeBytes = 0;
+
+  for (const asset of assets) {
+    const exif = getAssetExif(asset.metadata);
+
+    // Timestamps for date range
+    if (exif?.timestamp) {
+      timestamps.push(exif.timestamp);
+    } else {
+      timestamps.push(asset.createdAt.toISOString().split("T")[0]);
+    }
+
+    // GPS locations
+    if (exif?.gpsLatitude && exif?.gpsLongitude) {
+      const key = `${exif.gpsLatitude.toFixed(4)},${exif.gpsLongitude.toFixed(4)}`;
+      const existing = locations.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        locations.set(key, { latitude: exif.gpsLatitude, longitude: exif.gpsLongitude, count: 1 });
+      }
+    }
+
+    // Camera info
+    if (exif?.cameraMake) makes.add(exif.cameraMake);
+    if (exif?.cameraModel) models.add(exif.cameraModel);
+    if (exif?.orientation) orientations.add(exif.orientation);
+
+    // Aspect ratio hints
+    if (asset.width && asset.height) {
+      const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+      const divisor = gcd(asset.width, asset.height);
+      const ratio = `${asset.width / divisor}:${asset.height / divisor}`;
+      aspectRatios.add(ratio);
+    }
+
+    // Total size
+    if (asset.fileSizeBytes) totalSizeBytes += asset.fileSizeBytes;
+  }
+
+  // Date range
+  if (timestamps.length > 0) {
+    const sorted = timestamps.sort();
+    summary.dateRange = {
+      start: sorted[0],
+      end: sorted[sorted.length - 1],
+    };
+  }
+
+  // Locations
+  if (locations.size > 0) {
+    summary.locations = Array.from(locations.values()).sort((a, b) => b.count - a.count);
+  }
+
+  // Camera hints
+  if (makes.size > 0 || models.size > 0 || orientations.size > 0) {
+    summary.cameraHints = {
+      makes: Array.from(makes),
+      models: Array.from(models),
+      orientations: Array.from(orientations),
+    };
+  }
+
+  // Aspect ratio hints
+  if (aspectRatios.size > 0) {
+    summary.aspectRatioHints = Array.from(aspectRatios);
+  }
+
+  // Total size
+  if (totalSizeBytes > 0) {
+    summary.totalSizeBytes = totalSizeBytes;
+  }
+
+  return summary;
+}
+
+/**
+ * Format EXIF summary as a text description for LLM prompt context.
+ */
+export function formatExifSummaryForPrompt(summary: ExifSummary, locale: string = "en"): string {
+  const parts: string[] = [];
+
+  parts.push(locale === "en" ? `${summary.imageCount} images` : `${summary.imageCount} imágenes`);
+
+  if (summary.dateRange) {
+    const start = summary.dateRange.start;
+    const end = summary.dateRange.end;
+    if (start === end) {
+      parts.push(locale === "en" ? `from ${start}` : `del ${start}`);
+    } else {
+      parts.push(locale === "en" ? `from ${start} to ${end}` : `del ${start} al ${end}`);
+    }
+  }
+
+  if (summary.locations && summary.locations.length > 0) {
+    parts.push(locale === "en"
+      ? `with ${summary.locations.length} distinct location(s)`
+      : `con ${summary.locations.length} ubicación(es) distinta(s)`);
+  }
+
+  if (summary.cameraHints && summary.cameraHints.makes.length > 0) {
+    parts.push(locale === "en"
+      ? `captured with ${summary.cameraHints.makes.join(", ")}`
+      : `capturadas con ${summary.cameraHints.makes.join(", ")}`);
+  }
+
+  if (summary.aspectRatioHints && summary.aspectRatioHints.length > 0) {
+    const dominantRatio = summary.aspectRatioHints[0];
+    parts.push(locale === "en"
+      ? `primarily ${dominantRatio} aspect ratio`
+      : `principalmente en formato ${dominantRatio}`);
+  }
+
+  return parts.join(", ") + ".";
 }

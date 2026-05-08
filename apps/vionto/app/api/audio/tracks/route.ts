@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json({ data: tracks });
+    return NextResponse.json({ data: tracks, tracks });
   } catch (error) {
     return serverError("audio/tracks", error);
   }
@@ -69,19 +69,39 @@ export async function POST(req: Request) {
       return badRequest("Project not found.");
     }
 
-    const track = await prisma.viontoAudioTrack.create({
-      data: {
-        projectId,
-        userId: user.id,
-        type: String(body.type ?? "narration"),
-        source: String(body.source ?? "upload"),
-        storageKey: typeof body.storageKey === "string" ? body.storageKey : null,
-        voiceId: typeof body.voiceId === "string" ? body.voiceId : null,
-        voiceName: typeof body.voiceName === "string" ? body.voiceName : null,
-        durationSeconds: typeof body.durationSeconds === "number" ? body.durationSeconds : null,
-        mixSettings: body.mixSettings ?? {},
-      },
-    });
+    const type = String(body.type ?? "narration");
+    const source = String(body.source ?? "upload");
+    const storageKey = typeof body.storageKey === "string" ? body.storageKey : null;
+    const voiceId = typeof body.voiceId === "string" ? body.voiceId : null;
+    const voiceName = typeof body.voiceName === "string" ? body.voiceName : null;
+    const durationSeconds = typeof body.durationSeconds === "number" ? body.durationSeconds : null;
+    const mixSettings = body.mixSettings ?? {};
+
+    const existingPreference = voiceId
+      ? await prisma.viontoAudioTrack.findFirst({
+          where: { projectId, userId: user.id, type: "narration", source: "tts", storageKey: null },
+          orderBy: { updatedAt: "desc" },
+        })
+      : null;
+
+    const track = existingPreference
+      ? await prisma.viontoAudioTrack.update({
+          where: { id: existingPreference.id },
+          data: { voiceId, voiceName, durationSeconds, mixSettings },
+        })
+      : await prisma.viontoAudioTrack.create({
+          data: {
+            projectId,
+            userId: user.id,
+            type,
+            source,
+            storageKey,
+            voiceId,
+            voiceName,
+            durationSeconds,
+            mixSettings,
+          },
+        });
 
     return NextResponse.json(track, { status: 201 });
   } catch (error) {

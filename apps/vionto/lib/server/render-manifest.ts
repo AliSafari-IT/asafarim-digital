@@ -42,8 +42,10 @@ export const renderAssetSchema = z.object({
 });
 
 export const audioTrackSchema = z.object({
-  storageKey: z.string().min(1),
+  storageKey: z.string().min(1).optional(),
   type: z.enum(["narration", "music", "sfx"]),
+  voiceId: z.string().min(1).optional(),
+  voiceName: z.string().optional(),
   volume: z.number().min(0).max(2).default(1),
   fadeInSeconds: z.number().min(0).max(5).default(0),
   fadeOutSeconds: z.number().min(0).max(5).default(0),

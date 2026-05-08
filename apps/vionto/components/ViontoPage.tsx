@@ -11,12 +11,13 @@ import {
   FileAudio,
   ImagePlus,
   ListChecks,
-  Mic2,
+  Mic,
+  Play,
   Plus,
+  RefreshCw,
   Sparkles,
   Trash2,
   Wand2,
-  RefreshCw,
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
@@ -73,6 +74,9 @@ export function ViontoPage() {
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Project state
@@ -117,10 +121,15 @@ export function ViontoPage() {
   useEffect(() => {
     if (selectedProjectId) {
       loadProjectAssets(selectedProjectId);
+      loadProjectScripts(selectedProjectId);
+      loadProjectAudioSettings(selectedProjectId);
+      loadVoices(locale.split("-")[0] ?? "en");
     } else {
       setProjectAssets([]);
+      setVersions([]);
+      setSelectedVoice(null);
     }
-  }, [selectedProjectId]);
+  }, [selectedProjectId, locale]);
 
   async function loadProjects() {
     setIsLoadingProjects(true);
@@ -147,6 +156,107 @@ export function ViontoPage() {
       console.error("Failed to load assets", error);
     } finally {
       setIsLoadingAssets(false);
+    }
+  }
+
+  async function loadProjectScripts(projectId: string) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/scripts`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setVersions(data.scripts || []);
+    } catch (error) {
+      console.error("Failed to load scripts", error);
+    }
+  }
+
+  async function loadProjectAudioSettings(projectId: string) {
+    try {
+      const res = await fetch(`/api/audio/tracks?projectId=${projectId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const tracks = data.tracks || data.data || [];
+      const narrationTrack = tracks
+        .filter((t: any) => t.type === "narration" && t.voiceId)
+        .sort((a: any, b: any) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())[0];
+      setSelectedVoice(narrationTrack?.voiceId ?? null);
+    } catch (error) {
+      console.error("Failed to load audio settings", error);
+    }
+  }
+
+  async function loadVoices(locale: string) {
+    try {
+      const res = await fetch(`/api/audio/voices?locale=${locale}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const loadedVoices = data.voices || [];
+      setVoices(loadedVoices);
+      setSelectedVoice((current) => current ?? loadedVoices[0]?.id ?? null);
+    } catch (error) {
+      console.error("Failed to load voices", error);
+    }
+  }
+
+  async function saveVoiceSelection(voiceId: string) {
+    if (!selectedProjectId) return;
+    const voice = voices.find((item) => item.id === voiceId);
+    try {
+      const res = await fetch("/api/audio/tracks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: selectedProjectId,
+          type: "narration",
+          source: "tts",
+          voiceId,
+          voiceName: voice?.name,
+        }),
+      });
+      if (!res.ok) {
+        console.error("Failed to save voice selection");
+      }
+    } catch (error) {
+      console.error("Failed to save voice selection", error);
+    }
+  }
+
+  function getVoicePreviewText() {
+    const selectedVoiceLocale = voices.find((voice) => voice.id === selectedVoice)?.locale;
+    const language = (selectedVoiceLocale ?? locale).split("-")[0] ?? "en";
+    if (language === "nl") return "Dit is een voorbeeld van de gekozen vertelstem voor je Vionto verhaal.";
+    if (language === "fr") return "Voici un aperçu de la voix choisie pour votre histoire Vionto.";
+    if (language === "de") return "Dies ist eine Vorschau der ausgewaehlten Stimme fuer deine Vionto Geschichte.";
+    if (language === "es") return "Esta es una vista previa de la voz narradora elegida para tu historia de Vionto.";
+    if (language === "it") return "Questa è un'anteprima della voce narrante scelta per la tua storia Vionto.";
+    if (language === "pt") return "Esta é uma prévia da voz de narração escolhida para a sua história Vionto.";
+    return "This is a preview of the selected narration voice for your Vionto story.";
+  }
+
+  async function previewSelectedVoice() {
+    if (!selectedVoice) return;
+    setIsPreviewing(true);
+    try {
+      const res = await fetch("/api/audio/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: getVoicePreviewText(),
+          voiceId: selectedVoice,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.audioBase64) {
+        alert(data.error ?? "Failed to preview audio");
+        return;
+      }
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to preview audio", error);
+      alert("Failed to preview audio");
+    } finally {
+      setIsPreviewing(false);
     }
   }
 
@@ -228,7 +338,7 @@ export function ViontoPage() {
       detailKey: "vionto.pipeline.writeDetail",
     },
     {
-      icon: Mic2,
+      icon: Mic,
       titleKey: "vionto.pipeline.narrate",
       detailKey: "vionto.pipeline.narrateDetail",
     },
@@ -805,6 +915,56 @@ export function ViontoPage() {
                 isGenerating={isGenerating}
               />
             </div>
+
+            {selectedProjectId && (
+              <div className="job-card" id="audio">
+                <div className="section-heading">
+                  <Mic size={20} />
+                  <h2>{t("vionto.audio.title")}</h2>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {voices.length > 0 ? (
+                    <>
+                      <label htmlFor="voice-select" className="text-xs text-[var(--color-text-muted)]">
+                        {t("vionto.audio.voiceSelect")}
+                      </label>
+                      <select
+                        id="voice-select"
+                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                        value={selectedVoice ?? ""}
+                        onChange={async (e) => {
+                          const newVoice = e.target.value;
+                          setSelectedVoice(newVoice);
+                          if (newVoice) {
+                            await saveVoiceSelection(newVoice);
+                          }
+                        }}
+                      >
+                        <option value="">{t("vionto.audio.defaultVoice")}</option>
+                        {voices.map((voice) => (
+                          <option key={voice.id} value={voice.id}>
+                            {voice.name} ({voice.locale}){voice.gender ? ` · ${voice.gender}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedVoice && (
+                        <button
+                          type="button"
+                          onClick={previewSelectedVoice}
+                          disabled={isPreviewing}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                        >
+                          <Play size={16} />
+                          {isPreviewing ? t("vionto.audio.previewing") : t("vionto.audio.preview")}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-[var(--color-text-muted)]">{t("vionto.audio.noVoices")}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="job-card" id="export">
               <div className="section-heading">

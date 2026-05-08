@@ -25,7 +25,10 @@ export const viontoDictionaries: Dictionaries = {
     // Audio
     "vionto.audio.title": "Audio",
     "vionto.audio.voiceSelect": "Select voice",
+    "vionto.audio.defaultVoice": "Default voice",
     "vionto.audio.preview": "Preview voice",
+    "vionto.audio.previewing": "Previewing...",
+    "vionto.audio.noVoices": "No voices are available for this locale.",
     "vionto.audio.render": "Render narration",
 
     // Render
@@ -90,7 +93,10 @@ export const viontoDictionaries: Dictionaries = {
 
     "vionto.audio.title": "Audio",
     "vionto.audio.voiceSelect": "Selecteer stem",
+    "vionto.audio.defaultVoice": "Standaardstem",
     "vionto.audio.preview": "Stem preview",
+    "vionto.audio.previewing": "Preview wordt geladen...",
+    "vionto.audio.noVoices": "Geen stemmen beschikbaar voor deze taal.",
     "vionto.audio.render": "Stem genereren",
 
     "vionto.render.title": "Renderwachtrij",
@@ -148,7 +154,10 @@ export const viontoDictionaries: Dictionaries = {
 
     "vionto.audio.title": "Audio",
     "vionto.audio.voiceSelect": "Choisir la voix",
+    "vionto.audio.defaultVoice": "Voix par defaut",
     "vionto.audio.preview": "Aperçu voix",
+    "vionto.audio.previewing": "Apercu en cours...",
+    "vionto.audio.noVoices": "Aucune voix disponible pour cette langue.",
     "vionto.audio.render": "Générer narration",
 
     "vionto.render.title": "File de rendu",
@@ -206,7 +215,10 @@ export const viontoDictionaries: Dictionaries = {
 
     "vionto.audio.title": "Audio",
     "vionto.audio.voiceSelect": "Stimme auswählen",
+    "vionto.audio.defaultVoice": "Standardstimme",
     "vionto.audio.preview": "Stimmen-Vorschau",
+    "vionto.audio.previewing": "Vorschau laedt...",
+    "vionto.audio.noVoices": "Fuer diese Sprache sind keine Stimmen verfuegbar.",
     "vionto.audio.render": "Stimme rendern",
 
     "vionto.render.title": "Render-Warteschlange",

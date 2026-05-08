@@ -6,6 +6,11 @@ import { safeParseManifest } from "@/lib/server/render-manifest";
 
 export const runtime = "nodejs";
 
+function toRenderMode(mode: string | null): "cinematic" | "slideshow" | "social" {
+  if (mode === "slideshow") return "slideshow";
+  return "cinematic";
+}
+
 /** POST /api/render — queue a new render job. */
 export async function POST(req: Request) {
   try {
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, aspectRatio: true },
+      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -53,10 +58,59 @@ export async function POST(req: Request) {
       },
     });
 
+    if (!manifest) {
+      const [assets, latestScript, narrationPreference] = await Promise.all([
+        prisma.viontoAsset.findMany({
+          where: { projectId: project.id, type: "source_image", storageKey: { not: null } },
+          orderBy: { orderIndex: "asc" },
+          select: { storageKey: true, width: true, height: true },
+        }),
+        prisma.viontoScript.findFirst({
+          where: { projectId: project.id, userId: user.id },
+          orderBy: { updatedAt: "desc" },
+          select: { narrationText: true },
+        }),
+        prisma.viontoAudioTrack.findFirst({
+          where: { projectId: project.id, userId: user.id, type: "narration", source: "tts", voiceId: { not: null } },
+          orderBy: { updatedAt: "desc" },
+          select: { voiceId: true, voiceName: true },
+        }),
+      ]);
+
+      const generatedManifest = {
+        projectId: project.id,
+        userId: user.id,
+        jobId: job.id,
+        mode: toRenderMode(project.mode),
+        aspectRatio: project.aspectRatio ?? "16:9",
+        resolution: project.resolution ?? "1080p",
+        assets: assets.map((asset) => ({
+          storageKey: asset.storageKey,
+          width: asset.width ?? undefined,
+          height: asset.height ?? undefined,
+        })),
+        narrationText: latestScript?.narrationText ?? undefined,
+        audioTracks: narrationPreference?.voiceId
+          ? [{
+              type: "narration",
+              voiceId: narrationPreference.voiceId,
+              voiceName: narrationPreference.voiceName ?? undefined,
+            }]
+          : [],
+      };
+
+      const parsed = safeParseManifest(generatedManifest);
+      if (!parsed.success) {
+        await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
+        return badRequest(`Project is not ready to render: ${parsed.error.message}`);
+      }
+      manifest = parsed.data;
+    }
+
     // Queue in BullMQ
     await renderQueue.add("vionto-render", {
       jobId: job.id,
-      manifest: manifest ?? { projectId: project.id, userId: user.id, assets: [] },
+      manifest,
     });
 
     return NextResponse.json({

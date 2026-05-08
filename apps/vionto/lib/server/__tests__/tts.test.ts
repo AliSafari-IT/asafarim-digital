@@ -28,6 +28,13 @@ describe("Voice catalog", () => {
     expect(en.every((v) => v.locale.startsWith("en"))).toBe(true);
   });
 
+  it("offers localized multilingual voice IDs for non-English locales", () => {
+    const nl = listVoicesForLocale("nl-NL");
+    expect(nl.length).toBeGreaterThan(0);
+    expect(nl.every((v) => v.locale.startsWith("nl"))).toBe(true);
+    expect(nl.some((v) => v.id === "nl-nova" && v.providerVoiceId === "nova")).toBe(true);
+  });
+
   it("filters voices by tag", () => {
     const warm = listVoicesByTag("warm");
     expect(warm.length).toBeGreaterThan(0);
