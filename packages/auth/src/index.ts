@@ -4,6 +4,26 @@ import { prisma } from "@asafarim/db";
 import { googleProvider, credentialsProvider } from "./providers";
 import "./types";
 
+type AuthUserLike = {
+  id?: string;
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+};
+
+type AuthAccountLike = {
+  provider: string;
+  providerAccountId: string;
+  type?: string;
+  refresh_token?: string | null;
+  access_token?: string | null;
+  expires_at?: number | null;
+  token_type?: string | null;
+  scope?: string | null;
+  id_token?: string | null;
+  session_state?: string | null;
+} | null;
+
 function getCookieDomain(): string | undefined {
   const domain = process.env.AUTH_COOKIE_DOMAIN;
   if (domain) return domain;
@@ -39,6 +59,154 @@ async function generateUniqueUsername(seed: string): Promise<string> {
     counter += 1;
     candidate = `${base.slice(0, Math.max(1, 24 - String(counter).length - 1))}_${counter}`;
   }
+}
+
+async function ensureDefaultRole(userId: string) {
+  const existingRole = await prisma.userRole.findFirst({
+    where: { userId },
+    select: { id: true },
+  });
+  if (existingRole) return;
+
+  const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
+  if (!defaultRole) return;
+
+  await prisma.userRole.create({
+    data: { userId, roleId: defaultRole.id },
+  });
+}
+
+async function ensureAuthUser(user: AuthUserLike, account?: AuthAccountLike) {
+  const accountUser = account
+    ? await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+        select: { userId: true },
+      })
+    : null;
+
+  let dbUser = accountUser
+    ? await prisma.user.findUnique({
+        where: { id: accountUser.userId },
+        include: { userRoles: { select: { role: { select: { name: true } } } } },
+      })
+    : null;
+
+  if (!dbUser && user.id) {
+    dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { userRoles: { select: { role: { select: { name: true } } } } },
+    });
+  }
+
+  if (!dbUser && user.email) {
+    dbUser = await prisma.user.findUnique({
+      where: { email: user.email },
+      include: { userRoles: { select: { role: { select: { name: true } } } } },
+    });
+  }
+
+  if (!dbUser && user.email) {
+    dbUser = await prisma.user.create({
+      data: {
+        email: user.email,
+        name: user.name ?? null,
+        image: user.image ?? null,
+        emailVerified: new Date(),
+        username: await generateUniqueUsername(user.name || user.email.split("@")[0] || "user"),
+      },
+      include: { userRoles: { select: { role: { select: { name: true } } } } },
+    });
+  }
+
+  if (!dbUser) return null;
+
+  if (!dbUser.isActive) return dbUser;
+
+  const updates: Record<string, unknown> = {};
+  if (!dbUser.username) {
+    updates.username = await generateUniqueUsername(
+      dbUser.name || dbUser.email?.split("@")[0] || "user"
+    );
+  }
+  if (!dbUser.emailVerified) {
+    updates.emailVerified = new Date();
+  }
+  if (user.name && user.name !== dbUser.name) {
+    updates.name = user.name;
+  }
+  if (user.image && user.image !== dbUser.image) {
+    updates.image = user.image;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    dbUser = await prisma.user.update({
+      where: { id: dbUser.id },
+      data: updates,
+      include: { userRoles: { select: { role: { select: { name: true } } } } },
+    });
+  }
+
+  if (account) {
+    await prisma.account.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        },
+      },
+      update: {
+        userId: dbUser.id,
+        type: account.type ?? "oauth",
+        refresh_token: account.refresh_token ?? undefined,
+        access_token: account.access_token ?? undefined,
+        expires_at: account.expires_at ?? undefined,
+        token_type: account.token_type ?? undefined,
+        scope: account.scope ?? undefined,
+        id_token: account.id_token ?? undefined,
+        session_state: account.session_state ?? undefined,
+      },
+      create: {
+        userId: dbUser.id,
+        provider: account.provider,
+        providerAccountId: account.providerAccountId,
+        type: account.type ?? "oauth",
+        refresh_token: account.refresh_token ?? undefined,
+        access_token: account.access_token ?? undefined,
+        expires_at: account.expires_at ?? undefined,
+        token_type: account.token_type ?? undefined,
+        scope: account.scope ?? undefined,
+        id_token: account.id_token ?? undefined,
+        session_state: account.session_state ?? undefined,
+      },
+    });
+  }
+
+  await ensureDefaultRole(dbUser.id);
+
+  return prisma.user.findUnique({
+    where: { id: dbUser.id },
+    include: { userRoles: { select: { role: { select: { name: true } } } } },
+  });
+}
+
+function applyDbUserToToken(
+  token: Record<string, unknown>,
+  dbUser: Awaited<ReturnType<typeof ensureAuthUser>>
+) {
+  if (!dbUser) return;
+  token.sub = dbUser.id;
+  token.roles = dbUser.userRoles.map((ur) => ur.role.name);
+  token.tenantId = dbUser.tenantId;
+  token.name = dbUser.name;
+  token.picture = dbUser.image;
+  token.username = dbUser.username;
+  token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
+  token.isActive = dbUser.isActive;
 }
 
 export const authConfig: NextAuthConfig = {
@@ -126,26 +294,10 @@ export const authConfig: NextAuthConfig = {
       return baseUrl;
     },
 
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: {
-            tenantId: true,
-            username: true,
-            emailVerified: true,
-            isActive: true,
-            userRoles: { select: { role: { select: { name: true } } } },
-          },
-        });
-
-        if (dbUser) {
-          token.roles = dbUser.userRoles.map((ur) => ur.role.name);
-          token.tenantId = dbUser.tenantId;
-          token.username = dbUser.username;
-          token.emailVerified = dbUser.emailVerified?.toISOString() ?? null;
-          token.isActive = dbUser.isActive;
-        }
+        const dbUser = await ensureAuthUser(user, account);
+        applyDbUserToToken(token, dbUser);
       }
 
       if (trigger === "update") {
@@ -198,50 +350,10 @@ export const authConfig: NextAuthConfig = {
 
     async signIn({ user, account }) {
       if (account?.provider !== "credentials") {
-        if (user.id) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: {
-              username: true,
-              emailVerified: true,
-              email: true,
-              name: true,
-              isActive: true,
-              userRoles: { select: { id: true } },
-            },
-          });
-
-          if (dbUser && !dbUser.isActive) {
-            return false; // Block deactivated users
-          }
-
-          if (dbUser) {
-            const updates: Record<string, unknown> = {};
-            if (!dbUser.username) {
-              updates.username = await generateUniqueUsername(
-                dbUser.name || dbUser.email?.split("@")[0] || "user"
-              );
-            }
-            if (!dbUser.emailVerified) {
-              updates.emailVerified = new Date();
-            }
-            if (Object.keys(updates).length > 0) {
-              await prisma.user.update({ where: { id: user.id }, data: updates });
-            }
-
-            // Assign default role if user has none
-            if (dbUser.userRoles.length === 0) {
-              const defaultRole = await prisma.role.findFirst({ where: { isDefault: true } });
-              if (defaultRole) {
-                await prisma.userRole.create({
-                  data: { userId: user.id, roleId: defaultRole.id },
-                });
-              }
-            }
-          }
-        }
-
-        return true;
+        const dbUser = await ensureAuthUser(user, account);
+        if (!dbUser) return false;
+        user.id = dbUser.id;
+        return dbUser.isActive;
       }
 
       if (!user) return false;
