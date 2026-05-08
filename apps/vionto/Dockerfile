@@ -21,8 +21,6 @@ RUN pnpm install --frozen-lockfile
 RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
-RUN pnpm --filter @asafarim/country-language-selector build
-RUN pnpm --filter @asafarim/shared-i18n build
 RUN pnpm --filter vionto build
 
 FROM node:22-alpine AS runner
