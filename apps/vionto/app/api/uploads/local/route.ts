@@ -42,7 +42,7 @@ export async function GET(req: Request) {
       return badRequest("Upload key does not belong to the authenticated user.");
     }
 
-    const object = getLocalObject(key);
+    const object = await getLocalObject(key);
     if (!object) {
       return NextResponse.json({ error: "Local object not found." }, { status: 404 });
     }

@@ -150,6 +150,23 @@ export function ViontoPage() {
     }
   }
 
+  async function deleteAsset(assetId: string) {
+    if (!selectedProjectId) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/assets?assetId=${assetId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        alert("Failed to delete asset");
+        return;
+      }
+      await loadProjectAssets(selectedProjectId);
+    } catch (error) {
+      console.error("Failed to delete asset", error);
+      alert("Failed to delete asset");
+    }
+  }
+
   async function createProject() {
     if (!newProjectTitle.trim()) return;
     setIsCreatingProject(true);
@@ -284,24 +301,14 @@ export function ViontoPage() {
           }
           const presignData = await presignRes.json();
 
-          // Upload to storage. Real object storage goes through the same-origin
-          // proxy so local/dev origins do not depend on bucket CORS rules.
-          let uploadRes: Response;
-          if (presignData.isLocalStub) {
-            uploadRes = await fetch(presignData.uploadUrl, {
-              method: "PUT",
-              headers: presignData.headers ?? { "Content-Type": fileUpload.file.type || "image/jpeg" },
-              body: fileUpload.file,
-            });
-          } else {
-            const form = new FormData();
-            form.append("key", presignData.key);
-            form.append("file", fileUpload.file);
-            uploadRes = await fetch("/api/uploads/proxy", {
-              method: "POST",
-              body: form,
-            });
-          }
+          // Upload to storage via proxy to handle authentication properly
+          const form = new FormData();
+          form.append("key", presignData.key);
+          form.append("file", fileUpload.file);
+          const uploadRes = await fetch("/api/uploads/proxy", {
+            method: "POST",
+            body: form,
+          });
           if (!uploadRes.ok) {
             const message = await uploadRes.text().catch(() => "");
             throw new Error(message || "Storage upload failed");
@@ -704,8 +711,16 @@ export function ViontoPage() {
                   <p className="text-xs font-medium text-[var(--color-text-muted)]">Project assets ({projectAssets.length})</p>
                   <ul className="mt-1 grid grid-cols-4 gap-2">
                     {projectAssets.slice(0, 8).map((a) => (
-                      <li key={a.id} className="aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] overflow-hidden">
+                      <li key={a.id} className="aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] overflow-hidden relative group">
                         <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => deleteAsset(a.id)}
+                          className="absolute top-1 left-1 p-1.5 rounded-md bg-black/50 hover:bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Delete ${a.id}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </li>
                     ))}
                     {projectAssets.length > 8 && (

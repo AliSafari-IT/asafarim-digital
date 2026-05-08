@@ -1,6 +1,9 @@
 import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
+import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { MAX_IMAGE_BYTES, type AllowedUploadMime } from "./validation";
 
 /**
@@ -55,6 +58,34 @@ const globalForStorage = globalThis as typeof globalThis & {
 
 const localObjects = globalForStorage.__viontoLocalObjects ?? new Map<string, LocalObject>();
 globalForStorage.__viontoLocalObjects = localObjects;
+
+function getLocalStorageDir(): string {
+  if (process.env.VIONTO_LOCAL_STORAGE_DIR) return process.env.VIONTO_LOCAL_STORAGE_DIR;
+  const appDir = join(process.cwd(), "apps", "vionto");
+  return existsSync(appDir)
+    ? join(appDir, ".local-storage", "uploads")
+    : join(process.cwd(), ".local-storage", "uploads");
+}
+
+async function ensureLocalStorageDir(): Promise<void> {
+  try {
+    await mkdir(getLocalStorageDir(), { recursive: true });
+  } catch (error) {
+    // Directory might already exist
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+      console.error("[storage] Failed to create local storage directory:", error);
+    }
+  }
+}
+
+function getLocalFilePath(key: string): string {
+  const safeKey = key.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return join(getLocalStorageDir(), safeKey);
+}
+
+function getLocalMetaPath(key: string): string {
+  return `${getLocalFilePath(key)}.json`;
+}
 
 function describeStorageError(error: unknown): string {
   if (error instanceof Error) {
@@ -213,11 +244,41 @@ function getLocalUploadUrl(key: string): string {
 }
 
 export async function putLocalObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  await ensureLocalStorageDir();
+  const filePath = getLocalFilePath(key);
+  await writeFile(filePath, body);
+  await writeFile(getLocalMetaPath(key), JSON.stringify({ key, contentType, sizeBytes: body.length }, null, 2));
+  // Also keep in memory for faster access
   localObjects.set(key, { body, contentType });
 }
 
-export function getLocalObject(key: string): LocalObject | null {
-  return localObjects.get(key) ?? null;
+export async function getLocalObject(key: string): Promise<LocalObject | null> {
+  // Try memory first
+  const mem = localObjects.get(key);
+  if (mem) return mem;
+
+  // Try disk
+  try {
+    const filePath = getLocalFilePath(key);
+    const body = await readFile(filePath);
+    let contentType = "application/octet-stream";
+    try {
+      const meta = JSON.parse(await readFile(getLocalMetaPath(key), "utf8")) as { contentType?: string };
+      contentType = meta.contentType ?? contentType;
+    } catch {
+      // Older local uploads may not have metadata.
+    }
+    const obj = { body, contentType };
+    // Cache in memory
+    localObjects.set(key, obj);
+    return obj;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    console.error("[storage] Failed to read local object:", error);
+    return null;
+  }
 }
 
 export async function putObjectBytes(key: string, body: Buffer, contentType: string): Promise<string> {
@@ -287,7 +348,17 @@ export async function createPresignedUploadUrl(input: PresignInput): Promise<Pre
 /** Confirm an object exists in storage before persisting metadata. */
 export async function objectExists(key: string): Promise<boolean> {
   const handle = getClient();
-  if (!handle) return localObjects.has(key);
+  if (!handle) {
+    const mem = localObjects.get(key);
+    if (mem) return true;
+    try {
+      const filePath = getLocalFilePath(key);
+      await readFile(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   try {
     await handle.client.send(new HeadObjectCommand({ Bucket: handle.config.bucket, Key: key }));
     return true;
@@ -299,7 +370,17 @@ export async function objectExists(key: string): Promise<boolean> {
 /** Delete an object from storage. */
 export async function deleteObject(key: string): Promise<void> {
   const handle = getClient();
-  if (!handle) return;
+  if (!handle) {
+    localObjects.delete(key);
+    try {
+      const filePath = getLocalFilePath(key);
+      await unlink(filePath);
+      await unlink(getLocalMetaPath(key));
+    } catch {
+      // ignore — already gone or never existed
+    }
+    return;
+  }
   try {
     await handle.client.send(new DeleteObjectCommand({ Bucket: handle.config.bucket, Key: key }));
   } catch {
@@ -328,8 +409,15 @@ export const MAX_METADATA_FETCH_BYTES = 2 * 1024 * 1024; // 2 MB is enough for J
 export async function getObjectBytes(key: string, maxBytes: number = MAX_METADATA_FETCH_BYTES): Promise<Buffer | null> {
   const handle = getClient();
   if (!handle) {
-    const object = localObjects.get(key);
-    return object ? object.body.subarray(0, maxBytes) : null;
+    const mem = localObjects.get(key);
+    if (mem) return mem.body.subarray(0, maxBytes);
+    try {
+      const filePath = getLocalFilePath(key);
+      const body = await readFile(filePath);
+      return body.subarray(0, maxBytes);
+    } catch {
+      return null;
+    }
   }
   try {
     const response = await handle.client.send(

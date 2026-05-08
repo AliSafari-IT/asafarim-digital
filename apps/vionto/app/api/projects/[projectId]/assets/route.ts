@@ -3,6 +3,7 @@ import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { formatZodError, promoteSessionSchema } from "@/lib/server/validation";
 import { getSessionForUser, deleteSession } from "@/lib/server/upload-session";
+import { deleteObject } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
@@ -161,5 +162,58 @@ export async function POST(
     });
   } catch (error) {
     return serverError("projects/[projectId]/assets", error);
+  }
+}
+
+/** DELETE /api/projects/[projectId]/assets — delete a specific asset */
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const user = await getAuthedUser();
+    if (!user) return unauthorized();
+
+    const { projectId } = await params;
+    const project = await getProject(projectId, user.id);
+    if (!project) {
+      return badRequest("Project not found.");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const assetId = searchParams.get("assetId");
+    if (!assetId) {
+      return badRequest("Missing assetId parameter.");
+    }
+
+    // Get the asset to validate ownership and get storage keys
+    const asset = await prisma.viontoAsset.findFirst({
+      where: { id: assetId, projectId, userId: user.id },
+    });
+
+    if (!asset) {
+      return badRequest("Asset not found.");
+    }
+
+    // Delete from storage
+    if (asset.storageKey) {
+      await deleteObject(asset.storageKey).catch((err) => {
+        console.error("[DELETE asset] Failed to delete storage object:", err);
+      });
+    }
+    if (asset.thumbnailStorageKey && asset.thumbnailStorageKey !== asset.storageKey) {
+      await deleteObject(asset.thumbnailStorageKey).catch((err) => {
+        console.error("[DELETE asset] Failed to delete thumbnail storage object:", err);
+      });
+    }
+
+    // Delete from database
+    await prisma.viontoAsset.delete({
+      where: { id: assetId },
+    });
+
+    return NextResponse.json({ ok: true, deletedAssetId: assetId });
+  } catch (error) {
+    return serverError("projects/[projectId]/assets DELETE", error);
   }
 }
