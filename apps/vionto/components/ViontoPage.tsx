@@ -131,10 +131,16 @@ export function ViontoPage() {
       loadProjectScripts(selectedProjectId);
       loadProjectAudioSettings(selectedProjectId);
       loadVoices(locale.split("-")[0] ?? "en");
+      loadProjectExports(selectedProjectId);
     } else {
       setProjectAssets([]);
       setVersions([]);
       setSelectedVoice(null);
+      setRenderJobId(null);
+      setRenderState("idle");
+      setRenderProgress(0);
+      setExportId(null);
+      setDownloadUrl(null);
     }
   }, [selectedProjectId, locale]);
 
@@ -189,6 +195,30 @@ export function ViontoPage() {
       setSelectedVoice(narrationTrack?.voiceId ?? null);
     } catch (error) {
       console.error("Failed to load audio settings", error);
+    }
+  }
+
+  async function loadProjectExports(projectId: string) {
+    try {
+      const res = await fetch(`/api/exports?projectId=${projectId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const latestCompletedExport = (data.data || []).find((item: any) => item.renderJob?.state === "completed");
+      if (latestCompletedExport) {
+        setRenderJobId(latestCompletedExport.renderJobId ?? null);
+        setRenderState("completed");
+        setRenderProgress(100);
+        setExportId(latestCompletedExport.id);
+        setDownloadUrl(null);
+      } else {
+        setRenderJobId(null);
+        setRenderState("idle");
+        setRenderProgress(0);
+        setExportId(null);
+        setDownloadUrl(null);
+      }
+    } catch (error) {
+      console.error("Failed to load exports", error);
     }
   }
 

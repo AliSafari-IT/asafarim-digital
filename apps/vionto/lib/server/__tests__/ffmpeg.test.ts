@@ -87,6 +87,18 @@ describe("buildRenderCommand", () => {
     expect(final).toContain("-b:v");
     expect(final).toContain("5000k");
   });
+
+  it("includes narration and music inputs when both are materialized", () => {
+    const { steps } = buildRenderCommand(BASE_MANIFEST, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+      narrationWavPath: "/tmp/work/narration.mp3",
+      musicPath: "/tmp/work/music.mp3",
+    });
+    const final = steps[steps.length - 1];
+    expect(final).toContain("/tmp/work/narration.mp3");
+    expect(final).toContain("/tmp/work/music.mp3");
+    expect(final).toContain("-af");
+  });
 });
 
 describe("buildConcatListContent", () => {

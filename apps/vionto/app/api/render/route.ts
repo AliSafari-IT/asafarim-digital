@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     });
 
     if (!manifest) {
-      const [assets, latestScript, narrationPreference] = await Promise.all([
+      const [assets, latestScript, audioTracks] = await Promise.all([
         prisma.viontoAsset.findMany({
           where: { projectId: project.id, type: "source_image", storageKey: { not: null } },
           orderBy: { orderIndex: "asc" },
@@ -70,18 +70,39 @@ export async function POST(req: Request) {
           orderBy: { updatedAt: "desc" },
           select: { narrationText: true, srtText: true },
         }),
-        prisma.viontoAudioTrack.findFirst({
-          where: { projectId: project.id, userId: user.id, type: "narration", source: "tts", voiceId: { not: null } },
+        prisma.viontoAudioTrack.findMany({
+          where: { projectId: project.id, userId: user.id },
           orderBy: { updatedAt: "desc" },
-          select: { voiceId: true, voiceName: true },
+          select: {
+            type: true,
+            storageKey: true,
+            voiceId: true,
+            voiceName: true,
+            mixSettings: true,
+          },
         }),
       ]);
+
+      if (assets.length === 0) {
+        await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
+        return badRequest("Upload at least one project image before rendering.");
+      }
+      if (!latestScript?.narrationText?.trim()) {
+        await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
+        return badRequest("Generate or save a narration script before rendering.");
+      }
+      const narrationTrack = audioTracks.find((track) => track.type === "narration" && (track.voiceId || track.storageKey));
+      if (!narrationTrack) {
+        await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
+        return badRequest("Select a narration voice before rendering.");
+      }
 
       const generatedManifest = {
         projectId: project.id,
         userId: user.id,
         jobId: job.id,
         mode: toRenderMode(project.mode),
+        targetDurationSeconds: assets.length * 5,
         aspectRatio: project.aspectRatio ?? "16:9",
         resolution: project.resolution ?? "1080p",
         assets: assets.map((asset) => ({
@@ -91,13 +112,24 @@ export async function POST(req: Request) {
         })),
         narrationText: latestScript?.narrationText ?? undefined,
         srtText: latestScript?.srtText ?? undefined,
-        audioTracks: narrationPreference?.voiceId
-          ? [{
-              type: "narration",
-              voiceId: narrationPreference.voiceId,
-              voiceName: narrationPreference.voiceName ?? undefined,
-            }]
-          : [],
+        audioTracks: audioTracks
+          .filter((track) => track.storageKey || track.voiceId)
+          .map((track) => {
+            const mixSettings = typeof track.mixSettings === "object" && track.mixSettings !== null && !Array.isArray(track.mixSettings)
+              ? track.mixSettings as Record<string, unknown>
+              : {};
+            return {
+              type: track.type,
+              storageKey: track.storageKey ?? undefined,
+              voiceId: track.voiceId ?? undefined,
+              voiceName: track.voiceName ?? undefined,
+              volume: typeof mixSettings.volume === "number" ? mixSettings.volume : undefined,
+              fadeInSeconds: typeof mixSettings.fadeInSeconds === "number" ? mixSettings.fadeInSeconds : undefined,
+              fadeOutSeconds: typeof mixSettings.fadeOutSeconds === "number" ? mixSettings.fadeOutSeconds : undefined,
+              startOffsetSeconds: typeof mixSettings.startOffsetSeconds === "number" ? mixSettings.startOffsetSeconds : undefined,
+              duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
+            };
+          }),
       };
 
       const parsed = safeParseManifest(generatedManifest);

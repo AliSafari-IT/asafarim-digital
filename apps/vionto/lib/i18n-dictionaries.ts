@@ -33,10 +33,16 @@ export const viontoDictionaries: Dictionaries = {
 
     // Render
     "vionto.render.title": "Render queue",
+    "vionto.render.start": "Render MP4",
     "vionto.render.queued": "Queued",
     "vionto.render.rendering": "Rendering…",
+    "vionto.render.running": "Rendering…",
     "vionto.render.completed": "Completed",
     "vionto.render.failed": "Failed",
+    "vionto.render.download": "Get download link",
+    "vionto.render.downloading": "Download link ready",
+    "vionto.render.save": "Download MP4",
+    "vionto.render.retry": "Retry render",
 
     // Export
     "vionto.export.title": "Export",
@@ -100,10 +106,16 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.audio.render": "Stem genereren",
 
     "vionto.render.title": "Renderwachtrij",
+    "vionto.render.start": "MP4 renderen",
     "vionto.render.queued": "In wachtrij",
     "vionto.render.rendering": "Bezig met renderen…",
+    "vionto.render.running": "Bezig met renderen…",
     "vionto.render.completed": "Voltooid",
     "vionto.render.failed": "Mislukt",
+    "vionto.render.download": "Downloadlink ophalen",
+    "vionto.render.downloading": "Downloadlink klaar",
+    "vionto.render.save": "MP4 downloaden",
+    "vionto.render.retry": "Render opnieuw proberen",
 
     "vionto.export.title": "Exporteren",
     "vionto.export.downloadMp4": "MP4 downloaden",
@@ -161,10 +173,16 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.audio.render": "Générer narration",
 
     "vionto.render.title": "File de rendu",
+    "vionto.render.start": "Rendre MP4",
     "vionto.render.queued": "En file",
     "vionto.render.rendering": "Rendu en cours…",
+    "vionto.render.running": "Rendu en cours…",
     "vionto.render.completed": "Terminé",
     "vionto.render.failed": "Échoué",
+    "vionto.render.download": "Obtenir le lien",
+    "vionto.render.downloading": "Lien prêt",
+    "vionto.render.save": "Télécharger MP4",
+    "vionto.render.retry": "Réessayer le rendu",
 
     "vionto.export.title": "Exporter",
     "vionto.export.downloadMp4": "Télécharger MP4",
@@ -222,10 +240,16 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.audio.render": "Stimme rendern",
 
     "vionto.render.title": "Render-Warteschlange",
+    "vionto.render.start": "MP4 rendern",
     "vionto.render.queued": "In Warteschlange",
     "vionto.render.rendering": "Wird gerendert…",
+    "vionto.render.running": "Wird gerendert…",
     "vionto.render.completed": "Abgeschlossen",
     "vionto.render.failed": "Fehlgeschlagen",
+    "vionto.render.download": "Download-Link abrufen",
+    "vionto.render.downloading": "Download-Link bereit",
+    "vionto.render.save": "MP4 herunterladen",
+    "vionto.render.retry": "Render erneut versuchen",
 
     "vionto.export.title": "Exportieren",
     "vionto.export.downloadMp4": "MP4 herunterladen",

@@ -10,7 +10,7 @@ import Redis from "ioredis";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile, rm, stat } from "node:fs/promises";
 import { createServer } from "node:http";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 import { prisma } from "@asafarim/db";
 import { safeParseManifest } from "./lib/server/render-manifest";
 import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./lib/server/ffmpeg";
@@ -119,7 +119,10 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
   const workDir = join("/tmp", "vionto-renders", jobId);
   await mkdir(workDir, { recursive: true });
 
-  await updateState(jobId, "running", { progressPercent: 5 });
+  await prisma.viontoRenderJob.update({
+    where: { id: jobId },
+    data: { state: "running", progressPercent: 5, startedAt: new Date(), errorSummary: null },
+  });
   logLines.push("Manifest validated");
 
   try {
@@ -128,7 +131,8 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     const localAssetPaths: string[] = [];
     for (let i = 0; i < manifest.assets.length; i++) {
       const asset = manifest.assets[i];
-      const localPath = join(workDir, `asset_${String(i).padStart(4, "0")}.${asset.storageKey.split(".").pop() ?? "jpg"}`);
+      const ext = extname(asset.storageKey).replace(/[^a-zA-Z0-9.]/g, "") || ".jpg";
+      const localPath = join(workDir, `asset_${String(i).padStart(4, "0")}${ext}`);
       try {
         await downloadObjectToLocalFile(asset.storageKey, localPath);
         localAssetPaths.push(localPath);
@@ -160,11 +164,19 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
       logLines.push("Wrote SRT text to local file");
     }
 
-    // --- TTS ---
+    // --- Audio materialization / TTS ---
     let narrationWavPath: string | undefined;
-    if (manifest.narrationText) {
+    let musicPath: string | undefined;
+    const narrationTrack = manifest.audioTracks.find((t) => t.type === "narration");
+    const musicTrack = manifest.audioTracks.find((t) => t.type === "music" && t.storageKey);
+
+    if (narrationTrack?.storageKey) {
+      const ext = extname(narrationTrack.storageKey).replace(/[^a-zA-Z0-9.]/g, "") || ".mp3";
+      narrationWavPath = join(workDir, `narration${ext}`);
+      await downloadObjectToLocalFile(narrationTrack.storageKey, narrationWavPath);
+      logLines.push(`Downloaded narration audio: ${narrationTrack.storageKey}`);
+    } else if (manifest.narrationText) {
       logLines.push("Synthesizing narration…");
-      const narrationTrack = manifest.audioTracks.find((t) => t.type === "narration");
       const voiceId = narrationTrack?.voiceId ?? narrationTrack?.storageKey ?? "alloy";
       const ttsResult = await synthesizeSpeech(manifest.narrationText, voiceId);
       if (!ttsResult.ok) {
@@ -173,6 +185,13 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
       narrationWavPath = join(workDir, "narration.mp3");
       await writeFile(narrationWavPath, ttsResult.audioBuffer);
       logLines.push(`TTS done (${ttsResult.provider}, ${ttsResult.latencyMs}ms)`);
+    }
+
+    if (musicTrack?.storageKey) {
+      const ext = extname(musicTrack.storageKey).replace(/[^a-zA-Z0-9.]/g, "") || ".mp3";
+      musicPath = join(workDir, `music${ext}`);
+      await downloadObjectToLocalFile(musicTrack.storageKey, musicPath);
+      logLines.push(`Downloaded music audio: ${musicTrack.storageKey}`);
     }
     await updateState(jobId, "running", { progressPercent: 25 });
 
@@ -189,6 +208,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
 
     const { steps, concatListPath } = buildRenderCommand(localManifest, workDir, {
       narrationWavPath,
+      musicPath,
       srtPath,
       outputPath: join(workDir, "output.mp4"),
     });
@@ -265,7 +285,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     if (retryable && retries <= maxRetries) {
       await updateState(jobId, "queued", { errorSummary: `${category}: ${errorMsg}`, retryCount: retries });
       // Re-queue the same job with a delay
-      await renderQueue.add(QUEUE_NAME, manifestRaw, { jobId, delay: 5000 * retries });
+      await renderQueue.add(QUEUE_NAME, { jobId, manifest: manifestRaw }, { jobId: `${jobId}-retry-${retries}`, delay: 5000 * retries });
       logLines.push(`Re-queued (retry ${retries}/${maxRetries})`);
       await setLog(jobId, logLines);
     } else {
