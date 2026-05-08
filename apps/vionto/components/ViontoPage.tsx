@@ -251,11 +251,15 @@ export function ViontoPage() {
       }
       const sessionData = await sessionRes.json();
       setUploadSessionId(sessionData.sessionId);
+      let completedUploads = 0;
 
       // Upload each file
       for (let i = 0; i < uploadingFiles.length; i++) {
         const fileUpload = uploadingFiles[i];
-        if (fileUpload.status === "complete") continue;
+        if (fileUpload.status === "complete") {
+          completedUploads += 1;
+          continue;
+        }
 
         setUploadingFiles((prev) => {
           const updated = [...prev];
@@ -280,13 +284,27 @@ export function ViontoPage() {
           }
           const presignData = await presignRes.json();
 
-          // Upload to storage
-          const uploadRes = await fetch(presignData.uploadUrl, {
-            method: "PUT",
-            body: fileUpload.file,
-          });
+          // Upload to storage. Real object storage goes through the same-origin
+          // proxy so local/dev origins do not depend on bucket CORS rules.
+          let uploadRes: Response;
+          if (presignData.isLocalStub) {
+            uploadRes = await fetch(presignData.uploadUrl, {
+              method: "PUT",
+              headers: presignData.headers ?? { "Content-Type": fileUpload.file.type || "image/jpeg" },
+              body: fileUpload.file,
+            });
+          } else {
+            const form = new FormData();
+            form.append("key", presignData.key);
+            form.append("file", fileUpload.file);
+            uploadRes = await fetch("/api/uploads/proxy", {
+              method: "POST",
+              body: form,
+            });
+          }
           if (!uploadRes.ok) {
-            throw new Error("Storage upload failed");
+            const message = await uploadRes.text().catch(() => "");
+            throw new Error(message || "Storage upload failed");
           }
 
           // Complete
@@ -304,7 +322,8 @@ export function ViontoPage() {
             }),
           });
           if (!completeRes.ok) {
-            throw new Error("Upload completion failed");
+            const message = await completeRes.text().catch(() => "");
+            throw new Error(message || "Upload completion failed");
           }
 
           setUploadingFiles((prev) => {
@@ -312,6 +331,7 @@ export function ViontoPage() {
             updated[i] = { ...updated[i], status: "complete", progress: 100, key: presignData.key };
             return updated;
           });
+          completedUploads += 1;
         } catch (error) {
           console.error("Upload failed", error);
           setUploadingFiles((prev) => {
@@ -320,6 +340,11 @@ export function ViontoPage() {
             return updated;
           });
         }
+      }
+
+      if (completedUploads === 0) {
+        alert("No files uploaded successfully. Check the failed file rows and retry.");
+        return;
       }
 
       // Promote session to project assets

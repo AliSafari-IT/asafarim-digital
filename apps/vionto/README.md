@@ -10,6 +10,14 @@ pnpm --filter vionto dev
 
 Local URL: `http://localhost:3006`
 
+For local upload testing without DigitalOcean Spaces credentials, set:
+
+```bash
+VIONTO_STORAGE_DRIVER=local
+```
+
+Unset that variable, or set it to `spaces`, when using real Spaces credentials.
+
 ## Current Scope
 
 - Next.js app shell for the Vionto creator workspace.

@@ -34,13 +34,17 @@ export type UploadSession = {
 const SESSION_TTL_MS = 60 * 60 * 1000; // 1 hour
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
-const sessions = new Map<string, UploadSession>();
+const globalForUploadSessions = globalThis as typeof globalThis & {
+  __viontoUploadSessions?: Map<string, UploadSession>;
+  __viontoUploadSessionCleanupTimer?: ReturnType<typeof setInterval> | null;
+};
 
-let cleanupTimer: ReturnType<typeof setInterval> | null = null;
+const sessions = globalForUploadSessions.__viontoUploadSessions ?? new Map<string, UploadSession>();
+globalForUploadSessions.__viontoUploadSessions = sessions;
 
 function startCleanup() {
-  if (cleanupTimer) return;
-  cleanupTimer = setInterval(() => {
+  if (globalForUploadSessions.__viontoUploadSessionCleanupTimer) return;
+  globalForUploadSessions.__viontoUploadSessionCleanupTimer = setInterval(() => {
     const now = Date.now();
     for (const [id, session] of sessions.entries()) {
       if (session.expiresAt.getTime() < now) {

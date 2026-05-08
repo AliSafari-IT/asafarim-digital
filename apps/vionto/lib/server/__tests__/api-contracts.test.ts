@@ -275,11 +275,12 @@ describe("shareExportSchema", () => {
 
 describe("formatZodError", () => {
   it("returns semicolon-separated issue messages", () => {
-    const result = createProjectSchema.safeParse({});
+    const result = createProjectSchema.safeParse({ description: "x".repeat(2001) });
     expect(result.success).toBe(false);
     if (!result.success) {
       const msg = formatZodError(result.error);
       expect(msg).toContain("title:");
+      expect(msg).toContain("description:");
       expect(msg).toContain(";");
     }
   });
