@@ -18,9 +18,10 @@ COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
 COPY packages/shared-i18n ./packages/shared-i18n
 
-RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... && \
+# Install only production dependencies to save disk space
+RUN pnpm install --frozen-lockfile --prod --filter vionto... --filter @asafarim/db... --prefer-offline && \
     pnpm store prune && \
-    rm -rf /root/.cache /tmp/*
+    rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 
