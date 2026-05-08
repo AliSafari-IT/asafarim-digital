@@ -24,6 +24,9 @@ export async function GET(req: Request) {
   let voices = VOICE_CATALOG;
   if (locale) {
     voices = listVoicesForLocale(locale);
+    if (voices.length === 0) {
+      voices = VOICE_CATALOG;
+    }
   } else if (tag) {
     voices = listVoicesByTag(tag);
   }

@@ -190,7 +190,9 @@ export function ViontoPage() {
       const res = await fetch(`/api/audio/voices?locale=${locale}`);
       if (!res.ok) return;
       const data = await res.json();
-      setVoices(data.voices || []);
+      const loadedVoices = data.voices || [];
+      setVoices(loadedVoices);
+      setSelectedVoice((current) => current ?? loadedVoices[0]?.id ?? null);
     } catch (error) {
       console.error("Failed to load voices", error);
     }
@@ -220,13 +222,14 @@ export function ViontoPage() {
   }
 
   function getVoicePreviewText() {
-    const latestNarration = versions.find((version) => version.narrationText?.trim())?.narrationText?.trim();
-    if (latestNarration) return latestNarration.slice(0, 200);
-
-    const language = locale.split("-")[0] ?? "en";
+    const selectedVoiceLocale = voices.find((voice) => voice.id === selectedVoice)?.locale;
+    const language = (selectedVoiceLocale ?? locale).split("-")[0] ?? "en";
     if (language === "nl") return "Dit is een voorbeeld van de gekozen vertelstem voor je Vionto verhaal.";
-    if (language === "fr") return "Voici un apercu de la voix choisie pour votre histoire Vionto.";
+    if (language === "fr") return "Voici un aperçu de la voix choisie pour votre histoire Vionto.";
     if (language === "de") return "Dies ist eine Vorschau der ausgewaehlten Stimme fuer deine Vionto Geschichte.";
+    if (language === "es") return "Esta es una vista previa de la voz narradora elegida para tu historia de Vionto.";
+    if (language === "it") return "Questa è un'anteprima della voce narrante scelta per la tua storia Vionto.";
+    if (language === "pt") return "Esta é uma prévia da voz de narração escolhida para a sua história Vionto.";
     return "This is a preview of the selected narration voice for your Vionto story.";
   }
 

@@ -11,6 +11,7 @@ export type VoiceEntry = {
   id: string;
   name: string;
   provider: TTSProvider;
+  providerVoiceId?: string;
   locale: string; // e.g. "en-US", "nl-NL"
   gender: "male" | "female" | "neutral";
   previewUrl?: string;
@@ -37,7 +38,7 @@ export type TTSFailure = {
 export type TTSResult = TTSSuccess | TTSFailure;
 
 /** Built-in voice catalog — extendable at runtime via DB or env. */
-export const VOICE_CATALOG: VoiceEntry[] = [
+const OPENAI_VOICES: VoiceEntry[] = [
   { id: "alloy", name: "Alloy", provider: "openai", locale: "en-US", gender: "neutral", tags: ["calm", "modern"] },
   { id: "echo", name: "Echo", provider: "openai", locale: "en-US", gender: "male", tags: ["warm"] },
   { id: "fable", name: "Fable", provider: "openai", locale: "en-GB", gender: "male", tags: ["storytelling"] },
@@ -45,6 +46,31 @@ export const VOICE_CATALOG: VoiceEntry[] = [
   { id: "nova", name: "Nova", provider: "openai", locale: "en-US", gender: "female", tags: ["warm", "calm"] },
   { id: "shimmer", name: "Shimmer", provider: "openai", locale: "en-US", gender: "female", tags: ["bright"] },
   { id: "coral", name: "Coral", provider: "openai", locale: "en-US", gender: "female", tags: ["conversational"] },
+];
+
+const MULTILINGUAL_LOCALES = [
+  { base: "nl", locale: "nl-NL", label: "Dutch" },
+  { base: "fr", locale: "fr-FR", label: "French" },
+  { base: "de", locale: "de-DE", label: "German" },
+  { base: "es", locale: "es-ES", label: "Spanish" },
+  { base: "it", locale: "it-IT", label: "Italian" },
+  { base: "pt", locale: "pt-PT", label: "Portuguese" },
+] as const;
+
+function localizeOpenAIVoice(voice: VoiceEntry, locale: (typeof MULTILINGUAL_LOCALES)[number]): VoiceEntry {
+  return {
+    ...voice,
+    id: `${locale.base}-${voice.id}`,
+    name: `${voice.name} (${locale.label})`,
+    providerVoiceId: voice.providerVoiceId ?? voice.id,
+    locale: locale.locale,
+    tags: [...voice.tags, locale.base, "multilingual"],
+  };
+}
+
+export const VOICE_CATALOG: VoiceEntry[] = [
+  ...OPENAI_VOICES,
+  ...MULTILINGUAL_LOCALES.flatMap((locale) => OPENAI_VOICES.map((voice) => localizeOpenAIVoice(voice, locale))),
 ];
 
 export function getVoiceById(id: string): VoiceEntry | undefined {
@@ -181,14 +207,15 @@ export async function synthesizeSpeech(
   const errors: string[] = [];
   for (const provider of ordered) {
     let result: TTSResult;
+    const providerVoiceId = voice.providerVoiceId ?? voice.id;
     if (provider === "openai") {
-      result = await ttsOpenAI(text, voiceId);
+      result = await ttsOpenAI(text, providerVoiceId);
     } else if (provider === "elevenlabs") {
-      result = await ttsElevenLabs(text, voiceId);
+      result = await ttsElevenLabs(text, providerVoiceId);
     } else {
       continue;
     }
-    if (result.ok) return result;
+    if (result.ok) return { ...result, voiceId: voice.id };
     errors.push(`${provider}: ${result.error}`);
     if (!result.isRetryable) break;
   }
