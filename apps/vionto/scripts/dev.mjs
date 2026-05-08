@@ -19,6 +19,7 @@ function run(name, args) {
     cwd: process.cwd(),
     env: process.env,
     stdio: ["inherit", "pipe", "pipe"],
+    shell: isWindows,
   });
 
   children.add(child);
