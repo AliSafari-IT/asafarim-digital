@@ -6,10 +6,13 @@ RUN corepack enable
 FROM base AS builder
 WORKDIR /repo
 
+ARG NEXT_PUBLIC_VIONTO_URL=https://vionto.asafarim.com
+ARG NEXT_PUBLIC_PORTAL_URL=https://portal.asafarim.com
+ENV NEXT_PUBLIC_VIONTO_URL=${NEXT_PUBLIC_VIONTO_URL}
+ENV NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL}
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/vionto ./apps/vionto
-# Exclude .env files to prevent localhost URLs from being baked into production image
-RUN find /repo/apps/vionto -name ".env*" -type f -delete
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
 COPY packages/types ./packages/types
