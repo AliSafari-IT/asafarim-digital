@@ -20,12 +20,13 @@ COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/vionto-schemas ./packages/vionto-schemas
 
-# Build-time tooling such as tsup, prisma, and tsx lives in workspace devDependencies.
-RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline && \
-    pnpm store prune && \
-    rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
+# Build-time tooling such as tsup and prisma lives in workspace devDependencies.
+RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
+RUN pnpm prune --prod --ignore-scripts && \
+    pnpm store prune && \
+    rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
 
 FROM base AS runner
 WORKDIR /app
@@ -38,9 +39,6 @@ RUN adduser --system --uid 1001 worker
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/packages/db ./packages/db
 COPY --from=builder /repo/apps/vionto ./apps/vionto
-
-# Regenerate Prisma client for Alpine (musl) runtime
-RUN cd packages/db && npx prisma generate
 
 # Copy Prisma client to expected location
 RUN mkdir -p /app/node_modules/.prisma && \
