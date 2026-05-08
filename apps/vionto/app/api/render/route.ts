@@ -68,7 +68,7 @@ export async function POST(req: Request) {
         prisma.viontoScript.findFirst({
           where: { projectId: project.id, userId: user.id },
           orderBy: { updatedAt: "desc" },
-          select: { narrationText: true },
+          select: { narrationText: true, srtText: true },
         }),
         prisma.viontoAudioTrack.findFirst({
           where: { projectId: project.id, userId: user.id, type: "narration", source: "tts", voiceId: { not: null } },
@@ -90,6 +90,7 @@ export async function POST(req: Request) {
           height: asset.height ?? undefined,
         })),
         narrationText: latestScript?.narrationText ?? undefined,
+        srtText: latestScript?.srtText ?? undefined,
         audioTracks: narrationPreference?.voiceId
           ? [{
               type: "narration",

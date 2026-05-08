@@ -68,6 +68,7 @@ export const renderManifestSchema = z.object({
   audioTracks: z.array(audioTrackSchema).max(8).default([]),
 
   narrationText: z.string().optional(),
+  srtText: z.string().optional(),
   srtStorageKey: z.string().optional(),
   burnSubtitles: z.boolean().default(true),
   subtitleStyle: subtitleStyleSchema.default({}),

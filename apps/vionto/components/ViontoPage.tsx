@@ -79,6 +79,13 @@ export function ViontoPage() {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Render state
+  const [renderJobId, setRenderJobId] = useState<string | null>(null);
+  const [renderState, setRenderState] = useState<string>("idle");
+  const [renderProgress, setRenderProgress] = useState(0);
+  const [exportId, setExportId] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+
   // Project state
   const [projects, setProjects] = useState<Array<{ id: string; title: string; status: string; createdAt: string }>>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -274,6 +281,96 @@ export function ViontoPage() {
     } catch (error) {
       console.error("Failed to delete asset", error);
       alert("Failed to delete asset");
+    }
+  }
+
+  async function startRender() {
+    if (!selectedProjectId) {
+      alert("Please select or create a project first");
+      return;
+    }
+    if (projectAssets.length === 0) {
+      alert("Please upload images before rendering");
+      return;
+    }
+    if (versions.length === 0) {
+      alert("Please generate a script before rendering");
+      return;
+    }
+
+    setRenderState("queued");
+    setRenderProgress(0);
+    setExportId(null);
+    setDownloadUrl(null);
+
+    try {
+      const res = await fetch("/api/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: selectedProjectId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to start render" }));
+        alert(data.error);
+        setRenderState("idle");
+        return;
+      }
+      const data = await res.json();
+      setRenderJobId(data.jobId);
+      pollRenderStatus(data.jobId);
+    } catch (error) {
+      console.error("Failed to start render", error);
+      alert("Failed to start render");
+      setRenderState("idle");
+    }
+  }
+
+  async function pollRenderStatus(jobId: string) {
+    try {
+      const res = await fetch(`/api/render/${jobId}`);
+      if (!res.ok) {
+        setRenderState("failed");
+        return;
+      }
+      const data = await res.json();
+      setRenderState(data.state);
+      setRenderProgress(data.progressPercent ?? 0);
+
+      if (data.state === "completed") {
+        // Load export record
+        const exportRes = await fetch(`/api/exports?projectId=${selectedProjectId}`);
+        if (exportRes.ok) {
+          const exportData = await exportRes.json();
+          if (exportData.data && exportData.data.length > 0) {
+            const latestExport = exportData.data[0];
+            setExportId(latestExport.id);
+          }
+        }
+      } else if (data.state === "failed") {
+        alert(`Render failed: ${data.errorSummary || "Unknown error"}`);
+      } else if (data.state === "queued" || data.state === "running") {
+        // Continue polling
+        setTimeout(() => pollRenderStatus(jobId), 2000);
+      }
+    } catch (error) {
+      console.error("Failed to poll render status", error);
+      setRenderState("failed");
+    }
+  }
+
+  async function getDownloadUrl() {
+    if (!exportId) return;
+    try {
+      const res = await fetch(`/api/exports/${exportId}/download`);
+      if (!res.ok) {
+        alert("Failed to get download URL");
+        return;
+      }
+      const data = await res.json();
+      setDownloadUrl(data.downloadUrl);
+    } catch (error) {
+      console.error("Failed to get download URL", error);
+      alert("Failed to get download URL");
     }
   }
 
@@ -971,14 +1068,76 @@ export function ViontoPage() {
                 <ListChecks size={20} />
                 <h2>{t("vionto.render.title")}</h2>
               </div>
-              <ul>
-                {queueItems.map(([label, detail]) => (
-                  <li key={label}>
-                    <span>{label}</span>
-                    <strong>{detail}</strong>
-                  </li>
-                ))}
-              </ul>
+              {renderState === "idle" ? (
+                <button
+                  type="button"
+                  onClick={startRender}
+                  disabled={!selectedProjectId || projectAssets.length === 0 || versions.length === 0}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                >
+                  <Clapperboard size={16} />
+                  {t("vionto.render.start")}
+                </button>
+              ) : renderState === "queued" || renderState === "running" ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span className="text-sm">
+                      {renderState === "queued" ? t("vionto.render.queued") : t("vionto.render.running")}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-[var(--color-border)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--color-accent)] transition-all"
+                      style={{ width: `${renderProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-[var(--color-text-muted)]">{renderProgress}%</span>
+                </div>
+              ) : renderState === "completed" ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <ListChecks size={16} />
+                    <span className="text-sm">{t("vionto.render.completed")}</span>
+                  </div>
+                  {exportId && (
+                    <button
+                      type="button"
+                      onClick={getDownloadUrl}
+                      disabled={!!downloadUrl}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                    >
+                      <Download size={16} />
+                      {downloadUrl ? t("vionto.render.downloading") : t("vionto.render.download")}
+                    </button>
+                  )}
+                  {downloadUrl && (
+                    <a
+                      href={downloadUrl}
+                      download
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
+                    >
+                      <Download size={16} />
+                      {t("vionto.render.save")}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-red-600">
+                    <Trash2 size={16} />
+                    <span className="text-sm">{t("vionto.render.failed")}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startRender}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
+                  >
+                    <RefreshCw size={16} />
+                    {t("vionto.render.retry")}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         </section>

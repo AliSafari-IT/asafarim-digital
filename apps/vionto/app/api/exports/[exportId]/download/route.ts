@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
-import { createPresignedUploadUrl } from "@/lib/server/storage";
+import { createPresignedDownloadUrl } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
@@ -46,9 +46,8 @@ export async function GET(
       );
     }
 
-    // In production, generate a presigned GET URL using the same S3 client
-    // For now, return a stub URL and metadata
-    const downloadUrl = `https://cdn.asafarim.com/${exportRecord.storageKey}?token=stub`;
+    // Generate a real presigned GET URL
+    const downloadUrl = await createPresignedDownloadUrl(exportRecord.storageKey, 15 * 60); // 15 minutes
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await prisma.viontoExport.update({
