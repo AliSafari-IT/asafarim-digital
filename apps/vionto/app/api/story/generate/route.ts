@@ -8,6 +8,8 @@ import {
   buildStoryUserPrompt,
 } from "@/lib/server/story-generation";
 import { generateSrtFromText, isValidSrt } from "@/lib/server/srt";
+import { buildExifSummary, formatExifSummaryForPrompt } from "@/lib/server/exif";
+import { generateImageCaption } from "@/lib/server/vision";
 
 export const runtime = "nodejs";
 
@@ -56,6 +58,74 @@ export async function POST(req: Request) {
     const effectiveLocale = locale || project.locale || "en";
     const effectiveMode = (mode || project.mode || "story") as "story" | "slideshow" | "documentary";
 
+    // Query project assets server-side to get captions and build EXIF summary
+    const assets = await prisma.viontoAsset.findMany({
+      where: { projectId, type: "source_image" },
+      select: {
+        id: true,
+        storageKey: true,
+        caption: true,
+        captionProvider: true,
+        captionModel: true,
+        captionGeneratedAt: true,
+        metadata: true,
+        orderIndex: true,
+      },
+      orderBy: { orderIndex: "asc" },
+    });
+
+    // Generate captions for assets that don't have them (up to 5 at a time to avoid timeout)
+    const assetsNeedingCaptions = assets.filter(a => !a.caption && a.storageKey);
+    if (assetsNeedingCaptions.length > 0) {
+      const captionBatch = assetsNeedingCaptions.slice(0, 5);
+      for (const asset of captionBatch) {
+        try {
+          const captionResult = await generateImageCaption(asset.storageKey, effectiveLocale);
+          await prisma.viontoAsset.update({
+            where: { id: asset.id },
+            data: {
+              caption: captionResult.caption,
+              captionProvider: captionResult.provider,
+              captionModel: captionResult.model,
+              captionGeneratedAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error(`[story/generate] Failed to caption asset ${asset.id}:`, error);
+        }
+      }
+      // Reload assets to get the newly generated captions
+      const updatedAssets = await prisma.viontoAsset.findMany({
+        where: { projectId, type: "source_image" },
+        select: {
+          id: true,
+          caption: true,
+          orderIndex: true,
+        },
+        orderBy: { orderIndex: "asc" },
+      });
+      assets.forEach((asset, idx) => {
+        const updated = updatedAssets.find(a => a.id === asset.id);
+        if (updated) {
+          asset.caption = updated.caption;
+        }
+      });
+    }
+
+    // Extract captions from assets
+    const assetCaptions = assets
+      .filter(a => a.caption)
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map(a => a.caption);
+
+    // Build EXIF summary
+    const exifSummaryData = await buildExifSummary(projectId);
+    const exifSummaryText = formatExifSummaryForPrompt(exifSummaryData, effectiveLocale);
+
+    // Use server-side data if client didn't provide it
+    const effectiveCaptions = captions && captions.length > 0 ? captions : assetCaptions;
+    const effectiveExifSummary = exifSummary || exifSummaryText;
+
     if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
         { error: "No AI provider key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY." },
@@ -68,8 +138,8 @@ export async function POST(req: Request) {
       locale: effectiveLocale,
       mode: effectiveMode,
       userNotes,
-      captions,
-      exifSummary,
+      captions: effectiveCaptions,
+      exifSummary: effectiveExifSummary,
     });
 
     const startedAt = Date.now();
