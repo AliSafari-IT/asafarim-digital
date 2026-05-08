@@ -398,13 +398,14 @@ export function getPublicUrlForKey(key: string): string {
   return `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`;
 }
 
-/** Maximum bytes fetched for server-side metadata extraction (EXIF headers). */
+/**
+ * Maximum bytes fetched for server-side metadata extraction (EXIF headers).
+ */
 export const MAX_METADATA_FETCH_BYTES = 2 * 1024 * 1024; // 2 MB is enough for JPEG/PNG headers + EXIF
 
 /**
  * Fetch object bytes from storage for server-side metadata extraction.
  * Returns null in stub mode or if the object is missing / unreadable.
- * Capped to `maxBytes` to avoid loading large originals into memory.
  */
 export async function getObjectBytes(key: string, maxBytes: number = MAX_METADATA_FETCH_BYTES): Promise<Buffer | null> {
   const handle = getClient();
@@ -440,5 +441,77 @@ export async function getObjectBytes(key: string, maxBytes: number = MAX_METADAT
     return Buffer.concat(chunks, Math.min(total, maxBytes));
   } catch {
     return null;
+  }
+}
+
+/**
+ * Download an object from storage to a local file path.
+ * Used by the worker to materialize assets before FFmpeg processing.
+ */
+export async function downloadObjectToLocalFile(key: string, localPath: string): Promise<void> {
+  const handle = getClient();
+  if (!handle) {
+    const mem = localObjects.get(key);
+    if (mem) {
+      await writeFile(localPath, mem.body);
+      return;
+    }
+    try {
+      const filePath = getLocalFilePath(key);
+      const body = await readFile(filePath);
+      await writeFile(localPath, body);
+      return;
+    } catch (error) {
+      throw new Error(`Failed to read local object ${key}: ${error}`);
+    }
+  }
+  try {
+    const response = await handle.client.send(
+      new GetObjectCommand({
+        Bucket: handle.config.bucket,
+        Key: key,
+      }),
+    );
+    const body = response.Body as unknown as AsyncIterable<Uint8Array> | undefined;
+    if (!body) {
+      throw new Error(`Object ${key} not found in storage`);
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) {
+      chunks.push(Buffer.from(chunk));
+    }
+    await writeFile(localPath, Buffer.concat(chunks));
+  } catch (error) {
+    throw new Error(`Failed to download object ${key} from storage: ${error}`);
+  }
+}
+
+/**
+ * Upload a local file to storage and return the public URL.
+ * Used by the worker to upload the final MP4.
+ */
+export async function uploadLocalFileToStorage(localPath: string, key: string, contentType: string): Promise<string> {
+  const body = await readFile(localPath);
+  await putObjectBytes(key, body, contentType);
+  return getPublicUrlForKey(key);
+}
+
+/**
+ * Generate a presigned GET URL for downloading an object.
+ * Used by the download endpoint to provide time-limited access.
+ */
+export async function createPresignedDownloadUrl(key: string, expiresInSec: number = 15 * 60): Promise<string> {
+  const handle = getClient();
+  if (!handle) {
+    return getLocalUploadUrl(key);
+  }
+  try {
+    const command = new GetObjectCommand({
+      Bucket: handle.config.bucket,
+      Key: key,
+    });
+    return await getSignedUrl(handle.client, command, { expiresIn: expiresInSec });
+  } catch (error) {
+    throw new Error(`Failed to create presigned download URL for ${key}: ${error}`);
   }
 }
