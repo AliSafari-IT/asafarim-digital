@@ -83,6 +83,7 @@ export function ViontoPage() {
   const [renderJobId, setRenderJobId] = useState<string | null>(null);
   const [renderState, setRenderState] = useState<string>("idle");
   const [renderProgress, setRenderProgress] = useState(0);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [exportId, setExportId] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
@@ -139,6 +140,7 @@ export function ViontoPage() {
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
+      setRenderError(null);
       setExportId(null);
       setDownloadUrl(null);
     }
@@ -208,12 +210,14 @@ export function ViontoPage() {
         setRenderJobId(latestCompletedExport.renderJobId ?? null);
         setRenderState("completed");
         setRenderProgress(100);
+        setRenderError(null);
         setExportId(latestCompletedExport.id);
         setDownloadUrl(null);
       } else {
         setRenderJobId(null);
         setRenderState("idle");
         setRenderProgress(0);
+        setRenderError(null);
         setExportId(null);
         setDownloadUrl(null);
       }
@@ -323,13 +327,15 @@ export function ViontoPage() {
       alert("Please upload images before rendering");
       return;
     }
-    if (versions.length === 0) {
+    if (!hasRenderableScript) {
       alert("Please generate a script before rendering");
+      setRenderError("Generate or save a narration script before rendering.");
       return;
     }
 
     setRenderState("queued");
     setRenderProgress(0);
+    setRenderError(null);
     setExportId(null);
     setDownloadUrl(null);
 
@@ -341,7 +347,9 @@ export function ViontoPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to start render" }));
-        alert(data.error);
+        const message = data.error ?? "Failed to start render";
+        alert(message);
+        setRenderError(message);
         setRenderState("idle");
         return;
       }
@@ -351,6 +359,7 @@ export function ViontoPage() {
     } catch (error) {
       console.error("Failed to start render", error);
       alert("Failed to start render");
+      setRenderError("Failed to start render");
       setRenderState("idle");
     }
   }
@@ -360,6 +369,7 @@ export function ViontoPage() {
       const res = await fetch(`/api/render/${jobId}`);
       if (!res.ok) {
         setRenderState("failed");
+        setRenderError("Failed to poll render status");
         return;
       }
       const data = await res.json();
@@ -367,6 +377,7 @@ export function ViontoPage() {
       setRenderProgress(data.progressPercent ?? 0);
 
       if (data.state === "completed") {
+        setRenderError(null);
         // Load export record
         const exportRes = await fetch(`/api/exports?projectId=${selectedProjectId}`);
         if (exportRes.ok) {
@@ -377,13 +388,16 @@ export function ViontoPage() {
           }
         }
       } else if (data.state === "failed") {
-        alert(`Render failed: ${data.errorSummary || "Unknown error"}`);
+        const message = data.errorSummary || "Unknown error";
+        setRenderError(message);
+        alert(`Render failed: ${message}`);
       } else if (data.state === "queued" || data.state === "running") {
         // Continue polling
         setTimeout(() => pollRenderStatus(jobId), 2000);
       }
     } catch (error) {
       console.error("Failed to poll render status", error);
+      setRenderError("Failed to poll render status");
       setRenderState("failed");
     }
   }
@@ -485,6 +499,7 @@ export function ViontoPage() {
     ["Voice", "Warm alto selected"],
     ["Render", "Preview MP4 queued"],
   ];
+  const hasRenderableScript = versions.some((version) => version.narrationText?.trim());
 
   async function startUploads() {
     if (!selectedProjectId) {
@@ -1102,7 +1117,7 @@ export function ViontoPage() {
                 <button
                   type="button"
                   onClick={startRender}
-                  disabled={!selectedProjectId || projectAssets.length === 0 || versions.length === 0}
+                  disabled={!selectedProjectId || projectAssets.length === 0 || !hasRenderableScript}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                 >
                   <Clapperboard size={16} />
@@ -1167,6 +1182,9 @@ export function ViontoPage() {
                     {t("vionto.render.retry")}
                   </button>
                 </div>
+              )}
+              {renderError && (
+                <p className="text-sm text-red-500">{renderError}</p>
               )}
             </div>
           </section>

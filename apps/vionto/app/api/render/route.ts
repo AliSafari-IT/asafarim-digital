@@ -59,16 +59,17 @@ export async function POST(req: Request) {
     });
 
     if (!manifest) {
-      const [assets, latestScript, audioTracks] = await Promise.all([
+      const [assets, scripts, audioTracks] = await Promise.all([
         prisma.viontoAsset.findMany({
           where: { projectId: project.id, type: "source_image", storageKey: { not: null } },
           orderBy: { orderIndex: "asc" },
           select: { storageKey: true, width: true, height: true },
         }),
-        prisma.viontoScript.findFirst({
+        prisma.viontoScript.findMany({
           where: { projectId: project.id, userId: user.id },
           orderBy: { updatedAt: "desc" },
           select: { narrationText: true, srtText: true },
+          take: 20,
         }),
         prisma.viontoAudioTrack.findMany({
           where: { projectId: project.id, userId: user.id },
@@ -87,7 +88,8 @@ export async function POST(req: Request) {
         await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
         return badRequest("Upload at least one project image before rendering.");
       }
-      if (!latestScript?.narrationText?.trim()) {
+      const latestScript = scripts.find((script) => script.narrationText?.trim());
+      if (!latestScript) {
         await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
         return badRequest("Generate or save a narration script before rendering.");
       }
