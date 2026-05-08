@@ -15,8 +15,7 @@
 				"name": "ASafariM",
 				"database": "asafarim",
 				"username": "asafarim",
-				"group": "ASM",
-				"password": "___PASSWORD___"
+				"group": "ASM"
 			}
 		],
 		"postman.settings.dotenv-detection-notification-visibility": false
