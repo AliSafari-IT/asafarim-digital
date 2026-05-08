@@ -154,18 +154,18 @@ jobs:
             fi
             echo "Docker disk usage after cleanup:"
             docker system df || true
-            # Rebuild images sequentially with BuildKit inline cache to reuse layers
+            # Rebuild images sequentially with BuildKit for layer caching
             export DOCKER_BUILDKIT=1
             export COMPOSE_DOCKER_CLI_BUILD=1
             export BUILDKIT_INLINE_CACHE=1
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache db-migrate
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache portal
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache content-generator
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache ops-hub
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache marketing-content
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache edumatch
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache vionto
-            docker compose build --pull --cache-from type=local,src=/tmp/docker-cache vionto-worker
+            docker compose build --pull db-migrate
+            docker compose build --pull portal
+            docker compose build --pull content-generator
+            docker compose build --pull ops-hub
+            docker compose build --pull marketing-content
+            docker compose build --pull edumatch
+            docker compose build --pull vionto
+            docker compose build --pull vionto-worker
             docker compose up -d db-migrate
             echo "Waiting for db-migrate to complete..."
             timeout 300 sh -c 'until [ "$(docker inspect --format={{.State.Status}} asafarim-db-migrate 2>/dev/null)" = "exited" ]; do sleep 3; done'
