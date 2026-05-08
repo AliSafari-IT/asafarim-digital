@@ -7,8 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@asafarim/auth";
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -21,6 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "text is required" }, { status: 400 });
     }
 
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const moderation = await openai.moderations.create({ input: text });
     const result = moderation.results[0];
 
