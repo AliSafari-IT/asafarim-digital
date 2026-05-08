@@ -79,6 +79,13 @@ export const zipImportSchema = z.object({
 });
 export type ZipImportPayload = z.infer<typeof zipImportSchema>;
 
+export const promoteSessionSchema = z.object({
+  sessionId: z.string().min(1).max(128),
+  orderedKeys: z.array(z.string().min(1).max(512)).max(MAX_BATCH_SIZE).optional(),
+  clearSession: z.boolean().optional(),
+});
+export type PromoteSessionPayload = z.infer<typeof promoteSessionSchema>;
+
 /**
  * Flatten a ZodError into a single human-readable string.
  */

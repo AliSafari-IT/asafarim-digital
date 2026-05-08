@@ -119,9 +119,37 @@ export const zipImportSchema = z.object({
   expectedCount: z.number().int().min(1).max(MAX_BATCH_SIZE).optional(),
 });
 
+export const promoteSessionSchema = z.object({
+  sessionId: z.string().min(1).max(128),
+  /** Optional explicit order. When omitted, server uses insertion order of staged assets. */
+  orderedKeys: z.array(z.string().min(1).max(512)).max(MAX_BATCH_SIZE).optional(),
+  /** If true, delete the upload session after successful promotion. Defaults to true. */
+  clearSession: z.boolean().optional(),
+});
+
+export const assetResponseSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  userId: z.string(),
+  type: z.string(),
+  originalUrl: z.string().nullable(),
+  thumbnailUrl: z.string().nullable(),
+  storageKey: z.string().nullable(),
+  thumbnailStorageKey: z.string().nullable(),
+  width: z.number().int().nullable(),
+  height: z.number().int().nullable(),
+  fileSizeBytes: z.number().int().nullable(),
+  orderIndex: z.number().int(),
+  metadata: z.record(z.unknown()).nullable().optional(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
 export type PresignRequest = z.infer<typeof presignRequestSchema>;
 export type UploadCompletePayload = z.infer<typeof uploadCompleteSchema>;
 export type ZipImportPayload = z.infer<typeof zipImportSchema>;
+export type PromoteSessionPayload = z.infer<typeof promoteSessionSchema>;
+export type AssetResponse = z.infer<typeof assetResponseSchema>;
 
 // ─── Story schemas ──────────────────────────────────────────────────────
 

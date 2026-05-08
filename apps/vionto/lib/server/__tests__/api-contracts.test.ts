@@ -5,6 +5,7 @@ import {
   presignRequestSchema,
   uploadCompleteSchema,
   zipImportSchema,
+  promoteSessionSchema,
   storyGenerateSchema,
   storyUpdateSchema,
   renderManifestSchema,
@@ -84,6 +85,39 @@ describe("presignRequestSchema", () => {
       filename: "file.exe",
       contentType: "application/octet-stream",
       sizeBytes: 1024,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("promoteSessionSchema", () => {
+  it("accepts minimal payload with sessionId", () => {
+    const result = promoteSessionSchema.safeParse({
+      sessionId: "sess-123",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts orderedKeys array", () => {
+    const result = promoteSessionSchema.safeParse({
+      sessionId: "sess-123",
+      orderedKeys: ["key1", "key2", "key3"],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts clearSession flag", () => {
+    const result = promoteSessionSchema.safeParse({
+      sessionId: "sess-123",
+      clearSession: false,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects too many orderedKeys", () => {
+    const result = promoteSessionSchema.safeParse({
+      sessionId: "sess-123",
+      orderedKeys: Array.from({ length: 201 }, (_, i) => `key${i}`),
     });
     expect(result.success).toBe(false);
   });

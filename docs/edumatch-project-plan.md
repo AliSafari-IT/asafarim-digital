@@ -348,3 +348,17 @@ What I would do differently next time:
 ### 2026-05-08 - Vionto production infra follow-through
 
 Although this plan tracks EduMatch, the same monorepo production infrastructure patterns were extended to Vionto for Issue 030. Implemented Redis-backed Compose wiring, Vionto web and worker health/readiness checks, `DO_SPACES_*` storage env documentation, Nginx upload limits aligned to Vionto quotas, and deploy workflow changes to build/start/verify the worker. What surprised me: several Issue 030 items already existed partially, but the naming mismatch between old `S3_*` envs and the storage layer's `DO_SPACES_*` contract would have made production storage readiness misleading. Next time, I would verify env names against runtime code before treating infra checklists as complete.
+
+### 2026-05-08 - Vionto Issue 033 vertical slice: project flow, upload sessions, asset persistence
+
+Implemented the first functional project and asset flow for Vionto, replacing the demo-only upload surface with real project creation, presigned upload sessions, server-side EXIF/metadata extraction, and ViontoAsset persistence. Key changes:
+
+- **Backend**: Added `getPublicUrlForKey` and `getObjectBytes` helpers to storage.ts for server-side metadata extraction. Fixed `/api/uploads/complete` to extract EXIF/dimensions from stored bytes (trusted source) instead of trusting client metadata, and fixed publicUrl to use storage key instead of filename.
+- **New endpoint**: Created `POST /api/projects/[projectId]/assets` to promote upload session assets into persisted ViontoAsset rows, with optional ordering and session cleanup. Added `GET /api/projects/[projectId]/assets` to list project assets for refresh persistence.
+- **Schemas**: Added `promoteSessionSchema` and `assetResponseSchema` to both app validation and shared `@asafarim/vionto-schemas` package.
+- **UI rewrite**: Completely rewrote ViontoPage.tsx with project picker (select existing or create new), real upload flow (session → presign → PUT → complete → promote), progress tracking with retry/remove, and persisted asset thumbnails display. Removed all "demo-project" hardcoding.
+- **Tests**: Added schema validation tests for promoteSessionSchema covering minimal payload, orderedKeys, clearSession flag, and max batch size.
+
+What surprised me: The upload session infrastructure was already well-designed (in-memory for dev, Redis-ready for prod), but the complete endpoint was trusting client-provided metadata blindly. Server-side EXIF extraction adds a small latency but prevents tampering and ensures consistent metadata across the pipeline.
+
+What I would do differently next time: Consider adding thumbnail generation to the worker queue immediately instead of falling back to original URLs. The current implementation uses original URLs as thumbnails, which works but may load full-resolution images in the UI.

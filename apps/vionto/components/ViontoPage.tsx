@@ -12,8 +12,11 @@ import {
   ImagePlus,
   ListChecks,
   Mic2,
+  Plus,
   Sparkles,
+  Trash2,
   Wand2,
+  RefreshCw,
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
@@ -70,12 +73,108 @@ export function ViontoPage() {
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Project state
+  const [projects, setProjects] = useState<Array<{ id: string; title: string; status: string; createdAt: string }>>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [newProjectTitle, setNewProjectTitle] = useState("");
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
+  // Upload state
+  const [uploadSessionId, setUploadSessionId] = useState<string | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<Array<{
+    file: File;
+    key: string;
+    status: "pending" | "uploading" | "complete" | "error";
+    progress: number;
+    error?: string;
+  }>>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Assets state (persisted)
+  const [projectAssets, setProjectAssets] = useState<Array<{
+    id: string;
+    originalUrl: string;
+    thumbnailUrl: string | null;
+    width: number | null;
+    height: number | null;
+    orderIndex: number;
+  }>>([]);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
 
   const ACCEPTED = [".jpg", ".jpeg", ".png", ".heic", ".webp", ".zip"];
   const acceptedMime = "image/jpeg,image/png,image/heic,image/webp,application/zip,.heic,.zip";
+
+  // Load projects on mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  // Load assets when project is selected
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadProjectAssets(selectedProjectId);
+    } else {
+      setProjectAssets([]);
+    }
+  }, [selectedProjectId]);
+
+  async function loadProjects() {
+    setIsLoadingProjects(true);
+    try {
+      const res = await fetch("/api/projects");
+      if (!res.ok) return;
+      const data = await res.json();
+      setProjects(data.data || []);
+    } catch (error) {
+      console.error("Failed to load projects", error);
+    } finally {
+      setIsLoadingProjects(false);
+    }
+  }
+
+  async function loadProjectAssets(projectId: string) {
+    setIsLoadingAssets(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/assets`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setProjectAssets(data.assets || []);
+    } catch (error) {
+      console.error("Failed to load assets", error);
+    } finally {
+      setIsLoadingAssets(false);
+    }
+  }
+
+  async function createProject() {
+    if (!newProjectTitle.trim()) return;
+    setIsCreatingProject(true);
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newProjectTitle.trim(), mode: "story", locale: locale.split("-")[0] ?? "en" }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to create project" }));
+        alert(data.error);
+        return;
+      }
+      const project = await res.json();
+      await loadProjects();
+      setSelectedProjectId(project.id);
+      setNewProjectTitle("");
+    } catch (error) {
+      console.error("Failed to create project", error);
+      alert("Failed to create project");
+    } finally {
+      setIsCreatingProject(false);
+    }
+  }
 
   function addFiles(files: FileList | null) {
     if (!files) return;
@@ -83,9 +182,14 @@ export function ViontoPage() {
       const ext = "." + f.name.split(".").pop()?.toLowerCase();
       return ACCEPTED.includes(ext);
     });
-    setUploadedFiles((prev) => {
-      const names = new Set(prev.map((f) => f.name));
-      return [...prev, ...valid.filter((f) => !names.has(f.name))];
+    setUploadingFiles((prev) => {
+      const names = new Set(prev.map((f) => f.file.name));
+      return [...prev, ...valid.filter((f) => !names.has(f.name)).map((f) => ({
+        file: f,
+        key: "",
+        status: "pending" as const,
+        progress: 0,
+      }))];
     });
   }
 
@@ -128,7 +232,132 @@ export function ViontoPage() {
     ["Render", "Preview MP4 queued"],
   ];
 
-  const handleGenerate = useCallback(async (_projectId: string) => {
+  async function startUploads() {
+    if (!selectedProjectId) {
+      alert("Please select or create a project first");
+      return;
+    }
+    if (uploadingFiles.length === 0) return;
+
+    setIsUploading(true);
+
+    // Create upload session
+    try {
+      const sessionRes = await fetch("/api/uploads/session", { method: "POST" });
+      if (!sessionRes.ok) {
+        alert("Failed to create upload session");
+        setIsUploading(false);
+        return;
+      }
+      const sessionData = await sessionRes.json();
+      setUploadSessionId(sessionData.sessionId);
+
+      // Upload each file
+      for (let i = 0; i < uploadingFiles.length; i++) {
+        const fileUpload = uploadingFiles[i];
+        if (fileUpload.status === "complete") continue;
+
+        setUploadingFiles((prev) => {
+          const updated = [...prev];
+          updated[i] = { ...updated[i], status: "uploading", progress: 0 };
+          return updated;
+        });
+
+        try {
+          // Presign
+          const presignRes = await fetch("/api/uploads/presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: fileUpload.file.name,
+              contentType: fileUpload.file.type || "image/jpeg",
+              sizeBytes: fileUpload.file.size,
+              sessionId: sessionData.sessionId,
+            }),
+          });
+          if (!presignRes.ok) {
+            throw new Error("Presign failed");
+          }
+          const presignData = await presignRes.json();
+
+          // Upload to storage
+          const uploadRes = await fetch(presignData.uploadUrl, {
+            method: "PUT",
+            body: fileUpload.file,
+          });
+          if (!uploadRes.ok) {
+            throw new Error("Storage upload failed");
+          }
+
+          // Complete
+          const completeRes = await fetch("/api/uploads/complete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              key: presignData.key,
+              sessionId: sessionData.sessionId,
+              metadata: {
+                filename: fileUpload.file.name,
+                contentType: fileUpload.file.type || "image/jpeg",
+                sizeBytes: fileUpload.file.size,
+              },
+            }),
+          });
+          if (!completeRes.ok) {
+            throw new Error("Upload completion failed");
+          }
+
+          setUploadingFiles((prev) => {
+            const updated = [...prev];
+            updated[i] = { ...updated[i], status: "complete", progress: 100, key: presignData.key };
+            return updated;
+          });
+        } catch (error) {
+          console.error("Upload failed", error);
+          setUploadingFiles((prev) => {
+            const updated = [...prev];
+            updated[i] = { ...updated[i], status: "error", error: error instanceof Error ? error.message : "Upload failed" };
+            return updated;
+          });
+        }
+      }
+
+      // Promote session to project assets
+      const promoteRes = await fetch(`/api/projects/${selectedProjectId}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sessionData.sessionId, clearSession: true }),
+      });
+      if (promoteRes.ok) {
+        await loadProjectAssets(selectedProjectId);
+        setUploadingFiles([]);
+        setUploadSessionId(null);
+      }
+    } catch (error) {
+      console.error("Upload flow failed", error);
+      alert("Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  function removeUpload(index: number) {
+    setUploadingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function retryUpload(index: number) {
+    setUploadingFiles((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], status: "pending", progress: 0, error: undefined };
+      return updated;
+    });
+  }
+
+  const handleGenerate = useCallback(async () => {
+    if (!selectedProjectId) {
+      alert("Please select or create a project first");
+      return;
+    }
     setIsGenerating(true);
     try {
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
@@ -136,7 +365,7 @@ export function ViontoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectId: "demo-project",
+          projectId: selectedProjectId,
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
           userNotes: userNotes.trim() || undefined,
@@ -170,7 +399,7 @@ export function ViontoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, userNotes]);
+  }, [locale, activeMode, userNotes, selectedProjectId]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -306,50 +535,161 @@ export function ViontoPage() {
                 <p>{t("vionto.upload.subtitle")}</p>
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={acceptedMime}
-                multiple
-                className="hidden"
-                onChange={(e) => addFiles(e.target.files)}
-              />
+              {/* Project picker */}
+              <div className="mt-3">
+                <label className="text-xs font-medium text-[var(--color-text-muted)]">Project</label>
+                <div className="mt-1 flex gap-2">
+                  <select
+                    className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                    value={selectedProjectId ?? ""}
+                    onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                    disabled={isLoadingProjects || isUploading}
+                  >
+                    <option value="">Select a project...</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreatingProject(true)}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                  >
+                    <Plus size={16} /> New
+                  </button>
+                </div>
 
-              <div
-                className="dropzone"
-                role="button"
-                tabIndex={0}
-                aria-label="Upload images or zip file"
-                onClick={() => fileInputRef.current?.click()}
-                onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDropzoneDrop}
-                style={isDragging ? { borderColor: "var(--coral)", background: "rgba(243,111,86,0.12)" } : undefined}
-              >
-                <CloudUpload size={34} style={{ color: isDragging ? "var(--coral)" : undefined }} />
-                <strong>{uploadedFiles.length > 0 ? `${uploadedFiles.length} file${uploadedFiles.length > 1 ? "s" : ""} selected` : t("vionto.upload.dropzoneLabel")}</strong>
-                <span>{t("vionto.upload.dropzoneHint")}</span>
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <ul className="mt-1 space-y-1">
-                  {uploadedFiles.slice(0, 5).map((f) => (
-                    <li key={f.name} className="flex items-center justify-between rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs">
-                      <span className="truncate text-[var(--text)]">{f.name}</span>
+                {/* Create project modal */}
+                {isCreatingProject && (
+                  <div className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      placeholder="Project title"
+                      value={newProjectTitle}
+                      onChange={(e) => setNewProjectTitle(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createProject()}
+                      autoFocus
+                    />
+                    <div className="mt-2 flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => setUploadedFiles((prev) => prev.filter((x) => x.name !== f.name))}
-                        className="ml-2 shrink-0 text-[var(--muted)] hover:text-[var(--coral)] transition-colors"
-                        aria-label={`Remove ${f.name}`}
-                      >✕</button>
-                    </li>
-                  ))}
-                  {uploadedFiles.length > 5 && (
-                    <li className="px-3 py-1 text-xs text-[var(--muted)]">+{uploadedFiles.length - 5} more</li>
+                        onClick={() => { setIsCreatingProject(false); setNewProjectTitle(""); }}
+                        className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={createProject}
+                        disabled={!newProjectTitle.trim() || isCreatingProject}
+                        className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                      >
+                        {isCreatingProject ? <RefreshCw size={14} className="animate-spin" /> : "Create"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Upload dropzone */}
+              {selectedProjectId && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={acceptedMime}
+                    multiple
+                    className="hidden"
+                    onChange={(e) => addFiles(e.target.files)}
+                    disabled={isUploading}
+                  />
+
+                  <div
+                    className="dropzone"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Upload images or zip file"
+                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                    onKeyDown={(e) => e.key === "Enter" && !isUploading && fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragEnter={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDropzoneDrop}
+                    style={isDragging ? { borderColor: "var(--coral)", background: "rgba(243,111,86,0.12)" } : undefined}
+                  >
+                    <CloudUpload size={34} style={{ color: isDragging ? "var(--coral)" : undefined }} />
+                    <strong>{uploadingFiles.length > 0 ? `${uploadingFiles.length} file${uploadingFiles.length > 1 ? "s" : ""} selected` : t("vionto.upload.dropzoneLabel")}</strong>
+                    <span>{t("vionto.upload.dropzoneHint")}</span>
+                  </div>
+
+                  {/* Upload list with progress */}
+                  {uploadingFiles.length > 0 && (
+                    <ul className="mt-1 space-y-1">
+                      {uploadingFiles.slice(0, 5).map((f, i) => (
+                      <li key={i} className="flex items-center gap-2 rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs">
+                        <span className="min-w-0 flex-1 truncate text-[var(--text)]">{f.file.name}</span>
+                        {f.status === "uploading" && <RefreshCw size={14} className="animate-spin text-[var(--muted)]" />}
+                        {f.status === "complete" && <span className="text-[var(--coral)]">✓</span>}
+                        {f.status === "error" && (
+                          <button
+                            type="button"
+                            onClick={() => retryUpload(i)}
+                            className="text-[var(--muted)] hover:text-[var(--text)]"
+                            aria-label="Retry"
+                          >
+                            <RefreshCw size={14} />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeUpload(i)}
+                          disabled={f.status === "uploading"}
+                          className="shrink-0 text-[var(--muted)] hover:text-[var(--coral)] transition-colors disabled:opacity-50"
+                          aria-label={`Remove ${f.file.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </li>
+                      ))}
+                      {uploadingFiles.length > 5 && (
+                        <li className="px-3 py-1 text-xs text-[var(--muted)]">+{uploadingFiles.length - 5} more</li>
+                      )}
+                    </ul>
                   )}
-                </ul>
+
+                  {/* Upload button */}
+                  {uploadingFiles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={startUploads}
+                      disabled={isUploading || uploadingFiles.every((f) => f.status === "complete")}
+                      className="mt-2 w-full rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                    >
+                      {isUploading ? <RefreshCw size={16} className="animate-spin" /> : "Upload"}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Show persisted assets */}
+              {selectedProjectId && projectAssets.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">Project assets ({projectAssets.length})</p>
+                  <ul className="mt-1 grid grid-cols-4 gap-2">
+                    {projectAssets.slice(0, 8).map((a) => (
+                      <li key={a.id} className="aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] overflow-hidden">
+                        <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="w-full h-full object-cover" />
+                      </li>
+                    ))}
+                    {projectAssets.length > 8 && (
+                      <li className="flex items-center justify-center aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] text-xs text-[var(--muted)]">
+                        +{projectAssets.length - 8} more
+                      </li>
+                    )}
+                  </ul>
+                </div>
               )}
 
               <div className="mode-row" aria-label="Video mode presets">
@@ -419,7 +759,7 @@ export function ViontoPage() {
             <div className="script-editor" id="script">
               <ScriptEditor
                 versions={versions}
-                projectId="demo-project"
+                projectId={selectedProjectId ?? ""}
                 onGenerate={handleGenerate}
                 onSave={handleSave}
                 isGenerating={isGenerating}
