@@ -464,9 +464,6 @@ importers:
       '@asafarim/db':
         specifier: workspace:*
         version: link:../db
-      '@auth/prisma-adapter':
-        specifier: 2.8.0
-        version: 2.8.0(@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3))
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -648,20 +645,6 @@ packages:
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
 
-  '@auth/core@0.38.0':
-    resolution: {integrity: sha512-ClHl44x4cY3wfJmHLpW+XrYqED0fZIzbHmwbExltzroCjR5ts3DLTWzADRba8mJFYZ8JIEJDa+lXnGl0E9Bl7Q==}
-    peerDependencies:
-      '@simplewebauthn/browser': ^9.0.1
-      '@simplewebauthn/server': ^9.0.2
-      nodemailer: ^6.8.0
-    peerDependenciesMeta:
-      '@simplewebauthn/browser':
-        optional: true
-      '@simplewebauthn/server':
-        optional: true
-      nodemailer:
-        optional: true
-
   '@auth/core@0.41.0':
     resolution: {integrity: sha512-Wd7mHPQ/8zy6Qj7f4T46vg3aoor8fskJm6g2Zyj064oQ3+p0xNZXAV60ww0hY+MbTesfu29kK14Zk5d5JTazXQ==}
     peerDependencies:
@@ -675,11 +658,6 @@ packages:
         optional: true
       nodemailer:
         optional: true
-
-  '@auth/prisma-adapter@2.8.0':
-    resolution: {integrity: sha512-g0Bmq3l5xUDyBBiDgm/y3Zqb582CnRHzFqbloV7scrLia5AbVC0xy+ntn+CQCAWW9ibpwiqJrQKKboIWN1oGqw==}
-    peerDependencies:
-      '@prisma/client': '>=2.26.0 || >=3 || >=4 || >=5 || >=6'
 
   '@aws-crypto/crc32@5.2.0':
     resolution: {integrity: sha512-nLbCWqQNgUiwwtFsen1AdzAtvuLRsQS8rYgMuxCrdKf9kOssamGLuPwyTY9wyYblNr9+1XM8v6zoDTPPSIeANg==}
@@ -1585,27 +1563,12 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@prisma/client-runtime-utils@7.8.0':
-    resolution: {integrity: sha512-5NQZztQ0oY/ADFkmd9gPuweH5A1/CCY8YQPorLLO0Mu6a87mY5gsnDkzmFmIHs9NFaLnZojzgddFVN4RpKYrdw==}
-
   '@prisma/client@6.19.3':
     resolution: {integrity: sha512-mKq3jQFhjvko5LTJFHGilsuQs+W+T3Gm451NzuTDGQxwCzwXHYnIu2zGkRoW+Exq3Rob7yp2MfzSrdIiZVhrBg==}
     engines: {node: '>=18.18'}
     peerDependencies:
       prisma: '*'
       typescript: '>=5.1.0'
-    peerDependenciesMeta:
-      prisma:
-        optional: true
-      typescript:
-        optional: true
-
-  '@prisma/client@7.8.0':
-    resolution: {integrity: sha512-HFp3Dawv/3sU3JtlPha90IB+48lS7zHiH4LKZPjmcE8YH5P9DOXGPvo8dqOtO7MqLDd1p2hOWMcFlRT1DMblHw==}
-    engines: {node: ^20.19 || ^22.12 || >=24.0}
-    peerDependencies:
-      prisma: '*'
-      typescript: '>=5.4.0'
     peerDependenciesMeta:
       prisma:
         optional: true
@@ -5445,14 +5408,6 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@auth/core@0.38.0':
-    dependencies:
-      '@panva/hkdf': 1.2.1
-      jose: 6.2.2
-      oauth4webapi: 3.8.5
-      preact: 10.24.3
-      preact-render-to-string: 6.5.11(preact@10.24.3)
-
   '@auth/core@0.41.0(nodemailer@6.10.1)':
     dependencies:
       '@panva/hkdf': 1.2.1
@@ -5462,15 +5417,6 @@ snapshots:
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
       nodemailer: 6.10.1
-
-  '@auth/prisma-adapter@2.8.0(@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3))':
-    dependencies:
-      '@auth/core': 0.38.0
-      '@prisma/client': 7.8.0(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
-    transitivePeerDependencies:
-      - '@simplewebauthn/browser'
-      - '@simplewebauthn/server'
-      - nodemailer
 
   '@aws-crypto/crc32@5.2.0':
     dependencies:
@@ -6476,16 +6422,7 @@ snapshots:
     dependencies:
       playwright: 1.59.1
 
-  '@prisma/client-runtime-utils@7.8.0': {}
-
   '@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)':
-    optionalDependencies:
-      prisma: 6.19.3(typescript@5.9.3)
-      typescript: 5.9.3
-
-  '@prisma/client@7.8.0(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)':
-    dependencies:
-      '@prisma/client-runtime-utils': 7.8.0
     optionalDependencies:
       prisma: 6.19.3(typescript@5.9.3)
       typescript: 5.9.3

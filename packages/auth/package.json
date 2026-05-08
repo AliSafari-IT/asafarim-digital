@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@asafarim/db": "workspace:*",
-    "@auth/prisma-adapter": "2.8.0",
     "bcryptjs": "^2.4.3",
     "next-auth": "^5.0.0-beta.28"
   },

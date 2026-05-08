@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@asafarim/db";
 import { googleProvider, credentialsProvider } from "./providers";
 import "./types";
@@ -43,7 +42,8 @@ async function generateUniqueUsername(seed: string): Promise<string> {
 }
 
 export const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(prisma),
+  // PrismaAdapter removed - using JWT strategy which doesn't need database adapter
+  // adapter: PrismaAdapter(prisma),
 
   providers: [googleProvider, credentialsProvider],
 
