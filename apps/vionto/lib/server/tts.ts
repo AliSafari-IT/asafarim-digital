@@ -5,7 +5,7 @@
  * voice catalog and metadata tracking.
  */
 
-export type TTSProvider = "openai" | "elevenlabs" | "custom";
+export type TTSProvider = "openai" | "elevenlabs" | "azure" | "custom";
 
 export type VoiceEntry = {
   id: string;
@@ -188,11 +188,63 @@ export async function ttsElevenLabs(
   }
 }
 
+/** Generate TTS audio via Azure Cognitive Services. */
+export async function ttsAzure(
+  text: string,
+  voiceId: string,
+  region = "eastus"
+): Promise<TTSResult> {
+  const apiKey = process.env.AZURE_SPEECH_KEY;
+  if (!apiKey) {
+    return { ok: false, error: "AZURE_SPEECH_KEY not configured", provider: "azure", isRetryable: false };
+  }
+  const startedAt = Date.now();
+  try {
+    const res = await fetch(
+      `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/ssml+xml",
+          "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
+          "Ocp-Apim-Subscription-Key": apiKey,
+        },
+        body: `<speak version='1.0' xml:lang='en-US'><voice xml:lang='en-US' name='${voiceId}'>${text}</voice></speak>`,
+      }
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      return {
+        ok: false,
+        error: `Azure TTS HTTP ${res.status}: ${body.slice(0, 200)}`,
+        provider: "azure",
+        isRetryable: res.status >= 500 || res.status === 429,
+      };
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const audioBuffer = Buffer.from(arrayBuffer);
+    return {
+      ok: true,
+      audioBuffer,
+      provider: "azure",
+      voiceId,
+      latencyMs: Date.now() - startedAt,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+      provider: "azure",
+      isRetryable: true,
+    };
+  }
+}
+
 /** Try each configured provider in order of preference. */
 export async function synthesizeSpeech(
   text: string,
   voiceId: string,
-  preferredProviders: TTSProvider[] = ["openai", "elevenlabs"]
+  preferredProviders: TTSProvider[] = ["azure", "elevenlabs"]
 ): Promise<TTSResult> {
   const voice = getVoiceById(voiceId);
   if (!voice) {
@@ -208,7 +260,9 @@ export async function synthesizeSpeech(
   for (const provider of ordered) {
     let result: TTSResult;
     const providerVoiceId = voice.providerVoiceId ?? voice.id;
-    if (provider === "openai") {
+    if (provider === "azure") {
+      result = await ttsAzure(text, providerVoiceId);
+    } else if (provider === "openai") {
       result = await ttsOpenAI(text, providerVoiceId);
     } else if (provider === "elevenlabs") {
       result = await ttsElevenLabs(text, providerVoiceId);

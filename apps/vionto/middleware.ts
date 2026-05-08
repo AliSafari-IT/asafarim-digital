@@ -3,7 +3,7 @@ import { createAuthMiddleware } from "@asafarim/auth/middleware";
 const portalUrl = process.env.PORTAL_URL || "https://portal-qa.asafarim.com";
 
 export const middleware = createAuthMiddleware({
-  publicRoutes: ["/", "/api/health", "/api/navigation"],
+  publicRoutes: ["/", "/api/health", "/api/navigation", "/api/projects", "/api/render", "/api/exports"],
   signInUrl: `${portalUrl}/sign-in`,
 });
 

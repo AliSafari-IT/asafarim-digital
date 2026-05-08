@@ -32,7 +32,7 @@ function classifyError(err: unknown): { category: string; retryable: boolean } {
   if (msg.includes("Disk full") || msg.includes("ENOSPC")) {
     return { category: "DISK_FULL", retryable: false };
   }
-  if (msg.includes("TTS") || msg.includes("openai") || msg.includes("elevenlabs")) {
+  if (msg.includes("TTS") || msg.includes("openai") || msg.includes("elevenlabs") || msg.includes("azure")) {
     return { category: "TTS_FAILURE", retryable: true };
   }
   if (msg.includes("timeout") || msg.includes("ETIMEDOUT")) {

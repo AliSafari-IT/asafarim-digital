@@ -13,10 +13,9 @@ import { MAX_IMAGE_BYTES, type AllowedUploadMime } from "./validation";
  *   DO_SPACES_ENDPOINT, DO_SPACES_REGION, DO_SPACES_BUCKET,
  *   DO_SPACES_KEY, DO_SPACES_SECRET, DO_SPACES_PUBLIC_URL (optional)
  *
- * Local dev: if any required var is missing the helper short-circuits into a
- * stub mode. Uploads are tracked in-session; the rest of the pipeline still
- * works end-to-end offline. Set VIONTO_STORAGE_DRIVER=local to force this
- * behavior even when Spaces variables are present.
+ * Local dev: defaults to local-file mode unless VIONTO_STORAGE_DRIVER=spaces
+ * is set. If any required Spaces var is missing, the helper also short-circuits
+ * into local mode. Set VIONTO_STORAGE_DRIVER=local to force local behavior.
  */
 
 const PRESIGN_EXPIRES_SEC = 10 * 60; // 10 minutes
@@ -144,7 +143,13 @@ function readConfig(): StorageConfig | null {
     DO_SPACES_PUBLIC_URL,
   } = process.env;
 
-  if (VIONTO_STORAGE_DRIVER?.toLowerCase() === "local") {
+  const driver = VIONTO_STORAGE_DRIVER?.toLowerCase();
+
+  if (driver === "local") {
+    return null;
+  }
+
+  if (process.env.NODE_ENV !== "production" && driver !== "spaces" && driver !== "s3") {
     return null;
   }
 
