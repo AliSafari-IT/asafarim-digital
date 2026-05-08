@@ -219,6 +219,44 @@ export function ViontoPage() {
     }
   }
 
+  function getVoicePreviewText() {
+    const latestNarration = versions.find((version) => version.narrationText?.trim())?.narrationText?.trim();
+    if (latestNarration) return latestNarration.slice(0, 200);
+
+    const language = locale.split("-")[0] ?? "en";
+    if (language === "nl") return "Dit is een voorbeeld van de gekozen vertelstem voor je Vionto verhaal.";
+    if (language === "fr") return "Voici un apercu de la voix choisie pour votre histoire Vionto.";
+    if (language === "de") return "Dies ist eine Vorschau der ausgewaehlten Stimme fuer deine Vionto Geschichte.";
+    return "This is a preview of the selected narration voice for your Vionto story.";
+  }
+
+  async function previewSelectedVoice() {
+    if (!selectedVoice) return;
+    setIsPreviewing(true);
+    try {
+      const res = await fetch("/api/audio/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: getVoicePreviewText(),
+          voiceId: selectedVoice,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.audioBase64) {
+        alert(data.error ?? "Failed to preview audio");
+        return;
+      }
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to preview audio", error);
+      alert("Failed to preview audio");
+    } finally {
+      setIsPreviewing(false);
+    }
+  }
+
   async function deleteAsset(assetId: string) {
     if (!selectedProjectId) return;
     try {
@@ -906,42 +944,10 @@ export function ViontoPage() {
                           </option>
                         ))}
                       </select>
-                      {selectedVoice && versions.length > 0 && (
+                      {selectedVoice && (
                         <button
                           type="button"
-                          onClick={async () => {
-                            const activeVersion = versions[0];
-                            const previewText = activeVersion?.narrationText?.trim().slice(0, 200);
-                            if (!previewText) return;
-                            setIsPreviewing(true);
-                            try {
-                              const res = await fetch("/api/audio/preview", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  text: previewText,
-                                  voiceId: selectedVoice,
-                                }),
-                              });
-                              if (!res.ok) {
-                                alert("Failed to preview audio");
-                                return;
-                              }
-                              const data = await res.json();
-                              if (!data.audioBase64) {
-                                alert("Failed to preview audio");
-                                return;
-                              }
-                              const audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
-                              const audio = new Audio(audioUrl);
-                              audio.play();
-                            } catch (error) {
-                              console.error("Failed to preview audio", error);
-                              alert("Failed to preview audio");
-                            } finally {
-                              setIsPreviewing(false);
-                            }
-                          }}
+                          onClick={previewSelectedVoice}
                           disabled={isPreviewing}
                           className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                         >

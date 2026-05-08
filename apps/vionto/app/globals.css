@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@asafarim/country-language-selector/styles.css";
 
 :root {
   --surface: #101112;
