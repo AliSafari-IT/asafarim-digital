@@ -8,6 +8,8 @@ WORKDIR /repo
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/vionto ./apps/vionto
+# Exclude .env files to prevent localhost URLs from being baked into production image
+RUN find /repo/apps/vionto -name ".env*" -type f -delete
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
 COPY packages/types ./packages/types
