@@ -24,7 +24,7 @@ COPY packages/vionto-schemas ./packages/vionto-schemas
 RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
-RUN pnpm prune --prod --ignore-scripts && \
+RUN CI=true pnpm prune --prod --ignore-scripts && \
     pnpm store prune && \
     rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
 
