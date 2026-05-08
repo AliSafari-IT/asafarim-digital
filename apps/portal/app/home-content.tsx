@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 interface ContentMap {
   [section: string]: {

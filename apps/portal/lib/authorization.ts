@@ -134,7 +134,6 @@ export async function createAuditLog(params: {
       action: params.action,
       entity: params.entity,
       entityId: params.entityId ?? null,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       changes: (params.changes ?? undefined) as any,
       ipAddress: params.ipAddress ?? null,
     },
