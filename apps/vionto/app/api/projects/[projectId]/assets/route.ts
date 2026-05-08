@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { formatZodError, promoteSessionSchema } from "@/lib/server/validation";
 import { getSessionForUser, deleteSession } from "@/lib/server/upload-session";
@@ -123,7 +123,7 @@ export async function POST(
         height: asset.height,
         fileSizeBytes: asset.sizeBytes,
         orderIndex: idx,
-        metadata: asset.exif ? { exif: asset.exif } : null,
+        metadata: asset.exif ? ({ exif: asset.exif } as Prisma.InputJsonObject) : Prisma.JsonNull,
       })),
     });
 

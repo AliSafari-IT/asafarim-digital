@@ -43,6 +43,13 @@ export type StorageCategory =
   | "exports"
   | "sessions";
 
+export type LocalObject = {
+  body: Buffer;
+  contentType: string;
+};
+
+const localObjects = new Map<string, LocalObject>();
+
 type StorageConfig = {
   endpoint: string;
   region: string;
@@ -82,6 +89,7 @@ function readConfig(): StorageConfig | null {
   }
 
   const endpoint = normalizeSpacesEndpoint(DO_SPACES_ENDPOINT, DO_SPACES_BUCKET);
+  const endpointUrl = new URL(endpoint);
 
   return {
     endpoint,
@@ -89,7 +97,7 @@ function readConfig(): StorageConfig | null {
     bucket: DO_SPACES_BUCKET,
     accessKey: DO_SPACES_KEY,
     secretKey: DO_SPACES_SECRET,
-    publicUrl: DO_SPACES_PUBLIC_URL ?? `https://${DO_SPACES_BUCKET}.${new URL(endpoint).hostname}`,
+    publicUrl: DO_SPACES_PUBLIC_URL ?? `${endpointUrl.protocol}//${DO_SPACES_BUCKET}.${endpointUrl.hostname}`,
   };
 }
 
@@ -152,6 +160,38 @@ export function getKeyScope(key: string): string | null {
   return parts.length >= 5 ? parts[4] : null;
 }
 
+function getLocalUploadUrl(key: string): string {
+  return `/api/uploads/local?key=${encodeURIComponent(key)}`;
+}
+
+export async function putLocalObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  localObjects.set(key, { body, contentType });
+}
+
+export function getLocalObject(key: string): LocalObject | null {
+  return localObjects.get(key) ?? null;
+}
+
+export async function putObjectBytes(key: string, body: Buffer, contentType: string): Promise<string> {
+  const handle = getClient();
+  if (!handle) {
+    await putLocalObject(key, body, contentType);
+    return getLocalUploadUrl(key);
+  }
+
+  await handle.client.send(
+    new PutObjectCommand({
+      Bucket: handle.config.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ContentLength: body.length,
+    }),
+  );
+
+  return `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`;
+}
+
 export async function createPresignedUploadUrl(input: PresignInput): Promise<PresignedUpload> {
   if (input.sizeBytes > MAX_IMAGE_BYTES) {
     throw new Error(`File exceeds ${MAX_IMAGE_BYTES} bytes`);
@@ -162,10 +202,11 @@ export async function createPresignedUploadUrl(input: PresignInput): Promise<Pre
 
   const handle = getClient();
   if (!handle) {
+    const localUrl = getLocalUploadUrl(key);
     return {
       key,
-      uploadUrl: `local-stub://${key}`,
-      publicUrl: `local-stub://${key}`,
+      uploadUrl: localUrl,
+      publicUrl: localUrl,
       headers,
       expiresInSec: PRESIGN_EXPIRES_SEC,
       isLocalStub: true,
@@ -194,7 +235,7 @@ export async function createPresignedUploadUrl(input: PresignInput): Promise<Pre
 /** Confirm an object exists in storage before persisting metadata. */
 export async function objectExists(key: string): Promise<boolean> {
   const handle = getClient();
-  if (!handle) return true; // stub mode: trust the client
+  if (!handle) return localObjects.has(key);
   try {
     await handle.client.send(new HeadObjectCommand({ Bucket: handle.config.bucket, Key: key }));
     return true;
@@ -220,7 +261,7 @@ export async function deleteObject(key: string): Promise<void> {
  */
 export function getPublicUrlForKey(key: string): string {
   const handle = getClient();
-  if (!handle) return `local-stub://${key}`;
+  if (!handle) return getLocalUploadUrl(key);
   return `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`;
 }
 
@@ -234,7 +275,10 @@ export const MAX_METADATA_FETCH_BYTES = 2 * 1024 * 1024; // 2 MB is enough for J
  */
 export async function getObjectBytes(key: string, maxBytes: number = MAX_METADATA_FETCH_BYTES): Promise<Buffer | null> {
   const handle = getClient();
-  if (!handle) return null;
+  if (!handle) {
+    const object = localObjects.get(key);
+    return object ? object.body.subarray(0, maxBytes) : null;
+  }
   try {
     const response = await handle.client.send(
       new GetObjectCommand({

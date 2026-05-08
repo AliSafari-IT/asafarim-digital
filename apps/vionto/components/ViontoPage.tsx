@@ -284,14 +284,27 @@ export function ViontoPage() {
           }
           const presignData = await presignRes.json();
 
-          // Upload to storage
-          const uploadRes = await fetch(presignData.uploadUrl, {
-            method: "PUT",
-            headers: presignData.headers ?? { "Content-Type": fileUpload.file.type || "image/jpeg" },
-            body: fileUpload.file,
-          });
+          // Upload to storage. Real object storage goes through the same-origin
+          // proxy so local/dev origins do not depend on bucket CORS rules.
+          let uploadRes: Response;
+          if (presignData.isLocalStub) {
+            uploadRes = await fetch(presignData.uploadUrl, {
+              method: "PUT",
+              headers: presignData.headers ?? { "Content-Type": fileUpload.file.type || "image/jpeg" },
+              body: fileUpload.file,
+            });
+          } else {
+            const form = new FormData();
+            form.append("key", presignData.key);
+            form.append("file", fileUpload.file);
+            uploadRes = await fetch("/api/uploads/proxy", {
+              method: "POST",
+              body: form,
+            });
+          }
           if (!uploadRes.ok) {
-            throw new Error("Storage upload failed");
+            const message = await uploadRes.text().catch(() => "");
+            throw new Error(message || "Storage upload failed");
           }
 
           // Complete
