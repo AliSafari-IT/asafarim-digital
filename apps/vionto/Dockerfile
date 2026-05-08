@@ -13,12 +13,16 @@ COPY packages/db ./packages/db
 COPY packages/types ./packages/types
 COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
+COPY packages/country-language-selector ./packages/country-language-selector
+COPY packages/shared-i18n ./packages/shared-i18n
 
 RUN pnpm install --frozen-lockfile
 # Explicitly generate Prisma client before building
 RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
+RUN pnpm --filter @asafarim/country-language-selector build
+RUN pnpm --filter @asafarim/shared-i18n build
 RUN pnpm --filter vionto build
 
 FROM node:22-alpine AS runner
