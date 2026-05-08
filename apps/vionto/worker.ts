@@ -127,7 +127,8 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     let narrationWavPath: string | undefined;
     if (manifest.narrationText) {
       logLines.push("Synthesizing narrationâ€¦");
-      const voiceId = manifest.audioTracks.find((t) => t.type === "narration")?.storageKey ?? "alloy";
+      const narrationTrack = manifest.audioTracks.find((t) => t.type === "narration");
+      const voiceId = narrationTrack?.voiceId ?? narrationTrack?.storageKey ?? "alloy";
       const ttsResult = await synthesizeSpeech(manifest.narrationText, voiceId);
       if (!ttsResult.ok) {
         throw new Error(`TTS failed: ${ttsResult.error}`);

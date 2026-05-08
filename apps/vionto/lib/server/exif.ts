@@ -244,6 +244,13 @@ export type ExifSummary = {
   totalSizeBytes?: number;
 };
 
+function getAssetExif(metadata: unknown): ExifData | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const record = metadata as Record<string, unknown>;
+  const exif = record.exif && typeof record.exif === "object" ? record.exif : record;
+  return exif as ExifData;
+}
+
 /**
  * Build an EXIF summary from project assets for story generation context.
  * Aggregates date ranges, locations, camera info, and image count.
@@ -276,7 +283,7 @@ export async function buildExifSummary(projectId: string): Promise<ExifSummary> 
   let totalSizeBytes = 0;
 
   for (const asset of assets) {
-    const exif = asset.metadata as ExifData | null;
+    const exif = getAssetExif(asset.metadata);
 
     // Timestamps for date range
     if (exif?.timestamp) {
@@ -368,13 +375,12 @@ export function formatExifSummaryForPrompt(summary: ExifSummary, locale: string 
   }
 
   if (summary.locations && summary.locations.length > 0) {
-    const topLocation = summary.locations[0];
     parts.push(locale === "en"
       ? `with ${summary.locations.length} distinct location(s)`
       : `con ${summary.locations.length} ubicación(es) distinta(s)`);
   }
 
-  if (summary.cameraHints?.makes.length > 0) {
+  if (summary.cameraHints && summary.cameraHints.makes.length > 0) {
     parts.push(locale === "en"
       ? `captured with ${summary.cameraHints.makes.join(", ")}`
       : `capturadas con ${summary.cameraHints.makes.join(", ")}`);

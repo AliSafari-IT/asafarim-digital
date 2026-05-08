@@ -43,6 +43,20 @@ describe("parseManifest", () => {
     expect(manifest.audioTracks[1].duckGainDuringNarration).toBe(0.1);
   });
 
+  it("accepts a generated narration voice preference without a stored audio file", () => {
+    const manifest = parseManifest({
+      projectId: "p",
+      userId: "u",
+      jobId: "j",
+      assets: [{ storageKey: "k" }],
+      narrationText: "Hello from the saved script.",
+      audioTracks: [{ type: "narration", voiceId: "nova", voiceName: "Nova" }],
+    });
+
+    expect(manifest.audioTracks[0].voiceId).toBe("nova");
+    expect(manifest.audioTracks[0].storageKey).toBeUndefined();
+  });
+
   it("rejects empty assets array", () => {
     expect(() =>
       parseManifest({

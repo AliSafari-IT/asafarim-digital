@@ -175,11 +175,11 @@ export function ViontoPage() {
       const res = await fetch(`/api/audio/tracks?projectId=${projectId}`);
       if (!res.ok) return;
       const data = await res.json();
-      const tracks = data.tracks || [];
-      const narrationTrack = tracks.find((t: any) => t.type === "narration");
-      if (narrationTrack?.voiceId) {
-        setSelectedVoice(narrationTrack.voiceId);
-      }
+      const tracks = data.tracks || data.data || [];
+      const narrationTrack = tracks
+        .filter((t: any) => t.type === "narration" && t.voiceId)
+        .sort((a: any, b: any) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())[0];
+      setSelectedVoice(narrationTrack?.voiceId ?? null);
     } catch (error) {
       console.error("Failed to load audio settings", error);
     }
@@ -198,6 +198,7 @@ export function ViontoPage() {
 
   async function saveVoiceSelection(voiceId: string) {
     if (!selectedProjectId) return;
+    const voice = voices.find((item) => item.id === voiceId);
     try {
       const res = await fetch("/api/audio/tracks", {
         method: "POST",
@@ -207,6 +208,7 @@ export function ViontoPage() {
           type: "narration",
           source: "tts",
           voiceId,
+          voiceName: voice?.name,
         }),
       });
       if (!res.ok) {
@@ -883,7 +885,7 @@ export function ViontoPage() {
                   {voices.length > 0 ? (
                     <>
                       <label htmlFor="voice-select" className="text-xs text-[var(--color-text-muted)]">
-                        {t("vionto.audio.selectVoice")}
+                        {t("vionto.audio.voiceSelect")}
                       </label>
                       <select
                         id="voice-select"
@@ -909,24 +911,28 @@ export function ViontoPage() {
                           type="button"
                           onClick={async () => {
                             const activeVersion = versions[0];
-                            if (!activeVersion?.narrationText) return;
+                            const previewText = activeVersion?.narrationText?.trim().slice(0, 200);
+                            if (!previewText) return;
                             setIsPreviewing(true);
                             try {
                               const res = await fetch("/api/audio/preview", {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
-                                  text: activeVersion.narrationText,
+                                  text: previewText,
                                   voiceId: selectedVoice,
-                                  locale: locale.split("-")[0] ?? "en",
                                 }),
                               });
                               if (!res.ok) {
                                 alert("Failed to preview audio");
                                 return;
                               }
-                              const audioBlob = await res.blob();
-                              const audioUrl = URL.createObjectURL(audioBlob);
+                              const data = await res.json();
+                              if (!data.audioBase64) {
+                                alert("Failed to preview audio");
+                                return;
+                              }
+                              const audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
                               const audio = new Audio(audioUrl);
                               audio.play();
                             } catch (error) {

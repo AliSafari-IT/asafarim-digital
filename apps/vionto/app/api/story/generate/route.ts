@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     });
 
     // Generate captions for assets that don't have them (up to 5 at a time to avoid timeout)
-    const assetsNeedingCaptions = assets.filter(a => !a.caption && a.storageKey);
+    const assetsNeedingCaptions = assets.filter((a): a is typeof a & { storageKey: string } => !a.caption && typeof a.storageKey === "string");
     if (assetsNeedingCaptions.length > 0) {
       const captionBatch = assetsNeedingCaptions.slice(0, 5);
       for (const asset of captionBatch) {
@@ -114,7 +114,7 @@ export async function POST(req: Request) {
 
     // Extract captions from assets
     const assetCaptions = assets
-      .filter(a => a.caption)
+      .filter((a): a is typeof a & { caption: string } => typeof a.caption === "string" && a.caption.length > 0)
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map(a => a.caption);
 

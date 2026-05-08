@@ -14,10 +14,24 @@ export type CaptionResult = {
   latencyMs?: number;
 };
 
+const MAX_VISION_IMAGE_BYTES = 20 * 1024 * 1024;
+
+function inferImageMediaType(storageKey: string): string {
+  const lower = storageKey.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".gif")) return "image/gif";
+  return "image/jpeg";
+}
+
+function captionPrompt(locale: string): string {
+  return `Describe this image in 1-2 sentences for a photo story. Focus on the main subject, action, mood, and setting. Be concise but descriptive. Write the caption in locale "${locale}".`;
+}
+
 /**
  * Generate a caption for an image using OpenAI Vision API.
  */
-async function captionWithOpenAI(imageBuffer: Buffer, locale: string = "en"): Promise<CaptionResult> {
+async function captionWithOpenAI(imageBuffer: Buffer, mediaType: string, locale: string = "en"): Promise<CaptionResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY not configured");
@@ -43,14 +57,12 @@ async function captionWithOpenAI(imageBuffer: Buffer, locale: string = "en"): Pr
           content: [
             {
               type: "text",
-              text: locale === "en"
-                ? "Describe this image in 1-2 sentences for a photo story. Focus on the main subject, action, mood, and setting. Be concise but descriptive."
-                : "Descrive esta imagen en 1-2 oraciones para una historia fotográfica. Enfócate en el sujeto principal, acción, estado de ánimo y entorno. Sé conciso pero descriptivo.",
+              text: captionPrompt(locale),
             },
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`,
+                url: `data:${mediaType};base64,${base64Image}`,
                 detail: "low",
               },
             },
@@ -83,7 +95,7 @@ async function captionWithOpenAI(imageBuffer: Buffer, locale: string = "en"): Pr
 /**
  * Generate a caption for an image using Anthropic Claude Vision API.
  */
-async function captionWithAnthropic(imageBuffer: Buffer, locale: string = "en"): Promise<CaptionResult> {
+async function captionWithAnthropic(imageBuffer: Buffer, mediaType: string, locale: string = "en"): Promise<CaptionResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY not configured");
@@ -113,15 +125,13 @@ async function captionWithAnthropic(imageBuffer: Buffer, locale: string = "en"):
               type: "image",
               source: {
                 type: "base64",
-                media_type: "image/jpeg",
+                media_type: mediaType,
                 data: base64Image,
               },
             },
             {
               type: "text",
-              text: locale === "en"
-                ? "Describe this image in 1-2 sentences for a photo story. Focus on the main subject, action, mood, and setting. Be concise but descriptive."
-                : "Descrive esta imagen en 1-2 oraciones para una historia fotográfica. Enfócate en el sujeto principal, acción, estado de ánimo y entorno. Sé conciso pero descriptivo.",
+              text: captionPrompt(locale),
             },
           ],
         },
@@ -158,15 +168,16 @@ export async function generateImageCaption(
   preferredProvider?: CaptionProvider,
 ): Promise<CaptionResult> {
   // Fetch image bytes from storage
-  const imageBuffer = await getObjectBytes(storageKey, 2 * 1024 * 1024); // Max 2MB for vision API
+  const imageBuffer = await getObjectBytes(storageKey, MAX_VISION_IMAGE_BYTES);
   if (!imageBuffer) {
     throw new Error("Image not found in storage");
   }
+  const mediaType = inferImageMediaType(storageKey);
 
   // Try preferred provider first, or default to OpenAI
   if (preferredProvider === "anthropic") {
     try {
-      return await captionWithAnthropic(imageBuffer, locale);
+      return await captionWithAnthropic(imageBuffer, mediaType, locale);
     } catch (error) {
       console.error("[vision] Anthropic caption failed, trying OpenAI:", error);
     }
@@ -174,14 +185,14 @@ export async function generateImageCaption(
 
   // Try OpenAI
   try {
-    return await captionWithOpenAI(imageBuffer, locale);
+    return await captionWithOpenAI(imageBuffer, mediaType, locale);
   } catch (error) {
     console.error("[vision] OpenAI caption failed, trying Anthropic:", error);
   }
 
   // Fallback to Anthropic
   try {
-    return await captionWithAnthropic(imageBuffer, locale);
+    return await captionWithAnthropic(imageBuffer, mediaType, locale);
   } catch (error) {
     console.error("[vision] Anthropic caption also failed:", error);
     throw new Error("All vision caption providers failed");
