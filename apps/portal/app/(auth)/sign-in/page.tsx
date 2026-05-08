@@ -261,7 +261,7 @@ function SignInPageContent() {
         </form>
 
         <p className="mt-6 text-center text-sm text-[var(--color-text-muted)]">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href={signUpHref} className="font-semibold text-[var(--color-primary)] hover:underline">
             Sign up
           </Link>
