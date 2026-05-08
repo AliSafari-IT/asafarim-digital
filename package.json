@@ -12,6 +12,7 @@
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
     "dev:vionto": "turbo dev --filter=vionto",
+    "dev:vionto:worker": "pnpm --dir apps/vionto worker:dev",
     "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto",
     "db:generate": "pnpm --filter @asafarim/db prisma generate",
     "db:migrate": "pnpm --filter @asafarim/db prisma migrate dev",

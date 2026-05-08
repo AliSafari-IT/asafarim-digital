@@ -3,7 +3,8 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3006",
+    "dev": "node scripts/dev.mjs",
+    "worker:dev": "dotenv -e ../../.env -- tsx worker.ts",
     "build": "next build",
     "start": "next start --port 3006",
     "lint": "echo \"Lint skipped for Next.js 16 app; covered by typecheck/build\"",
@@ -38,6 +39,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "dotenv-cli": "^7.4.2",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.3",
     "postcss": "^8.5.0",
