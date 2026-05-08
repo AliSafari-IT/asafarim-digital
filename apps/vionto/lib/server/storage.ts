@@ -52,6 +52,21 @@ type StorageConfig = {
   publicUrl: string;
 };
 
+function normalizeSpacesEndpoint(endpoint: string, bucket: string): string {
+  const trimmed = endpoint.replace(/\/+$/, "");
+  try {
+    const url = new URL(trimmed);
+    const bucketPrefix = `${bucket}.`;
+    if (url.hostname.startsWith(bucketPrefix)) {
+      url.hostname = url.hostname.slice(bucketPrefix.length);
+      return url.toString().replace(/\/+$/, "");
+    }
+  } catch {
+    // Fall through to the original value. S3Client will surface invalid URLs.
+  }
+  return trimmed;
+}
+
 function readConfig(): StorageConfig | null {
   const {
     DO_SPACES_ENDPOINT,
@@ -66,13 +81,15 @@ function readConfig(): StorageConfig | null {
     return null;
   }
 
+  const endpoint = normalizeSpacesEndpoint(DO_SPACES_ENDPOINT, DO_SPACES_BUCKET);
+
   return {
-    endpoint: DO_SPACES_ENDPOINT,
+    endpoint,
     region: DO_SPACES_REGION,
     bucket: DO_SPACES_BUCKET,
     accessKey: DO_SPACES_KEY,
     secretKey: DO_SPACES_SECRET,
-    publicUrl: DO_SPACES_PUBLIC_URL ?? `${DO_SPACES_ENDPOINT.replace(/\/+$/, "")}/${DO_SPACES_BUCKET}`,
+    publicUrl: DO_SPACES_PUBLIC_URL ?? `https://${DO_SPACES_BUCKET}.${new URL(endpoint).hostname}`,
   };
 }
 

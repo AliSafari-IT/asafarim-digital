@@ -251,11 +251,15 @@ export function ViontoPage() {
       }
       const sessionData = await sessionRes.json();
       setUploadSessionId(sessionData.sessionId);
+      let completedUploads = 0;
 
       // Upload each file
       for (let i = 0; i < uploadingFiles.length; i++) {
         const fileUpload = uploadingFiles[i];
-        if (fileUpload.status === "complete") continue;
+        if (fileUpload.status === "complete") {
+          completedUploads += 1;
+          continue;
+        }
 
         setUploadingFiles((prev) => {
           const updated = [...prev];
@@ -283,6 +287,7 @@ export function ViontoPage() {
           // Upload to storage
           const uploadRes = await fetch(presignData.uploadUrl, {
             method: "PUT",
+            headers: presignData.headers ?? { "Content-Type": fileUpload.file.type || "image/jpeg" },
             body: fileUpload.file,
           });
           if (!uploadRes.ok) {
@@ -312,6 +317,7 @@ export function ViontoPage() {
             updated[i] = { ...updated[i], status: "complete", progress: 100, key: presignData.key };
             return updated;
           });
+          completedUploads += 1;
         } catch (error) {
           console.error("Upload failed", error);
           setUploadingFiles((prev) => {
@@ -320,6 +326,11 @@ export function ViontoPage() {
             return updated;
           });
         }
+      }
+
+      if (completedUploads === 0) {
+        alert("No files uploaded successfully. Check the failed file rows and retry.");
+        return;
       }
 
       // Promote session to project assets
