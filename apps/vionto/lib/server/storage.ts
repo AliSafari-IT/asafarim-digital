@@ -12,7 +12,8 @@ import { MAX_IMAGE_BYTES, type AllowedUploadMime } from "./validation";
  *
  * Local dev: if any required var is missing the helper short-circuits into a
  * stub mode. Uploads are tracked in-session; the rest of the pipeline still
- * works end-to-end offline.
+ * works end-to-end offline. Set VIONTO_STORAGE_DRIVER=local to force this
+ * behavior even when Spaces variables are present.
  */
 
 const PRESIGN_EXPIRES_SEC = 10 * 60; // 10 minutes
@@ -48,7 +49,12 @@ export type LocalObject = {
   contentType: string;
 };
 
-const localObjects = new Map<string, LocalObject>();
+const globalForStorage = globalThis as typeof globalThis & {
+  __viontoLocalObjects?: Map<string, LocalObject>;
+};
+
+const localObjects = globalForStorage.__viontoLocalObjects ?? new Map<string, LocalObject>();
+globalForStorage.__viontoLocalObjects = localObjects;
 
 function describeStorageError(error: unknown): string {
   if (error instanceof Error) {
@@ -98,6 +104,7 @@ function normalizeSpacesEndpoint(endpoint: string, bucket: string): string {
 
 function readConfig(): StorageConfig | null {
   const {
+    VIONTO_STORAGE_DRIVER,
     DO_SPACES_ENDPOINT,
     DO_SPACES_REGION,
     DO_SPACES_BUCKET,
@@ -105,6 +112,10 @@ function readConfig(): StorageConfig | null {
     DO_SPACES_SECRET,
     DO_SPACES_PUBLIC_URL,
   } = process.env;
+
+  if (VIONTO_STORAGE_DRIVER?.toLowerCase() === "local") {
+    return null;
+  }
 
   if (!DO_SPACES_ENDPOINT || !DO_SPACES_REGION || !DO_SPACES_BUCKET || !DO_SPACES_KEY || !DO_SPACES_SECRET) {
     return null;

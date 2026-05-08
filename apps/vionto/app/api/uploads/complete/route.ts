@@ -20,12 +20,15 @@ export async function POST(req: Request) {
     if (!user) return unauthorized();
 
     const body = (await req.json().catch(() => null)) as unknown;
+    console.log("[uploads/complete] Request body:", body);
     const parsed = uploadCompleteSchema.safeParse(body);
     if (!parsed.success) {
+      console.error("[uploads/complete] Validation error:", formatZodError(parsed.error));
       return badRequest(formatZodError(parsed.error));
     }
 
     const { key, sessionId, metadata } = parsed.data;
+    console.log("[uploads/complete] Processing upload complete", { key, sessionId, filename: metadata.filename });
 
     // Ownership check
     if (!isKeyOwnedBy(key, user.id)) {

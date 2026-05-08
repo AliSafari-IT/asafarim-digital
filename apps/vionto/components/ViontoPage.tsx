@@ -322,7 +322,8 @@ export function ViontoPage() {
             }),
           });
           if (!completeRes.ok) {
-            throw new Error("Upload completion failed");
+            const message = await completeRes.text().catch(() => "");
+            throw new Error(message || "Upload completion failed");
           }
 
           setUploadingFiles((prev) => {
