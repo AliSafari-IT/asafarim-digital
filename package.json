@@ -18,6 +18,7 @@
     "db:push": "pnpm --filter @asafarim/db prisma db push",
     "db:reset": "pnpm --filter @asafarim/db prisma db reset",
     "rs": "pnpm onVPS:dockerRestart",
+    "tc": "pnpm typecheck",
     "onVPS:dockerDown": "docker compose down",
     "seed": "turbo seed"
   },
