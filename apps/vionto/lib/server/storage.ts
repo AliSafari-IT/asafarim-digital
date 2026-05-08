@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 import { MAX_IMAGE_BYTES, type AllowedUploadMime } from "./validation";
@@ -194,5 +194,50 @@ export async function deleteObject(key: string): Promise<void> {
     await handle.client.send(new DeleteObjectCommand({ Bucket: handle.config.bucket, Key: key }));
   } catch {
     // ignore — already gone or never existed
+  }
+}
+
+/**
+ * Build the public URL for a storage key based on current configuration.
+ * Returns a `local-stub://` URL in stub mode so callers can still persist the key.
+ */
+export function getPublicUrlForKey(key: string): string {
+  const handle = getClient();
+  if (!handle) return `local-stub://${key}`;
+  return `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`;
+}
+
+/** Maximum bytes fetched for server-side metadata extraction (EXIF headers). */
+export const MAX_METADATA_FETCH_BYTES = 2 * 1024 * 1024; // 2 MB is enough for JPEG/PNG headers + EXIF
+
+/**
+ * Fetch object bytes from storage for server-side metadata extraction.
+ * Returns null in stub mode or if the object is missing / unreadable.
+ * Capped to `maxBytes` to avoid loading large originals into memory.
+ */
+export async function getObjectBytes(key: string, maxBytes: number = MAX_METADATA_FETCH_BYTES): Promise<Buffer | null> {
+  const handle = getClient();
+  if (!handle) return null;
+  try {
+    const response = await handle.client.send(
+      new GetObjectCommand({
+        Bucket: handle.config.bucket,
+        Key: key,
+        Range: `bytes=0-${Math.max(0, maxBytes - 1)}`,
+      }),
+    );
+    const body = response.Body as unknown as AsyncIterable<Uint8Array> | undefined;
+    if (!body) return null;
+    const chunks: Buffer[] = [];
+    let total = 0;
+    for await (const chunk of body) {
+      const buf = Buffer.from(chunk);
+      chunks.push(buf);
+      total += buf.length;
+      if (total >= maxBytes) break;
+    }
+    return Buffer.concat(chunks, Math.min(total, maxBytes));
+  } catch {
+    return null;
   }
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuthedUser, badRequest, serverError, unauthorized } from "@/lib/server/auth";
 import { formatZodError, uploadCompleteSchema } from "@/lib/server/validation";
-import { objectExists, isKeyOwnedBy } from "@/lib/server/storage";
+import { objectExists, isKeyOwnedBy, getPublicUrlForKey, getObjectBytes } from "@/lib/server/storage";
 import { addAssetToSession, getSessionForUser } from "@/lib/server/upload-session";
+import { extractExif, extractDimensions } from "@/lib/server/exif";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
  *
  * Notify the server that a presigned upload finished. Validates ownership,
  * confirms the object exists in storage, and stages the asset in the upload
- * session. Returns staged asset metadata (including any extracted EXIF).
+ * session. Performs server-side EXIF/dimension extraction (trusted source).
  */
 export async function POST(req: Request) {
   try {
@@ -43,16 +44,37 @@ export async function POST(req: Request) {
       return badRequest("Uploaded object not found in storage — upload may have failed");
     }
 
+    // Compute trusted public URL from storage key
+    const publicUrl = getPublicUrlForKey(key);
+
+    // Server-side EXIF and dimension extraction (trusted source)
+    let width = metadata.width;
+    let height = metadata.height;
+    let exif = metadata.exif;
+
+    const bytes = await getObjectBytes(key);
+    if (bytes) {
+      const dims = extractDimensions(bytes);
+      if (dims) {
+        width = dims.width;
+        height = dims.height;
+      }
+      const extractedExif = extractExif(bytes);
+      if (Object.keys(extractedExif).length > 0) {
+        exif = extractedExif;
+      }
+    }
+
     // Stage the asset in the session
     const staged = addAssetToSession(sessionId, {
       key,
-      publicUrl: metadata.filename, // client should replace with actual public URL
+      publicUrl,
       filename: metadata.filename,
       contentType: metadata.contentType,
       sizeBytes: metadata.sizeBytes,
-      width: metadata.width,
-      height: metadata.height,
-      exif: metadata.exif,
+      width,
+      height,
+      exif,
       uploadedAt: new Date(),
     });
 
