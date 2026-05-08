@@ -50,6 +50,28 @@ export type LocalObject = {
 
 const localObjects = new Map<string, LocalObject>();
 
+function describeStorageError(error: unknown): string {
+  if (error instanceof Error) {
+    const details = error as Error & {
+      name?: string;
+      Code?: string;
+      $metadata?: { httpStatusCode?: number; requestId?: string; extendedRequestId?: string };
+    };
+    const status = details.$metadata?.httpStatusCode;
+    const requestId = details.$metadata?.requestId;
+    return [
+      details.name || "StorageError",
+      details.Code,
+      error.message,
+      status ? `status=${status}` : null,
+      requestId ? `requestId=${requestId}` : null,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+  return String(error);
+}
+
 type StorageConfig = {
   endpoint: string;
   region: string;
@@ -89,7 +111,20 @@ function readConfig(): StorageConfig | null {
   }
 
   const endpoint = normalizeSpacesEndpoint(DO_SPACES_ENDPOINT, DO_SPACES_BUCKET);
-  const endpointUrl = new URL(endpoint);
+  let endpointUrl: URL;
+  try {
+    endpointUrl = new URL(endpoint);
+  } catch {
+    // Invalid URL format, fall back to simple concatenation
+    return {
+      endpoint,
+      region: DO_SPACES_REGION,
+      bucket: DO_SPACES_BUCKET,
+      accessKey: DO_SPACES_KEY,
+      secretKey: DO_SPACES_SECRET,
+      publicUrl: DO_SPACES_PUBLIC_URL ?? `${endpoint.replace(/\/+$/, "")}/${DO_SPACES_BUCKET}`,
+    };
+  }
 
   return {
     endpoint,
@@ -125,6 +160,8 @@ function getClient(): { client: S3Client; config: StorageConfig } | null {
     region: config.region,
     credentials: { accessKeyId: config.accessKey, secretAccessKey: config.secretKey },
     forcePathStyle: false,
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   cachedClient = { client, config };
@@ -179,15 +216,19 @@ export async function putObjectBytes(key: string, body: Buffer, contentType: str
     return getLocalUploadUrl(key);
   }
 
-  await handle.client.send(
-    new PutObjectCommand({
-      Bucket: handle.config.bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      ContentLength: body.length,
-    }),
-  );
+  try {
+    await handle.client.send(
+      new PutObjectCommand({
+        Bucket: handle.config.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length,
+      }),
+    );
+  } catch (error) {
+    throw new Error(`Storage upload failed: ${describeStorageError(error)}`);
+  }
 
   return `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`;
 }

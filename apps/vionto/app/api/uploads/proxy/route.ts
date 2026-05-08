@@ -34,7 +34,9 @@ export async function POST(req: Request) {
     }
 
     const body = Buffer.from(await file.arrayBuffer());
+    console.log("[uploads/proxy] Uploading object", { key, size: body.length, contentType: file.type });
     const publicUrl = await putObjectBytes(key, body, file.type);
+    console.log("[uploads/proxy] Upload successful", { key, publicUrl });
 
     return NextResponse.json({
       ok: true,
@@ -43,6 +45,7 @@ export async function POST(req: Request) {
       sizeBytes: body.length,
     });
   } catch (error) {
+    console.error("[uploads/proxy] Error:", error);
     return serverError("uploads/proxy", error);
   }
 }
