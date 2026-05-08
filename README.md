@@ -1,4 +1,4 @@
-# asafarim-digital
+# asafarim-digital 
 
 Monorepo for **asafarim-digital** applications and shared packages.
 
@@ -9,8 +9,20 @@ asafarim-digital/
   apps/
     portal/               # Main brand/freelancer website (Next.js)
     content-generator/    # AI content generation app (Next.js)
+    ops-hub/              # Internal operations dashboard (Next.js)
+    marketing-content/    # Marketing content management (Next.js)
+    edumatch/             # Educational matching platform (Next.js)
+    vionto/               # AI video script generation (Next.js)
+    vionto-worker/        # Background worker for Vionto (Node.js)
   packages/
+    auth/                 # Shared NextAuth configuration
+    db/                   # Prisma schema and client
+    types/                # Shared TypeScript types
+    navigation/           # Navigation components
     ui/                   # Shared UI package + brand tokens
+    location/             # Location utilities
+    shared-i18n/          # Internationalization
+    country-language-selector/  # Country/language dropdown
   infra/
     nginx/                # VPS nginx vhost configs
   .github/workflows/      # CI/CD workflows
@@ -49,6 +61,10 @@ pnpm dev
 By default:
 - Portal: `http://localhost:3000`
 - Content Generator: `http://localhost:3001`
+- Ops Hub: `http://localhost:3003`
+- Marketing Content: `http://localhost:3004`
+- EduMatch: `http://localhost:3005`
+- Vionto: `http://localhost:3006`
 
 ### 3) Build all apps
 
@@ -79,7 +95,11 @@ pnpm build
 Create env files as needed:
 - Root: `.env`
 - Portal: `apps/portal/.env`
-- Content generator: `apps/content-generator/.env`
+- Content Generator: `apps/content-generator/.env`
+- Ops Hub: `apps/ops-hub/.env`
+- Marketing Content: `apps/marketing-content/.env`
+- EduMatch: `apps/edumatch/.env`
+- Vionto: `apps/vionto/.env`
 
 Common vars:
 
@@ -92,21 +112,57 @@ OPENAI_MODEL=gpt-4o-mini
 ANTHROPIC_API_KEY=...
 ANTHROPIC_MODEL=claude-haiku-4-5
 
-# App routing (portal -> content-generator)
-CONTENT_GENERATOR_URL=https://content-generator-qa.asafarim.com
+# App URLs (production)
+NEXT_PUBLIC_PORTAL_URL=https://portal-qa.asafarim.com
 NEXT_PUBLIC_CONTENT_GENERATOR_URL=https://content-generator-qa.asafarim.com
+NEXT_PUBLIC_OPS_HUB_URL=https://ops-hub.asafarim.com
+NEXT_PUBLIC_MARKETING_CONTENT_URL=https://marketing-content.asafarim.com
+NEXT_PUBLIC_EDUMATCH_URL=https://edumatch.asafarim.com
+NEXT_PUBLIC_VIONTO_URL=https://vionto.asafarim.com
 
-# Optional base path for content-generator (usually empty for subdomain setup)
-NEXT_PUBLIC_BASE_PATH=
+# Database
+DATABASE_URL=postgresql://...
+
+# Redis/BullMQ (for job queues)
+REDIS_URL=redis://...
+
+# DigitalOcean Spaces (object storage)
+DO_SPACES_ENDPOINT=...
+DO_SPACES_REGION=...
+DO_SPACES_BUCKET=...
+DO_SPACES_KEY=...
+DO_SPACES_SECRET=...
+
+# Email (Resend)
+RESEND_API_KEY=...
+FROM_EMAIL=...
+
+# ElevenLabs (TTS)
+ELEVENLABS_API_KEY=...
+
+# Stripe (payments)
+STRIPE_SECRET_KEY=...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=...
+
+# Google Maps
+GOOGLE_MAPS_API_KEY=...
+
+# Auth (shared across apps for SSO)
+AUTH_SECRET=...
+AUTH_COOKIE_DOMAIN=.asafarim.com
 ```
 
 ## App Routing Strategy
 
-Current setup uses **separate subdomain** for content-generator in QA/prod:
+Current setup uses **separate subdomains** for each app in QA/prod:
 - Portal: `https://portal-qa.asafarim.com`
 - Content Generator: `https://content-generator-qa.asafarim.com`
+- Ops Hub: `https://ops-hub.asafarim.com`
+- Marketing Content: `https://marketing-content.asafarim.com`
+- EduMatch: `https://edumatch.asafarim.com`
+- Vionto: `https://vionto.asafarim.com`
 
-Portal card route `/showcase/content-generator` redirects to the configured content-generator URL.
+All apps share authentication via NextAuth with SSO across subdomains using `AUTH_COOKIE_DOMAIN=.asafarim.com`.
 
 ## Docker Compose
 
@@ -118,11 +174,21 @@ docker compose up -d --build
 
 Mapped ports:
 - Portal: host `3000` -> container `3000`
-- Content Generator: host `3002` -> container `3001`
+- Content Generator: host `3002` -> container `3002`
+- Ops Hub: host `3003` -> container `3003`
+- Marketing Content: host `3004` -> container `3004`
+- EduMatch: host `3005` -> container `3005`
+- Vionto: host `3006` -> container `3006`
+- Vionto Worker: host `3007` -> container `3007`
 
 Health checks:
-- `http://localhost:3000`
-- `http://localhost:3001` (inside content-generator container)
+- `http://localhost:3000/api/health` (portal)
+- `http://localhost:3002/api/health` (content-generator)
+- `http://localhost:3003/api/health` (ops-hub)
+- `http://localhost:3004/api/health` (marketing-content)
+- `http://localhost:3005/api/health` (edumatch)
+- `http://localhost:3006/api/health` (vionto)
+- `http://localhost:3007` (vionto-worker)
 
 ## CI/CD (GitHub Actions)
 
@@ -133,7 +199,7 @@ High-level deploy flow:
 2. Rsync repo to VPS
 3. Install/enable nginx vhost configs
 4. Rebuild + restart Docker services
-5. Verify portal/content-generator health endpoints
+5. Verify all service health endpoints
 
 Required GitHub Secrets:
 - `VPS_HOST`
@@ -142,30 +208,59 @@ Required GitHub Secrets:
 
 ## Nginx Notes
 
-- `infra/nginx/portal-qa.asafarim.com.conf`
-  - Serves portal
-  - Redirects `/showcase/content-generator` to content-generator subdomain
-- `infra/nginx/content-generator-qa.asafarim.com.conf`
-  - Serves content-generator from VPS host port `3002`
+Nginx configs are located in `infra/nginx/`:
+
+- `portal-qa.asafarim.com.conf` - Serves portal on port 3000
+- `content-generator-qa.asafarim.com.conf` - Serves content-generator on port 3002
+- `ops-hub.asafarim.com.conf` - Serves ops-hub on port 3003
+- `marketing-content.asafarim.com.conf` - Serves marketing-content on port 3004
+- `edumatch.asafarim.com.conf` - Serves edumatch on port 3005
+- `vionto.asafarim.com.conf` - Serves vionto on port 3006
+
+All configs are installed to `/etc/nginx/sites-available/` and symlinked to `/etc/nginx/sites-enabled/` during deployment.
 
 ## Troubleshooting
 
-### 404 when clicking "Content Generator" card
+### Service health check failures
 
-- Ensure portal route redirects correctly.
-- Ensure `CONTENT_GENERATOR_URL` points to live content-generator domain.
-- Ensure content-generator nginx vhost is enabled and SSL cert exists.
+- Check container logs: `docker logs <container-name> --tail=50`
+- Verify env vars are loaded: `docker compose exec <service> env`
+- Check database connectivity from within container
+
+### Auth redirect loops or wrong app after sign-in
+
+- Verify `AUTH_COOKIE_DOMAIN=.asafarim.com` is set in all apps
+- Ensure `NEXT_PUBLIC_*_URL` env vars are set to correct production URLs
+- Check that nginx configs point to correct container ports
+
+### Docker build fails with module not found
+
+- Ensure all required packages are copied in Dockerfile
+- Verify workspace packages are built before the app that depends on them
+- Check that `pnpm-workspace.yaml` includes all packages
+
+### Puppeteer/Chromium download during build (slow builds)
+
+- Ensure `PUPPETEER_SKIP_DOWNLOAD=true` is set in Dockerfile
+- Verify env vars are set before `pnpm install` step
+- Check that puppeteer version supports the skip env var (use `PUPPETEER_SKIP_DOWNLOAD` for v21+)
+
+### SSH connection drops during long builds
+
+- Deploy workflow uses `ServerAliveInterval=30` to keep connection alive
+- If still failing, check VPS SSH timeout settings
+- Consider increasing keepalive interval in `.github/workflows/deploy.yml`
+
+### Deploy workflow fails at SSH/host setup
+
+- Validate `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` secrets.
+- Confirm VPS firewall/network allows SSH from GitHub runners.
 
 ### AI generation errors (502)
 
 - Check provider API keys and model access.
 - Confirm account billing/quota for selected provider.
 - Verify env vars are loaded in runtime container.
-
-### Deploy workflow fails at SSH/host setup
-
-- Validate `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY` secrets.
-- Confirm VPS firewall/network allows SSH from GitHub runners.
 
 ## Security
 
