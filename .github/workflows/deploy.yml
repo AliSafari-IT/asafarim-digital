@@ -223,7 +223,7 @@ jobs:
               curl -sf http://localhost:3004/api/health > /dev/null 2>&1 && MC_OK=true
               curl -sf http://localhost:3005/api/health > /dev/null 2>&1 && EDUMATCH_OK=true
               curl -sf http://localhost:3006/api/health > /dev/null 2>&1 && VIONTO_OK=true
-              docker compose ps vionto-worker | grep -q "Up" && VIONTO_WORKER_OK=true
+              docker inspect -f '{{.State.Running}}' asafarim-vionto-worker 2>/dev/null | grep -q "true" && VIONTO_WORKER_OK=true
               if [ "$PORTAL_OK" = true ] && [ "$CG_OK" = true ] && [ "$OPS_OK" = true ] && [ "$MC_OK" = true ] && [ "$EDUMATCH_OK" = true ] && [ "$VIONTO_OK" = true ] && [ "$VIONTO_WORKER_OK" = true ]; then
                 echo "All services healthy after ${i}x5s"
                 exit 0
