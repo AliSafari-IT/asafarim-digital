@@ -18,7 +18,9 @@ COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
 COPY packages/shared-i18n ./packages/shared-i18n
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... && \
+    pnpm store prune && \
+    rm -rf /root/.cache /tmp/*
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 
