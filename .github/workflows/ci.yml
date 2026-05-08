@@ -276,6 +276,8 @@ jobs:
 
       - name: Validate Prisma Schema
         run: pnpm --filter @asafarim/db prisma validate
+        env:
+          DATABASE_URL: "postgresql://user:password@localhost:5432/db"
 
       - name: Check for uncommitted migrations
         run: |
