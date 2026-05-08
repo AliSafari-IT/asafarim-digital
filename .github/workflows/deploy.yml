@@ -60,7 +60,7 @@ jobs:
           FORCE_SEED: ${{ github.event.inputs.force_seed || 'false' }}
         run: |
           set -euo pipefail
-          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
 
           echo "Checking SSH connectivity to VPS..."
           SSH_READY=false
@@ -205,7 +205,7 @@ jobs:
       - name: Verify deployment
         run: |
           set -euo pipefail
-          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
           ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDVERIFY'
             echo "Waiting for all services to become healthy..."
             RETRIES=18
