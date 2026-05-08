@@ -16,10 +16,12 @@ COPY packages/db ./packages/db
 COPY packages/types ./packages/types
 COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
+COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/shared-i18n ./packages/shared-i18n
+COPY packages/vionto-schemas ./packages/vionto-schemas
 
-# Install only production dependencies to save disk space
-RUN pnpm install --frozen-lockfile --prod --filter vionto... --filter @asafarim/db... --prefer-offline && \
+# Build-time tooling such as tsup, prisma, and tsx lives in workspace devDependencies.
+RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline && \
     pnpm store prune && \
     rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
 RUN pnpm --filter @asafarim/db build
