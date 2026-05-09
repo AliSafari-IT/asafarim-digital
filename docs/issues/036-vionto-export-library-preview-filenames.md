@@ -1,6 +1,6 @@
 # Vionto Vertical Slice Issue 4 - Smart Export Filenames, Video Library, and Dynamic Preview
 
-**Status:** Ready for development  
+**Status:** Implemented  
 **Priority:** High  
 **Assignee:** TBD  
 **Labels:** `vionto`, `web`, `exports`, `library`, `preview`, `metadata`, `ux`
@@ -34,20 +34,20 @@ social_1by1_targets_focus_victory_20260509-151340.mp4
 
 ## Scope
 
-- [ ] Add explicit aspect ratio radio controls on the create screen:
+- [x] Add explicit aspect ratio radio controls on the create screen:
   - `Landscape` -> `16:9`
   - `Portrait` -> `9:16`
   - `1by1` -> `1:1`
-- [ ] Persist the selected aspect ratio to `ViontoProject.aspectRatio` before story generation/render.
-- [ ] Keep the selected user-facing mode value (`cinematic`, `slideshow`, `social`) available through story generation, render manifest creation, export metadata, and UI display.
-- [ ] Extract three filename-safe keywords from the generated story:
+- [x] Persist the selected aspect ratio to `ViontoProject.aspectRatio` before story generation/render.
+- [x] Keep the selected user-facing mode value (`cinematic`, `slideshow`, `social`) available through story generation, render manifest creation, export metadata, and UI display.
+- [x] Extract three filename-safe keywords from the generated story:
   - Prefer the latest `ViontoScript.narrationText`.
   - Ignore common stop words.
   - Normalize to lowercase ASCII slugs.
   - Use user/project fallback keywords when fewer than three good story keywords exist.
-- [ ] Generate a unique user-facing export filename using mode, aspect label, three keywords, and a timestamp suffix such as `20260509-151340`.
-- [ ] Store the generated filename in export metadata.
-- [ ] Store enough export metadata to support filtering without joining through logs:
+- [x] Generate a unique user-facing export filename using mode, aspect label, three keywords, and a timestamp suffix such as `20260509-151340`.
+- [x] Store the generated filename in export metadata.
+- [x] Store enough export metadata to support filtering without joining through logs:
   - user-facing mode
   - render/API mode
   - aspect ratio
@@ -55,15 +55,15 @@ social_1by1_targets_focus_victory_20260509-151340.mp4
   - story keywords
   - generated filename
   - preview subtitle
-- [ ] Update object storage export keys to include the generated filename while keeping project/user path scoping.
-- [ ] Add a user-level video library endpoint, for example `GET /api/exports/library`, with filters:
+- [x] Update object storage export keys to include the generated filename while keeping project/user path scoping.
+- [x] Add a user-level video library endpoint, for example `GET /api/exports/library`, with filters:
   - `createdFrom`
   - `createdTo`
   - `mode`
   - `aspectRatio`
   - `projectId`
   - pagination cursor or `page`/`limit`
-- [ ] Add a video library UI area that shows previously created videos with:
+- [x] Add a video library UI area that shows previously created videos with:
   - preview/play action
   - generated filename
   - project title
@@ -73,9 +73,9 @@ social_1by1_targets_focus_victory_20260509-151340.mp4
   - duration
   - file size
   - download action
-- [ ] Populate the large marked preview placeholder with the latest completed video for the current user.
-- [ ] When a project is selected, prefer that project latest video; otherwise show the latest completed video across the user library.
-- [ ] Replace the hardcoded preview subtitle with a generated subtitle derived from the latest video metadata/story.
+- [x] Populate the large marked preview placeholder with the latest completed video for the current user.
+- [x] When a project is selected, prefer that project latest video; otherwise show the latest completed video across the user library.
+- [x] Replace the hardcoded preview subtitle with a generated subtitle derived from the latest video metadata/story.
 
 ## Suggested Data Model
 

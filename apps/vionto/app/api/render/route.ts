@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 
 function toRenderMode(mode: string | null): "cinematic" | "slideshow" | "social" {
   if (mode === "slideshow") return "slideshow";
+  if (mode === "documentary") return "social";
   return "cinematic";
 }
 
