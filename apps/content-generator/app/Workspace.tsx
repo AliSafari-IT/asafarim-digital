@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { asafarimBrandTokens } from "@asafarim/ui";
 import { ContentForm } from "@/components/ContentForm";
-import { OutputCard } from "@/components/OutputCard";
+import { RichOutputCard } from "@/components/RichOutputCard";
 import { ProjectWorkspace } from "@/components/ProjectWorkspace";
 import {
   contentTypesApi,
@@ -337,7 +337,7 @@ export function Workspace() {
           </button>
         </div>
 
-        <OutputCard
+        <RichOutputCard
           output={output}
           isLoading={isLoading}
           isCopied={isCopied}
@@ -346,6 +346,9 @@ export function Workspace() {
           error={error}
           onCopy={handleCopy}
           onRegenerate={handleRegenerate}
+          type={type}
+          sessionId={sessionId}
+          onOutputChange={(newOutput) => setOutput(newOutput)}
         />
       </section>
     </div>

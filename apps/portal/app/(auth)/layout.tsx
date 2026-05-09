@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import AuthFooter from "./AuthFooter";
 
 export const metadata: Metadata = {
   robots: {
@@ -11,59 +10,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div aria-hidden="true" className="site-noise" />
+    <div className="relative min-h-[100dvh] bg-[var(--color-surface)] text-[var(--color-text)] overflow-hidden">
+      {/* Ambient gradient orbs */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-1/3 left-1/4 h-[600px] w-[600px] rounded-full bg-[var(--color-primary)] opacity-[0.07] blur-[120px]" />
+        <div className="absolute -bottom-1/4 right-1/4 h-[500px] w-[500px] rounded-full bg-[#c084fc] opacity-[0.07] blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#5de4c7] opacity-[0.04] blur-[80px]" />
+      </div>
 
-      <header className="border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_84%,transparent)] backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-6 px-6 py-4">
-          <Link href="/" className="flex items-center gap-4">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--color-primary),var(--color-accent))] text-sm font-bold text-white shadow-[var(--shadow-glow)]">
-              AD
-            </span>
-            <span>
-              <span className="block text-sm font-semibold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
-                ASafariM Digital
-              </span>
-              <span className="block text-base font-semibold">Product engineering for AI-native SaaS</span>
-            </span>
-          </Link>
+      {/* Floating back link — top-left on all viewports */}
+      <Link
+        href="/"
+        className="fixed left-4 top-4 z-50 flex items-center gap-1.5 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)] backdrop-blur-xl transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:left-6 sm:top-6"
+      >
+        <svg viewBox="0 0 16 16" fill="none" className="h-3 w-3" aria-hidden="true">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        ASafariM
+      </Link>
 
-          <nav className="hidden items-center gap-6 text-sm text-[var(--color-text-muted)] md:flex">
-            <Link href="/#capabilities" className="transition hover:text-[var(--color-text)]">
-              Capabilities
-            </Link>
-            <Link href="/#showcase" className="transition hover:text-[var(--color-text)]">
-              Work
-            </Link>
-            <Link href="/#contact" className="transition hover:text-[var(--color-text)]">
-              Contact
-            </Link>
-          </nav>
-
-          <Link
-            href="/"
-            className="rounded-full border border-[var(--color-border-strong)] px-4 py-2 text-sm font-semibold transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-          >
-            Back to site
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14">{children}</main>
-
-      <footer className="border-t border-[var(--color-border)]">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-[var(--color-text-muted)] sm:flex-row sm:items-center sm:justify-between">
-          <AuthFooter />
-          <p>Secure access for products, demos, and internal tools</p>
-        </div>
-      </footer>
+      {children}
     </div>
   );
 }
