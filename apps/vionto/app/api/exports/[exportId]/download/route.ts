@@ -30,6 +30,7 @@ export async function GET(
         resolution: true,
         durationSeconds: true,
         fileSizeBytes: true,
+        filename: true,
         createdAt: true,
         renderJob: { select: { state: true } },
       },
@@ -66,6 +67,7 @@ export async function GET(
       resolution: exportRecord.resolution,
       durationSeconds: exportRecord.durationSeconds,
       fileSizeBytes: exportRecord.fileSizeBytes,
+      filename: exportRecord.filename,
     });
   } catch (error) {
     return serverError("exports/[exportId]/download", error);

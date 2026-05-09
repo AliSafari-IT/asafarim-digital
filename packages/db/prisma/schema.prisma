@@ -1438,6 +1438,14 @@ model ViontoExport {
   fileSizeBytes   Int?
   format          String  @default("mp4") // mp4, mov, webm
   resolution      String? // 1080p, 4k, 720p
+  filename        String?
+  userMode        String? // cinematic, slideshow, social
+  renderMode      String? // worker/render manifest mode
+  aspectRatio     String? // 16:9, 9:16, 1:1
+  aspectLabel     String? // landscape, portrait, 1by1
+  storyKeywords   Json?
+  previewTitle    String?
+  previewSubtitle String? @db.Text
 
   // Signed URL for direct download (time-limited)
   signedUrl       String?
@@ -1459,6 +1467,9 @@ model ViontoExport {
   @@index([projectId])
   @@index([renderJobId])
   @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, userMode, createdAt])
+  @@index([userId, aspectRatio, createdAt])
   @@index([format])
 }
 

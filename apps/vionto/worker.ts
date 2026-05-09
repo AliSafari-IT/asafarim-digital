@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { prisma } from "@asafarim/db";
 import { safeParseManifest } from "./lib/server/render-manifest";
 import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./lib/server/ffmpeg";
+import { buildExportMetadata } from "./lib/server/export-metadata";
 import { synthesizeSpeech } from "./lib/server/tts";
 import { buildKey, downloadObjectToLocalFile, uploadLocalFileToStorage, createPresignedDownloadUrl, getStorageStatus } from "./lib/server/storage";
 import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
@@ -253,12 +254,21 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     // --- Upload output ---
     logLines.push("Uploading output…");
     const outputPath = join(workDir, "output.mp4");
-    const outputKey = buildKey(manifest.userId, "exports", manifest.projectId, `render-${jobId}.mp4`);
-    
+    const project = await prisma.viontoProject.findFirst({
+      where: { id: manifest.projectId, userId: manifest.userId },
+      select: { title: true },
+    });
+    const exportMetadata = buildExportMetadata({
+      manifest,
+      projectTitle: project?.title,
+      date: new Date(),
+    });
+    const outputKey = buildKey(manifest.userId, "exports", manifest.projectId, exportMetadata.filename);
+
     // Get file stats for metadata
     const fileStats = await stat(outputPath);
     const fileSizeBytes = fileStats.size;
-    
+
     await uploadLocalFileToStorage(outputPath, outputKey, "video/mp4");
     logLines.push(`Output uploaded: ${outputKey}`);
 
@@ -273,6 +283,14 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         resolution: manifest.resolution,
         fileSizeBytes,
         durationSeconds: manifest.targetDurationSeconds,
+        filename: exportMetadata.filename,
+        userMode: exportMetadata.userMode,
+        renderMode: exportMetadata.renderMode,
+        aspectRatio: exportMetadata.aspectRatio,
+        aspectLabel: exportMetadata.aspectLabel,
+        storyKeywords: exportMetadata.storyKeywords,
+        previewTitle: exportMetadata.previewTitle,
+        previewSubtitle: exportMetadata.previewSubtitle,
       },
     });
 
@@ -340,12 +358,12 @@ const healthServer = createServer(async (_req, res) => {
 
   try {
     checks.redis = (await redis.ping()) === "PONG";
-  } catch {}
+  } catch { }
 
   try {
     await prisma.$queryRaw`SELECT 1`;
     checks.database = true;
-  } catch {}
+  } catch { }
 
   const ok = checks.worker && checks.redis && checks.database && checks.storage.configured;
   res.writeHead(ok ? 200 : 503, { "Content-Type": "application/json" });

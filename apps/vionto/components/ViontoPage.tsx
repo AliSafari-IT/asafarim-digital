@@ -55,6 +55,47 @@ const UI_MODE_TO_API_MODE: Record<string, "story" | "slideshow" | "documentary">
   social: "documentary",
 };
 
+const API_MODE_TO_UI_MODE: Record<string, "cinematic" | "slideshow" | "social"> = {
+  story: "cinematic",
+  slideshow: "slideshow",
+  documentary: "social",
+};
+
+const ASPECT_OPTIONS = [
+  { label: "Landscape", value: "16:9", key: "landscape" },
+  { label: "Portrait", value: "9:16", key: "portrait" },
+  { label: "1by1", value: "1:1", key: "1by1" },
+] as const;
+
+type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
+type UiMode = "cinematic" | "slideshow" | "social";
+
+type ProjectSummary = {
+  id: string;
+  title: string;
+  status: string;
+  mode: string;
+  aspectRatio: AspectRatio | "4:3";
+  createdAt: string;
+};
+
+type LibraryExport = {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  filename: string | null;
+  mode: UiMode | null;
+  aspectRatio: string | null;
+  aspectLabel: string | null;
+  keywords: string[];
+  previewTitle: string | null;
+  previewSubtitle: string | null;
+  previewUrl: string;
+  durationSeconds: number | null;
+  fileSizeBytes: number | null;
+  createdAt: string;
+};
+
 export function ViontoPage() {
   const { t, locale } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
@@ -86,9 +127,15 @@ export function ViontoPage() {
   const [renderError, setRenderError] = useState<string | null>(null);
   const [exportId, setExportId] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [latestExport, setLatestExport] = useState<LibraryExport | null>(null);
+  const [libraryExports, setLibraryExports] = useState<LibraryExport[]>([]);
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
+  const [libraryModeFilter, setLibraryModeFilter] = useState<"" | UiMode>("");
+  const [libraryCreatedFrom, setLibraryCreatedFrom] = useState("");
+  const [libraryCreatedTo, setLibraryCreatedTo] = useState("");
 
   // Project state
-  const [projects, setProjects] = useState<Array<{ id: string; title: string; status: string; createdAt: string }>>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
@@ -123,16 +170,24 @@ export function ViontoPage() {
   // Load projects on mount
   useEffect(() => {
     loadProjects();
+    loadExportLibrary();
   }, []);
 
   // Load assets when project is selected
   useEffect(() => {
     if (selectedProjectId) {
+      const selected = projects.find((project) => project.id === selectedProjectId);
+      if (selected) {
+        setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
+        const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
+        setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
+      }
       loadProjectAssets(selectedProjectId);
       loadProjectScripts(selectedProjectId);
       loadProjectAudioSettings(selectedProjectId);
       loadVoices(locale.split("-")[0] ?? "en");
       loadProjectExports(selectedProjectId);
+      loadExportLibrary({ projectId: selectedProjectId });
     } else {
       setProjectAssets([]);
       setVersions([]);
@@ -143,8 +198,13 @@ export function ViontoPage() {
       setRenderError(null);
       setExportId(null);
       setDownloadUrl(null);
+      loadExportLibrary();
     }
-  }, [selectedProjectId, locale]);
+  }, [selectedProjectId, locale, projects]);
+
+  useEffect(() => {
+    loadExportLibrary({ projectId: selectedProjectId });
+  }, [libraryModeFilter, libraryCreatedFrom, libraryCreatedTo]);
 
   async function loadProjects() {
     setIsLoadingProjects(true);
@@ -223,6 +283,56 @@ export function ViontoPage() {
       }
     } catch (error) {
       console.error("Failed to load exports", error);
+    }
+  }
+
+  async function loadExportLibrary(overrides: { projectId?: string | null } = {}) {
+    setIsLoadingLibrary(true);
+    try {
+      const params = new URLSearchParams();
+      const projectId = overrides.projectId === undefined ? selectedProjectId : overrides.projectId;
+      if (projectId) params.set("projectId", projectId);
+      if (libraryModeFilter) params.set("mode", libraryModeFilter);
+      if (libraryCreatedFrom) params.set("createdFrom", libraryCreatedFrom);
+      if (libraryCreatedTo) params.set("createdTo", libraryCreatedTo);
+      params.set("limit", "12");
+      const res = await fetch(`/api/exports/library?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = (data.data || []) as LibraryExport[];
+      setLibraryExports(items);
+      if (items[0]) setLatestExport(items[0]);
+      else if (!projectId) setLatestExport(null);
+    } catch (error) {
+      console.error("Failed to load export library", error);
+    } finally {
+      setIsLoadingLibrary(false);
+    }
+  }
+
+  async function saveProjectSettings() {
+    if (!selectedProjectId) return;
+    const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: apiMode,
+          aspectRatio: activeAspectRatio,
+        }),
+      });
+      if (res.ok) {
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === selectedProjectId
+              ? { ...project, mode: apiMode, aspectRatio: activeAspectRatio }
+              : project
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to save project settings", error);
     }
   }
 
@@ -332,6 +442,7 @@ export function ViontoPage() {
       setRenderError("Generate or save a narration script before rendering.");
       return;
     }
+    await saveProjectSettings();
 
     setRenderState("queued");
     setRenderProgress(0);
@@ -380,13 +491,14 @@ export function ViontoPage() {
         setRenderError(null);
         // Load export record
         const exportRes = await fetch(`/api/exports?projectId=${selectedProjectId}`);
-        if (exportRes.ok) {
+      if (exportRes.ok) {
           const exportData = await exportRes.json();
           if (exportData.data && exportData.data.length > 0) {
             const latestExport = exportData.data[0];
             setExportId(latestExport.id);
           }
         }
+        await loadExportLibrary({ projectId: selectedProjectId });
       } else if (data.state === "failed") {
         const message = data.errorSummary || "Unknown error";
         setRenderError(message);
@@ -425,7 +537,12 @@ export function ViontoPage() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newProjectTitle.trim(), mode: "story", locale: locale.split("-")[0] ?? "en" }),
+        body: JSON.stringify({
+          title: newProjectTitle.trim(),
+          mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
+          aspectRatio: activeAspectRatio,
+          locale: locale.split("-")[0] ?? "en",
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Failed to create project" }));
@@ -491,7 +608,8 @@ export function ViontoPage() {
   ];
 
   const modes = ["cinematic", "slideshow", "social"] as const;
-  const [activeMode, setActiveMode] = useState<string>("cinematic");
+  const [activeMode, setActiveMode] = useState<UiMode>("cinematic");
+  const [activeAspectRatio, setActiveAspectRatio] = useState<AspectRatio>("16:9");
 
   const queueItems = [
     ["Captioning", "12 images processed"],
@@ -644,6 +762,7 @@ export function ViontoPage() {
     }
     setIsGenerating(true);
     try {
+      await saveProjectSettings();
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch("/api/story/generate", {
         method: "POST",
@@ -997,6 +1116,32 @@ export function ViontoPage() {
                 ))}
               </div>
 
+              <div className="mt-3" aria-label="Aspect ratio">
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">Format</p>
+                <div className="mt-1 grid grid-cols-3 gap-2">
+                  {ASPECT_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-sm transition ${
+                        activeAspectRatio === option.value
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-text)]"
+                          : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="vionto-aspect-ratio"
+                        className="sr-only"
+                        value={option.value}
+                        checked={activeAspectRatio === option.value}
+                        onChange={() => setActiveAspectRatio(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-3">
                 <label htmlFor="user-notes" className="text-xs font-medium text-[var(--color-text-muted)]">
                   Notes for the narrator
@@ -1021,15 +1166,40 @@ export function ViontoPage() {
                   <span />
                 </div>
                 <div className="video-stage">
-                  <div className="sun" />
-                  <div className="horizon" />
-                  <p>Summer evening, narrated with warmth.</p>
+                  {latestExport?.previewUrl ? (
+                    <video
+                      key={latestExport.id}
+                      src={latestExport.previewUrl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div className="sun" />
+                      <div className="horizon" />
+                    </>
+                  )}
+                  <p>{latestExport?.previewSubtitle ?? "Your latest completed Vionto render will appear here."}</p>
                 </div>
               </div>
               <div className="preview-copy">
                 <p className="eyebrow">Preview</p>
-                <h2 id="preview-title">Cinematic draft</h2>
-                <p>16:9 MP4, H.264 video, AAC audio, subtitles burned in or exported as SRT.</p>
+                <h2 id="preview-title">{latestExport?.previewTitle ?? `${activeMode[0].toUpperCase()}${activeMode.slice(1)} draft`}</h2>
+                <p>
+                  {latestExport?.filename ??
+                    `${activeAspectRatio} MP4, H.264 video, AAC audio, subtitles burned in or exported as SRT.`}
+                </p>
+                <button
+                  type="button"
+                  onClick={startRender}
+                  disabled={!selectedProjectId || projectAssets.length === 0 || !hasRenderableScript || renderState === "queued" || renderState === "running"}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                >
+                  <Clapperboard size={16} />
+                  {renderState === "queued" || renderState === "running" ? "Creating video..." : "Create video"}
+                </button>
               </div>
             </section>
           </div>
@@ -1156,6 +1326,15 @@ export function ViontoPage() {
                       {downloadUrl ? t("vionto.render.downloading") : t("vionto.render.download")}
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={startRender}
+                    disabled={!selectedProjectId || projectAssets.length === 0 || !hasRenderableScript}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-50"
+                  >
+                    <Clapperboard size={16} />
+                    Create another video
+                  </button>
                   {downloadUrl && (
                     <a
                       href={downloadUrl}
@@ -1186,6 +1365,102 @@ export function ViontoPage() {
               {renderError && (
                 <p className="text-sm text-red-500">{renderError}</p>
               )}
+            </div>
+
+            <div className="job-card md:col-span-2" id="library">
+              <div className="section-heading">
+                <Clapperboard size={20} />
+                <h2>Video library</h2>
+              </div>
+              <div className="grid gap-2 md:grid-cols-3">
+                <select
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                  value={libraryModeFilter}
+                  onChange={(e) => setLibraryModeFilter(e.target.value as "" | UiMode)}
+                  aria-label="Filter videos by mode"
+                >
+                  <option value="">All modes</option>
+                  {modes.map((mode) => (
+                    <option key={mode} value={mode}>{t(`vionto.mode.${mode}`)}</option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                  value={libraryCreatedFrom}
+                  onChange={(e) => setLibraryCreatedFrom(e.target.value)}
+                  aria-label="Filter videos created from"
+                />
+                <input
+                  type="date"
+                  className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                  value={libraryCreatedTo}
+                  onChange={(e) => setLibraryCreatedTo(e.target.value)}
+                  aria-label="Filter videos created to"
+                />
+              </div>
+
+              <div className="mt-3 grid gap-3">
+                {isLoadingLibrary ? (
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+                    <RefreshCw size={16} className="animate-spin" />
+                    Loading videos...
+                  </div>
+                ) : libraryExports.length === 0 ? (
+                  <p className="text-sm text-[var(--color-text-muted)]">No completed videos match these filters yet.</p>
+                ) : (
+                  libraryExports.map((item) => (
+                    <article
+                      key={item.id}
+                      className="grid gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3 md:grid-cols-[180px_1fr]"
+                    >
+                      <video
+                        src={item.previewUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="aspect-video w-full rounded-md bg-black object-cover"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold text-[var(--color-text)]">
+                            {item.previewTitle ?? item.projectTitle}
+                          </h3>
+                          {item.mode && (
+                            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+                              {item.mode}
+                            </span>
+                          )}
+                          {item.aspectLabel && (
+                            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+                              {item.aspectLabel}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{item.filename ?? "Untitled export"}</p>
+                        <p className="mt-2 text-sm text-[var(--color-text-muted)]">{item.previewSubtitle}</p>
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]">
+                          <span>{new Date(item.createdAt).toLocaleString()}</span>
+                          {item.durationSeconds != null && <span>{item.durationSeconds}s</span>}
+                          {item.fileSizeBytes != null && <span>{(item.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLatestExport(item);
+                            setExportId(item.id);
+                            setDownloadUrl(null);
+                          }}
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                        >
+                          <Play size={16} />
+                          Show in preview
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
             </div>
           </section>
         </section>
