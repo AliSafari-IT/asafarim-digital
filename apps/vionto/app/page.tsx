@@ -1,5 +1,5 @@
-import { ViontoPage } from "@/components/ViontoPage";
+import { LandingPage } from "@/components/LandingPage";
 
 export default function Page() {
-  return <ViontoPage />;
+  return <LandingPage />;
 }
