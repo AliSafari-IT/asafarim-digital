@@ -6,7 +6,7 @@ RUN corepack enable
 FROM base AS builder
 WORKDIR /repo
 
-ARG NEXT_PUBLIC_PORTAL_URL="https://portal-qa.asafarim.com"
+ARG NEXT_PUBLIC_PORTAL_URL="https://portal.asafarim.com"
 ENV NEXT_PUBLIC_PORTAL_URL=$NEXT_PUBLIC_PORTAL_URL
 
 ARG NEXT_PUBLIC_CONTENT_GENERATOR_URL="https://content-generator-qa.asafarim.com"

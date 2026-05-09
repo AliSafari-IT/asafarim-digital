@@ -7,7 +7,7 @@ export const siteDescription =
 export const defaultLocale = "en_US";
 
 export function getSiteUrl() {
-  return process.env.NEXT_PUBLIC_PORTAL_URL ?? process.env.PORTAL_URL ?? "https://portal-qa.asafarim.com";
+  return process.env.NEXT_PUBLIC_PORTAL_URL ?? process.env.PORTAL_URL ?? "https://portal.asafarim.com";
 }
 
 export function absoluteUrl(path = "/") {

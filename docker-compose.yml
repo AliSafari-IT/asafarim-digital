@@ -57,7 +57,7 @@
       context: .
       dockerfile: apps/portal/Dockerfile
       args:
-        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
         NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
         NEXT_PUBLIC_MARKETING_CONTENT_URL: ${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
         NEXT_PUBLIC_VIONTO_URL: ${NEXT_PUBLIC_VIONTO_URL:-https://vionto.asafarim.com}
@@ -67,7 +67,7 @@
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - PORTAL_URL=https://portal-qa.asafarim.com
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
       - CONTENT_GENERATOR_URL=${CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
       - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
       - MARKETING_CONTENT_URL=${MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
@@ -78,7 +78,7 @@
       # Auth
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
-      - AUTH_URL=https://portal-qa.asafarim.com
+      - AUTH_URL=${AUTH_URL:-https://portal.asafarim.com}
       - AUTH_TRUST_HOST=true
       - AUTH_COOKIE_DOMAIN=.asafarim.com
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
@@ -101,7 +101,7 @@
       context: .
       dockerfile: apps/content-generator/Dockerfile
       args:
-        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
         NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
     container_name: asafarim-content-generator
     restart: unless-stopped
@@ -109,8 +109,8 @@
       - "3002:3001"
     environment:
       - NODE_ENV=production
-      - PORTAL_URL=https://portal-qa.asafarim.com
-      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
       - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       # Auth (same DB and secrets â€” shared SSO)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
@@ -139,15 +139,15 @@
       context: .
       dockerfile: apps/ops-hub/Dockerfile
       args:
-        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
     container_name: asafarim-ops-hub
     restart: unless-stopped
     ports:
       - "3003:3003"
     environment:
       - NODE_ENV=production
-      - PORTAL_URL=${PORTAL_URL:-https://portal-qa.asafarim.com}
-      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
       - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
@@ -172,15 +172,15 @@
       context: .
       dockerfile: apps/marketing-content/Dockerfile
       args:
-        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
     container_name: asafarim-marketing-content
     restart: unless-stopped
     ports:
       - "3004:3004"
     environment:
       - NODE_ENV=production
-      - PORTAL_URL=${PORTAL_URL:-https://portal-qa.asafarim.com}
-      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
       - MARKETING_CONTENT_URL=${MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
       - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
@@ -206,7 +206,7 @@
       context: .
       dockerfile: apps/edumatch/Dockerfile
       args:
-        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+        NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
         NEXT_PUBLIC_EDUMATCH_URL: ${NEXT_PUBLIC_EDUMATCH_URL:-https://edumatch.asafarim.com}
         NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
         NEXT_PUBLIC_MARKETING_CONTENT_URL: ${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
@@ -217,8 +217,8 @@
       - "3005:3005"
     environment:
       - NODE_ENV=production
-      - PORTAL_URL=${PORTAL_URL:-https://portal-qa.asafarim.com}
-      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
       - EDUMATCH_URL=${EDUMATCH_URL:-https://edumatch.asafarim.com}
       - NEXT_PUBLIC_EDUMATCH_URL=${NEXT_PUBLIC_EDUMATCH_URL:-https://edumatch.asafarim.com}
       - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
@@ -270,8 +270,8 @@
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_VIONTO_URL=${NEXT_PUBLIC_VIONTO_URL:-https://vionto.asafarim.com}
-      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal-qa.asafarim.com}
-      - PORTAL_URL=${PORTAL_URL:-https://portal-qa.asafarim.com}
+      - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
+      - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
       - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
       # Auth (shared SSO â€” same secret as portal)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}

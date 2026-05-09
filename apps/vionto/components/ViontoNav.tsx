@@ -16,7 +16,7 @@ import {
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import type { AppCode } from "@asafarim/types";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "https://vionto.asafarim.com";
 
 function ThemeToggle() {

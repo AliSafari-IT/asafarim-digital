@@ -7,7 +7,7 @@ FROM base AS builder
 WORKDIR /repo
 
 ARG NEXT_PUBLIC_VIONTO_URL=https://vionto.asafarim.com
-ARG NEXT_PUBLIC_PORTAL_URL=https://portal-qa.asafarim.com
+ARG NEXT_PUBLIC_PORTAL_URL=https://portal.asafarim.com
 ENV NEXT_PUBLIC_VIONTO_URL=${NEXT_PUBLIC_VIONTO_URL}
 ENV NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL}
 
