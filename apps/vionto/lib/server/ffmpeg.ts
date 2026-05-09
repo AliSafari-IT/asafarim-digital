@@ -119,6 +119,14 @@ function buildConcatList(segmentPaths: string[], listPath: string): string {
   return lines;
 }
 
+/** Escape a filesystem path for use inside an FFmpeg filter argument. */
+function escapeFilterPath(path: string): string {
+  return path
+    .replace(/\\/g, "/")
+    .replace(/:/g, "\\:")
+    .replace(/'/g, "\\'");
+}
+
 /** Build subtitle burn-in filter string (ASS style overlay). */
 function buildSubtitleFilter(style: SubtitleStyle, srtPath: string): string {
   const font = style.fontName.replace(/:/g, "\\:");
@@ -130,7 +138,7 @@ function buildSubtitleFilter(style: SubtitleStyle, srtPath: string): string {
   const pos = style.position === "top" ? "alignment=8" : style.position === "center" ? "alignment=5" : "alignment=2";
   const marginV = style.marginV;
 
-  return `subtitles=${srtPath.replace(/:/g, "\\:")}:force_style='FontName=${font},FontSize=${size},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=${outlineW},${pos},MarginV=${marginV}'`;
+  return `subtitles=filename='${escapeFilterPath(srtPath)}':force_style='FontName=${font},FontSize=${size},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=${outlineW},${pos},MarginV=${marginV}'`;
 }
 
 /** Build the full FFmpeg pipeline command array for a render manifest. */

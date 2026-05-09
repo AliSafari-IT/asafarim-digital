@@ -90,13 +90,16 @@ function UserMenu() {
   }
 
   if (!session?.user) {
+    const callbackUrl = typeof window === "undefined" ? viontoUrl : window.location.href;
+    const signInUrl = `${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+
     return (
-      <Link
-        href="/api/auth/signin"
+      <a
+        href={signInUrl}
         className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
       >
         Sign in
-      </Link>
+      </a>
     );
   }
 

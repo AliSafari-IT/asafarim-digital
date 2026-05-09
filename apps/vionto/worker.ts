@@ -11,6 +11,7 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile, rm, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { prisma } from "@asafarim/db";
 import { safeParseManifest } from "./lib/server/render-manifest";
 import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./lib/server/ffmpeg";
@@ -20,15 +21,17 @@ import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 const WORKER_HEALTH_PORT = Number.parseInt(process.env.WORKER_HEALTH_PORT ?? "3007", 10);
+const FFMPEG_BIN = process.env.FFMPEG_PATH ?? "ffmpeg";
 const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 let isShuttingDown = false;
 
 /** Failure classification for telemetry and retry decisions. */
 function classifyError(err: unknown): { category: string; retryable: boolean } {
   const msg = err instanceof Error ? err.message : String(err);
-  if (msg.includes("ENOENT") || msg.includes("ffmpeg")) {
+  if (msg.includes("ENOENT") || msg.includes("executable not found") || msg.includes("not recognized")) {
     return { category: "FFMPEG_NOT_FOUND", retryable: false };
   }
+  if (msg.includes("ffmpeg exited")) return { category: "FFMPEG_FAILED", retryable: false };
   if (msg.includes("Disk full") || msg.includes("ENOSPC")) {
     return { category: "DISK_FULL", retryable: false };
   }
@@ -79,7 +82,10 @@ async function updateState(
 /** Run an FFmpeg command and stream stdout/stderr to logs. */
 function runFfmpeg(args: string[], workDir: string, logLines: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("ffmpeg", args, { cwd: workDir });
+    const proc = spawn(FFMPEG_BIN, args, {
+      cwd: workDir,
+      shell: false,
+    });
     const lines: string[] = [];
     proc.stderr.on("data", (chunk: Buffer) => {
       const text = chunk.toString("utf8");
@@ -93,11 +99,17 @@ function runFfmpeg(args: string[], workDir: string, logLines: string[]): Promise
     proc.on("close", (code) => {
       logLines.push(...lines);
       if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exited ${code}`));
+      else {
+        const detail = lines.at(-1);
+        reject(new Error(`ffmpeg exited ${code}${detail ? `: ${detail}` : ""}`));
+      }
     });
     proc.on("error", (err) => {
-      logLines.push(`ffmpeg spawn error: ${err.message}`);
-      reject(err);
+      const message = err.message.includes("ENOENT")
+        ? `ffmpeg executable not found. Install ffmpeg or set FFMPEG_PATH. Tried: ${FFMPEG_BIN}`
+        : `ffmpeg spawn error: ${err.message}`;
+      logLines.push(message);
+      reject(new Error(message));
     });
   });
 }
@@ -116,7 +128,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     throw new Error(error);
   }
   const manifest = manifestResult.data;
-  const workDir = join("/tmp", "vionto-renders", jobId);
+  const workDir = join(tmpdir(), "vionto-renders", jobId);
   await mkdir(workDir, { recursive: true });
 
   await prisma.viontoRenderJob.update({

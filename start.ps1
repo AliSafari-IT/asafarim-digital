@@ -10,6 +10,19 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 
+$DefaultFfmpegPath = "C:\ffmpeg_6may26_full_build\bin\ffmpeg.exe"
+
+function Set-ViontoFfmpegPath {
+    if (-not $env:FFMPEG_PATH -and (Test-Path $DefaultFfmpegPath)) {
+        $env:FFMPEG_PATH = $DefaultFfmpegPath
+    }
+    if ($env:FFMPEG_PATH) {
+        Write-Host "[vionto] FFMPEG_PATH=$env:FFMPEG_PATH" -ForegroundColor Cyan
+    } else {
+        Write-Host "[vionto] FFMPEG_PATH is not set; worker will try ffmpeg from PATH." -ForegroundColor Yellow
+    }
+}
+
 function Print-Usage {
     @"
 Usage: .\start.ps1 [COMMAND] [OPTIONS]
@@ -21,7 +34,7 @@ Commands:
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
-  dev:vionto    Start only the vionto app in development mode
+  dev:vionto    Start only Vionto app + worker; auth dependencies must already be running
   db:push       Sync Prisma schema to local database (no migration file)
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -115,6 +128,7 @@ function Run-Dev {
     Confirm-Deps
     Build-Packages
     Write-Host "[dev] Starting browser development servers..." -ForegroundColor Cyan
+    Set-ViontoFfmpegPath
     $jobs = @()
     $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/portal", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
     $jobs += Start-Process -FilePath "pnpm" -ArgumentList @("--dir", "apps/content-generator", "dev") -WorkingDirectory $scriptDir -NoNewWindow -PassThru
@@ -160,6 +174,7 @@ function Start-Dev-Vionto {
     Confirm-Deps
     Build-Packages
     Write-Host "[dev] Starting vionto..." -ForegroundColor Cyan
+    Set-ViontoFfmpegPath
     pnpm --dir apps/vionto dev
 }
 

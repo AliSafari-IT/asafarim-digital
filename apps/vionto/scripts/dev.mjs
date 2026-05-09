@@ -14,10 +14,10 @@ function prefixStream(stream, prefix, target) {
   });
 }
 
-function run(name, args) {
+function run(name, args, env = {}) {
   const child = spawn(pnpm, args, {
     cwd: process.cwd(),
-    env: process.env,
+    env: { ...process.env, ...env },
     stdio: ["inherit", "pipe", "pipe"],
     shell: isWindows,
   });
@@ -54,5 +54,12 @@ function shutdown(code = 0) {
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
-run("web", ["exec", "next", "dev", "--port", "3006"]);
-run("worker", ["run", "worker:dev"]);
+const localViontoUrl = process.env.LOCAL_VIONTO_URL ?? "http://localhost:3006";
+const viontoAuthEnv = {
+  AUTH_URL: localViontoUrl,
+  NEXTAUTH_URL: localViontoUrl,
+  AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST ?? "true",
+};
+
+run("web", ["exec", "next", "dev", "--port", "3006"], viontoAuthEnv);
+run("worker", ["run", "worker:dev"], viontoAuthEnv);

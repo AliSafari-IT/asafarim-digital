@@ -5,6 +5,16 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+DEFAULT_FFMPEG_PATH="C:\\ffmpeg_6may26_full_build\\bin\\ffmpeg.exe"
+
+set_vionto_ffmpeg_path() {
+  if [ -z "${FFMPEG_PATH:-}" ]; then
+    FFMPEG_PATH="$DEFAULT_FFMPEG_PATH"
+    export FFMPEG_PATH
+  fi
+  echo "[vionto] FFMPEG_PATH=$FFMPEG_PATH"
+}
+
 print_usage() {
   cat <<EOF
 Usage: ./start.sh [COMMAND] [OPTIONS]
@@ -16,7 +26,7 @@ Commands:
   dev:portal    Start only the portal app in development mode
   dev:ops       Start only the ops-hub app in development mode
   dev:edumatch  Start only the edumatch app in development mode
-  dev:vionto    Start only the vionto app in development mode
+  dev:vionto    Start only Vionto app + worker; auth dependencies must already be running
   db:push       Sync Prisma schema to local database
   db:seed       Re-run the database seed (idempotent upserts)
   db:reset      Drop & recreate local DB, apply schema, then seed
@@ -91,6 +101,7 @@ run_build() {
 run_dev() {
   confirm_deps
   echo "🚀 Starting development servers..."
+  set_vionto_ffmpeg_path
   pnpm dev
 }
 
@@ -115,6 +126,7 @@ start_dev_edumatch() {
 start_dev_vionto() {
   confirm_deps
   echo "Starting vionto development server..."
+  set_vionto_ffmpeg_path
   pnpm --filter vionto dev
 }
 

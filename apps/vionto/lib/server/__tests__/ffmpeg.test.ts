@@ -77,6 +77,18 @@ describe("buildRenderCommand", () => {
     expect(final.some((a) => a.includes("subtitles="))).toBe(true);
   });
 
+  it("escapes Windows subtitle paths for FFmpeg filters", () => {
+    const manifest = { ...BASE_MANIFEST, burnSubtitles: true };
+    const { steps } = buildRenderCommand(manifest, "C:\\Temp\\work", {
+      outputPath: "C:\\Temp\\work\\out.mp4",
+      srtPath: "C:\\Users\\saal\\AppData\\Local\\Temp\\vionto-renders\\job\\subtitles.srt",
+    });
+    const final = steps[steps.length - 1];
+    const vfIndex = final.indexOf("-vf");
+    expect(vfIndex).toBeGreaterThan(-1);
+    expect(final[vfIndex + 1]).toContain("subtitles=filename='C\\:/Users/saal/AppData/Local/Temp/vionto-renders/job/subtitles.srt'");
+  });
+
   it("uses the correct video codec and bitrate", () => {
     const { steps } = buildRenderCommand(BASE_MANIFEST, "/tmp/work", {
       outputPath: "/tmp/work/out.mp4",
