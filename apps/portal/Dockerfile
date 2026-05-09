@@ -32,10 +32,11 @@ COPY packages/types ./packages/types
 COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter portal... --filter @asafarim/db... --filter @asafarim/ui... --prefer-offline
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter portal build
+RUN pnpm store prune
 
 FROM node:22-alpine AS runner
 WORKDIR /app

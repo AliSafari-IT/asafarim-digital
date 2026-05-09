@@ -1,0 +1,9 @@
+[Unit]
+Description=ASafariM Docker prune
+Documentation=file:/var/repos/asafarim-digital/docs/deployment/docker-maintenance.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/repos/asafarim-digital
+Environment=BUILD_CACHE_UNTIL=24h
+ExecStart=/bin/sh /var/repos/asafarim-digital/scripts/docker-post-deploy-prune.sh

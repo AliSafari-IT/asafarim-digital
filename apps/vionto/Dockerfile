@@ -20,13 +20,15 @@ COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
 COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/shared-i18n ./packages/shared-i18n
+COPY packages/vionto-schemas ./packages/vionto-schemas
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --filter @asafarim/ui... --prefer-offline
 # Explicitly generate Prisma client before building
 RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 RUN pnpm --filter vionto build
+RUN pnpm store prune
 
 FROM node:22-alpine AS runner
 WORKDIR /app
