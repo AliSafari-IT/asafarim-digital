@@ -33,7 +33,7 @@ const apps: Array<{
     tagline: "AI writing workspace",
     tag: "AI",
     urlEnv: "NEXT_PUBLIC_CONTENT_GENERATOR_URL",
-    fallback: process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator-qa.asafarim.com",
+    fallback: process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator.asafarim.com",
     mark: "C",
     gradient: "from-violet-500 to-fuchsia-600",
     ring: "ring-fuchsia-500/30",

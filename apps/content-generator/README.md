@@ -146,7 +146,7 @@ ANTHROPIC_MAX_TOKENS=4000
 
 - Local app port: `3001`.
 - Current Docker host mapping: host `3002` to container `3001`.
-- QA domain convention: `https://content-generator-qa.asafarim.com`.
+- QA domain convention: `https://content-generator.asafarim.com`.
 - Portal redirect: `/showcase/content-generator`.
 
 ## Documentation Tasks

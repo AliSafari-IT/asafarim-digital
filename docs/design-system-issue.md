@@ -8,7 +8,7 @@ ASafariM Digital is a full-stack SaaS + AI product engineering studio (Ali Safar
 ## Source
 
 - **GitHub:** [AliSafari-IT/asafarim-digital](https://github.com/AliSafari-IT/asafarim-digital) (Turbo + pnpm monorepo)
-- **Live:** `portal-qa.asafarim.com`, `content-generator-qa.asafarim.com` 
+- **Live:** `portal.asafarim.com`, `content-generator.asafarim.com` 
 - **Key files referenced**
   - `packages/ui/src/brand-tokens.ts` — canonical brand tokens
   - `packages/ui/src/theme.ts` — light/dark theme handling

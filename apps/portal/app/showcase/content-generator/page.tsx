@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 const localTargetUrl = process.env.LOCAL_CONTENT_GENERATOR_URL ?? "http://localhost:3001";
-const qaTargetUrl = "https://content-generator-qa.asafarim.com";
+const qaTargetUrl = "https://content-generator.asafarim.com";
 
 export default function ContentGeneratorRedirectPage() {
   const targetUrl =

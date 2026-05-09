@@ -93,8 +93,8 @@ AUTH_GOOGLE_SECRET=...
 ## Deployment Notes
 
 - Local app port: `3000`.
-- QA host convention: `https://portal-qa.asafarim.com`.
-- Nginx config convention: `infra/nginx/portal-qa.asafarim.com.conf`.
+- QA host convention: `https://portal.asafarim.com`.
+- Nginx config convention: `infra/nginx/portal.asafarim.com.conf`.
 - Portal redirects should be checked whenever an app moves between localhost,
   QA, and production subdomains.
 

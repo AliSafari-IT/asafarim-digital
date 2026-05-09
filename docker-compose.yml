@@ -67,7 +67,7 @@ services:
       dockerfile: apps/portal/Dockerfile
       args:
         NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
-        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
         NEXT_PUBLIC_MARKETING_CONTENT_URL: ${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
         NEXT_PUBLIC_VIONTO_URL: ${NEXT_PUBLIC_VIONTO_URL:-https://vionto.asafarim.com}
     container_name: asafarim-portal
@@ -78,8 +78,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORTAL_URL=${PORTAL_URL:-https://portal.asafarim.com}
-      - CONTENT_GENERATOR_URL=${CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
-      - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+      - CONTENT_GENERATOR_URL=${CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
+      - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
       - MARKETING_CONTENT_URL=${MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
       - NEXT_PUBLIC_MARKETING_CONTENT_URL=${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
       - VIONTO_URL=${VIONTO_URL:-https://vionto.asafarim.com}
@@ -112,7 +112,7 @@ services:
       dockerfile: apps/content-generator/Dockerfile
       args:
         NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
-        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
     container_name: asafarim-content-generator
     restart: unless-stopped
     logging: *default-logging
@@ -126,7 +126,7 @@ services:
       # Auth (same DB and secrets â€” shared SSO)
       - DATABASE_URL=postgresql://${POSTGRES_USER:-asafarim}:${POSTGRES_PASSWORD:-asafarim_secret}@postgres:5432/${POSTGRES_DB:-asafarim}
       - AUTH_SECRET=${AUTH_SECRET}
-      - AUTH_URL=https://content-generator-qa.asafarim.com
+      - AUTH_URL=https://content-generator.asafarim.com
       - AUTH_TRUST_HOST=true
       - AUTH_COOKIE_DOMAIN=.asafarim.com
       - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
@@ -221,7 +221,7 @@ services:
       args:
         NEXT_PUBLIC_PORTAL_URL: ${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
         NEXT_PUBLIC_EDUMATCH_URL: ${NEXT_PUBLIC_EDUMATCH_URL:-https://edumatch.asafarim.com}
-        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+        NEXT_PUBLIC_CONTENT_GENERATOR_URL: ${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
         NEXT_PUBLIC_MARKETING_CONTENT_URL: ${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
         NEXT_PUBLIC_OPS_HUB_URL: ${NEXT_PUBLIC_OPS_HUB_URL:-https://ops-hub.asafarim.com}
     container_name: asafarim-edumatch
@@ -235,7 +235,7 @@ services:
       - NEXT_PUBLIC_PORTAL_URL=${NEXT_PUBLIC_PORTAL_URL:-https://portal.asafarim.com}
       - EDUMATCH_URL=${EDUMATCH_URL:-https://edumatch.asafarim.com}
       - NEXT_PUBLIC_EDUMATCH_URL=${NEXT_PUBLIC_EDUMATCH_URL:-https://edumatch.asafarim.com}
-      - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator-qa.asafarim.com}
+      - NEXT_PUBLIC_CONTENT_GENERATOR_URL=${NEXT_PUBLIC_CONTENT_GENERATOR_URL:-https://content-generator.asafarim.com}
       - NEXT_PUBLIC_MARKETING_CONTENT_URL=${NEXT_PUBLIC_MARKETING_CONTENT_URL:-https://marketing-content.asafarim.com}
       - NEXT_PUBLIC_OPS_HUB_URL=${NEXT_PUBLIC_OPS_HUB_URL:-https://ops-hub.asafarim.com}
       - PRISMA_QUERY_ENGINE_LIBRARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node

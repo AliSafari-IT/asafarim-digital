@@ -8,7 +8,7 @@ export function getAppUrl() {
   return (
     process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL ??
     process.env.CONTENT_GENERATOR_URL ??
-    "https://content-generator-qa.asafarim.com"
+    "https://content-generator.asafarim.com"
   );
 }
 
