@@ -1,6 +1,71 @@
 // Realistic mock data for the Marketing + Content Engine showcase.
 // All numbers are static but chosen to feel like a mid-stage B2B SaaS.
 
+// ── Performance Entries ──────────────────────────────────────────────────────
+
+export interface PerformanceEntry {
+  id: string;
+  campaignId: string;
+  weekOf: string;        // ISO date of the Monday that starts this reporting week
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  spentCents: number;
+  ctr?: number;          // computed: clicks / impressions
+  cvr?: number;          // computed: conversions / clicks
+  notes?: string;
+  loggedBy: string;
+  loggedAt: string;      // ISO timestamp of when the entry was logged
+}
+
+// Weekly performance snapshots for active + ended campaigns.
+// Numbers roughly track toward campaign-level totals in the campaigns array.
+export const performanceEntries: PerformanceEntry[] = [
+  // ── c1: Q2 Growth — Ops Hub launch (paid, started 2026-03-18) ──────────────
+  { id: "pe-c1-w1", campaignId: "c1", weekOf: "2026-03-18", impressions: 38_200, clicks: 1_620, conversions: 47,  spentCents:  98_000, notes: "Launch week — awareness phase, CPM higher than expected.", loggedBy: "Ava Chen",     loggedAt: "2026-03-25T10:02:00Z" },
+  { id: "pe-c1-w2", campaignId: "c1", weekOf: "2026-03-25", impressions: 54_100, clicks: 2_340, conversions: 71,  spentCents: 128_000, notes: "Bid strategy adjusted; CTR improved after headline A/B test.", loggedBy: "Ava Chen",   loggedAt: "2026-04-01T09:14:00Z" },
+  { id: "pe-c1-w3", campaignId: "c1", weekOf: "2026-04-01", impressions: 61_400, clicks: 2_870, conversions: 96,  spentCents: 141_000, notes: "Best week so far — retargeting layer activated.", loggedBy: "Noah Park",         loggedAt: "2026-04-08T11:30:00Z" },
+  { id: "pe-c1-w4", campaignId: "c1", weekOf: "2026-04-08", impressions: 72_600, clicks: 3_240, conversions: 118, spentCents: 162_000, notes: "Blog post amplification drove incremental conversions.", loggedBy: "Ava Chen",     loggedAt: "2026-04-15T08:45:00Z" },
+  { id: "pe-c1-w5", campaignId: "c1", weekOf: "2026-04-15", impressions: 78_300, clicks: 3_510, conversions: 134, spentCents: 170_000, notes: "Peak reach — frequency cap lowered to preserve brand sentiment.", loggedBy: "Noah Park", loggedAt: "2026-04-22T10:00:00Z" },
+  { id: "pe-c1-w6", campaignId: "c1", weekOf: "2026-04-22", impressions: 63_100, clicks: 2_780, conversions: 98,  spentCents: 150_000, notes: "Slight dip; competitor launched counter-campaign.", loggedBy: "Ava Chen",          loggedAt: "2026-04-29T09:25:00Z" },
+  { id: "pe-c1-w7", campaignId: "c1", weekOf: "2026-04-29", impressions: 45_100, clicks: 2_060, conversions: 48,  spentCents:  98_000, notes: "Budget pacing to month-end. CPA remains within $140 target.", loggedBy: "Ava Chen",  loggedAt: "2026-05-06T09:10:00Z" },
+
+  // ── c2: SEO cluster: agent workflows (seo, started 2026-02-04) ─────────────
+  { id: "pe-c2-w1", campaignId: "c2", weekOf: "2026-02-04", impressions: 14_200, clicks:  520, conversions: 22,  spentCents: 14_000, notes: "Initial content sprint; 4 new guides published.", loggedBy: "Noah Park",              loggedAt: "2026-02-11T12:00:00Z" },
+  { id: "pe-c2-w2", campaignId: "c2", weekOf: "2026-02-11", impressions: 18_400, clicks:  680, conversions: 31,  spentCents: 18_000, notes: "Internal link pass done — impressions +30% WoW.", loggedBy: "Noah Park",              loggedAt: "2026-02-18T11:30:00Z" },
+  { id: "pe-c2-w3", campaignId: "c2", weekOf: "2026-02-18", impressions: 21_900, clicks:  810, conversions: 38,  spentCents: 20_000, notes: "Featured snippet captured for 'ai agent workflow tools'.", loggedBy: "Noah Park",    loggedAt: "2026-02-25T10:45:00Z" },
+  { id: "pe-c2-w4", campaignId: "c2", weekOf: "2026-02-25", impressions: 24_600, clicks:  950, conversions: 44,  spentCents: 22_000, notes: "Added schema markup — click-through rate up 8%.", loggedBy: "Ava Chen",               loggedAt: "2026-03-04T09:00:00Z" },
+  { id: "pe-c2-w5", campaignId: "c2", weekOf: "2026-03-04", impressions: 27_100, clicks: 1_080, conversions: 50, spentCents: 24_000, notes: "Video embed added to top guide — dwell time ↑.", loggedBy: "Noah Park",              loggedAt: "2026-03-11T11:15:00Z" },
+  { id: "pe-c2-w6", campaignId: "c2", weekOf: "2026-03-11", impressions: 29_800, clicks: 1_190, conversions: 57, spentCents: 26_000, notes: "Average position improved 4.8→3.9 for top 5 keywords.", loggedBy: "Noah Park",      loggedAt: "2026-03-18T10:30:00Z" },
+  { id: "pe-c2-w7", campaignId: "c2", weekOf: "2026-03-18", impressions: 32_400, clicks: 1_320, conversions: 62, spentCents: 28_000, notes: "Seasonal spike in 'agent workflow' searches.", loggedBy: "Ava Chen",                loggedAt: "2026-03-25T09:45:00Z" },
+  { id: "pe-c2-w8", campaignId: "c2", weekOf: "2026-03-25", impressions: 33_700, clicks: 1_400, conversions: 68, spentCents: 28_000, notes: "Blog amplification from paid campaign (c1) cross-traffic.", loggedBy: "Noah Park",   loggedAt: "2026-04-01T10:00:00Z" },
+  { id: "pe-c2-w9", campaignId: "c2", weekOf: "2026-04-01", impressions: 34_500, clicks: 1_430, conversions: 69, spentCents: 28_000, notes: "Stable week; monitoring for algorithm update.", loggedBy: "Noah Park",              loggedAt: "2026-04-08T11:00:00Z" },
+
+  // ── c3: Lifecycle nurture v4 (email, started 2026-03-01) ───────────────────
+  { id: "pe-c3-w1", campaignId: "c3", weekOf: "2026-03-01", impressions:  4_800, clicks:  620, conversions: 32,  spentCents:  9_000, notes: "Email 1 deployed — open rate 41%, best in history.", loggedBy: "Priya Raman",       loggedAt: "2026-03-08T09:30:00Z" },
+  { id: "pe-c3-w2", campaignId: "c3", weekOf: "2026-03-08", impressions:  6_100, clicks:  810, conversions: 46,  spentCents: 11_000, notes: "Email 2 (day 3) boosted by personalised subject line test.", loggedBy: "Priya Raman", loggedAt: "2026-03-15T10:00:00Z" },
+  { id: "pe-c3-w3", campaignId: "c3", weekOf: "2026-03-15", impressions:  7_400, clicks:  980, conversions: 58,  spentCents: 13_000, notes: "Activation push landed 58 trials — pipeline impact visible.", loggedBy: "Priya Raman", loggedAt: "2026-03-22T11:15:00Z" },
+  { id: "pe-c3-w4", campaignId: "c3", weekOf: "2026-03-22", impressions:  8_200, clicks: 1_080, conversions: 64, spentCents: 14_000, notes: "Segmented high-score leads to SDR hand-off flow.", loggedBy: "Priya Raman",         loggedAt: "2026-03-29T09:45:00Z" },
+  { id: "pe-c3-w5", campaignId: "c3", weekOf: "2026-03-29", impressions:  9_600, clicks: 1_240, conversions: 72, spentCents: 16_000, notes: "Week 5 drip fired — churn_risk cohort added.", loggedBy: "Priya Raman",              loggedAt: "2026-04-05T10:30:00Z" },
+  { id: "pe-c3-w6", campaignId: "c3", weekOf: "2026-04-05", impressions:  9_800, clicks: 1_190, conversions: 68, spentCents: 16_000, notes: "Slight drop — Easter weekend suppressed opens Fri-Sun.", loggedBy: "Priya Raman",   loggedAt: "2026-04-12T09:00:00Z" },
+  { id: "pe-c3-w7", campaignId: "c3", weekOf: "2026-04-12", impressions:  8_300, clicks: 1_220, conversions: 49, spentCents: 17_300, notes: "New cohort (week 7 re-engagement) just kicked off.", loggedBy: "Priya Raman",        loggedAt: "2026-04-19T10:15:00Z" },
+
+  // ── c4: LinkedIn founder series (social, started 2026-03-10) ───────────────
+  { id: "pe-c4-w1", campaignId: "c4", weekOf: "2026-03-10", impressions: 18_600, clicks:  580, conversions: 12, spentCents: 14_000, notes: "Episode 1 posted — organic amplification exceeded target.", loggedBy: "Marcus King",  loggedAt: "2026-03-17T10:00:00Z" },
+  { id: "pe-c4-w2", campaignId: "c4", weekOf: "2026-03-17", impressions: 24_400, clicks:  780, conversions: 19, spentCents: 18_000, notes: "Episode 2 (pricing tension) — highest engagement so far.", loggedBy: "Marcus King",   loggedAt: "2026-03-24T09:30:00Z" },
+  { id: "pe-c4-w3", campaignId: "c4", weekOf: "2026-03-24", impressions: 27_100, clicks:  870, conversions: 24, spentCents: 21_000, notes: "Comment velocity high — boosted episode 3 with $3k.", loggedBy: "Marcus King",       loggedAt: "2026-03-31T11:00:00Z" },
+  { id: "pe-c4-w4", campaignId: "c4", weekOf: "2026-03-31", impressions: 31_200, clicks: 1_010, conversions: 29, spentCents: 24_000, notes: "Audience targeting refined — follower lookalike added.", loggedBy: "Marcus King",    loggedAt: "2026-04-07T10:30:00Z" },
+  { id: "pe-c4-w5", campaignId: "c4", weekOf: "2026-04-07", impressions: 34_800, clicks: 1_120, conversions: 31, spentCents: 26_000, notes: "Best reach week — thought-leader re-share drove spikes.", loggedBy: "Marcus King",   loggedAt: "2026-04-14T09:45:00Z" },
+  { id: "pe-c4-w6", campaignId: "c4", weekOf: "2026-04-14", impressions: 30_400, clicks:  960, conversions: 18, spentCents: 22_000, notes: "Engagement normalising; refresh creative for ep 7.", loggedBy: "Marcus King",         loggedAt: "2026-04-21T10:15:00Z" },
+  { id: "pe-c4-w7", campaignId: "c4", weekOf: "2026-04-21", impressions: 20_000, clicks:  900, conversions: 8,  spentCents:  9_900, notes: "Pacing to budget ceiling; held spend for May push.", loggedBy: "Marcus King",         loggedAt: "2026-04-28T11:00:00Z" },
+
+  // ── c7: Webinar: Measuring AI ROI (email, ended, started 2026-01-14) ────────
+  { id: "pe-c7-w1", campaignId: "c7", weekOf: "2026-01-14", impressions:  8_200, clicks: 1_040, conversions: 52,  spentCents: 24_000, notes: "Invitation blast sent; 52 registrations day 1.", loggedBy: "Priya Raman",           loggedAt: "2026-01-21T10:00:00Z" },
+  { id: "pe-c7-w2", campaignId: "c7", weekOf: "2026-01-21", impressions:  9_800, clicks: 1_320, conversions: 76,  spentCents: 29_000, notes: "Reminder sequence boosted attendance intent.", loggedBy: "Priya Raman",             loggedAt: "2026-01-28T09:30:00Z" },
+  { id: "pe-c7-w3", campaignId: "c7", weekOf: "2026-01-28", impressions: 11_400, clicks: 1_600, conversions: 88,  spentCents: 34_000, notes: "Webinar week — live attendees 310 (target: 250) 🎉.", loggedBy: "Priya Raman",     loggedAt: "2026-02-04T10:15:00Z" },
+  { id: "pe-c7-w4", campaignId: "c7", weekOf: "2026-02-04", impressions:  9_500, clicks: 1_150, conversions: 46,  spentCents: 31_700, notes: "On-demand replay sent; replay CVR 14% above estimate.", loggedBy: "Priya Raman",   loggedAt: "2026-02-11T11:00:00Z" },
+];
+
 export type Channel = "seo" | "email" | "paid" | "social" | "partner";
 
 export interface Campaign {

@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { KpiCard } from "@/components/KpiCard";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/format";
-import { campaigns } from "@/lib/demo-data";
+import { campaigns, performanceEntries } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,17 @@ export default function CampaignsPage() {
   const cvr = totalClicks ? totalConversions / totalClicks : 0;
   const channelList: Array<"seo" | "email" | "paid" | "social" | "partner"> = ["seo", "email", "paid", "social", "partner"];
 
+  // Count logged entries per campaign
+  const entryCounts = Object.fromEntries(
+    campaigns.map((c) => [c.id, performanceEntries.filter((e) => e.campaignId === c.id).length])
+  );
+
   return (
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Campaigns"
         title="Campaign performance"
-        description="Cross-channel campaigns with owners, budget, and conversion signals."
+        description="Cross-channel campaigns with owners, budget, and conversion signals. Click any row to view the full performance timeline."
         actions={
           <button className="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-white hover:brightness-110">
             + New campaign
@@ -59,17 +65,26 @@ export default function CampaignsPage() {
               <th className="px-4 py-3 font-semibold text-right">Conv.</th>
               <th className="px-4 py-3 font-semibold text-right">CPA</th>
               <th className="px-4 py-3 font-semibold">Progress</th>
+              <th className="px-4 py-3 font-semibold text-center">Entries</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
             {campaigns.map((c) => {
               const cpa = c.conversions ? c.spentCents / c.conversions : 0;
               const progressPct = c.budgetCents ? Math.min(100, Math.round((c.spentCents / c.budgetCents) * 100)) : 0;
+              const count = entryCounts[c.id] ?? 0;
               return (
-                <tr key={c.id} className="hover:bg-white/[0.02]">
+                <tr
+                  key={c.id}
+                  className="group hover:bg-white/[0.025] transition-colors"
+                >
                   <td className="px-4 py-3">
-                    <p className="font-medium text-[var(--color-text)]">{c.name}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">Started {c.startedAt}</p>
+                    <Link href={`/campaigns/${c.id}`} className="block">
+                      <p className="font-medium text-[var(--color-text)] group-hover:text-[var(--color-accent)] transition-colors">
+                        {c.name}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-muted)]">Started {c.startedAt}</p>
+                    </Link>
                   </td>
                   <td className="px-4 py-3"><StatusBadge value={c.channel} /></td>
                   <td className="px-4 py-3"><StatusBadge value={c.status} /></td>
@@ -89,12 +104,34 @@ export default function CampaignsPage() {
                       <span className="w-8 text-right font-mono text-[10px] text-[var(--color-text-subtle)]">{progressPct}%</span>
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <Link
+                      href={`/campaigns/${c.id}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors ${count > 0 ? "bg-rose-500/15 text-rose-300 ring-1 ring-inset ring-rose-500/30 hover:bg-rose-500/25" : "bg-white/[0.04] text-[var(--color-text-subtle)] hover:bg-white/[0.08]"}`}
+                    >
+                      {count > 0 ? (
+                        <>
+                          <svg viewBox="0 0 10 10" fill="none" className="h-2.5 w-2.5" aria-hidden="true">
+                            <path d="M1.5 7.5l3-5 3 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          {count}w
+                        </>
+                      ) : (
+                        <span>Log →</span>
+                      )}
+                    </Link>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {/* Hint */}
+      <p className="text-center text-xs text-[var(--color-text-subtle)]">
+        Click a campaign name or its entry count to open the performance timeline and log new data.
+      </p>
     </div>
   );
 }
