@@ -39,7 +39,7 @@ export function softwareApplicationSchema() {
     publisher: {
       "@type": "Organization",
       name: "ASafariM Digital",
-      url: process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal-qa.asafarim.com",
+      url: process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.asafarim.com",
     },
   };
 }

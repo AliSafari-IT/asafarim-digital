@@ -59,14 +59,14 @@ export function CommandPalette({
       {
         id: "app-portal",
         label: "Open Portal",
-        hint: "portal-qa.asafarim.com",
+        hint: "portal.asafarim.com",
         group: "Apps",
         run: () => (window.location.href = appsHrefs.portal),
       },
       {
         id: "app-content",
         label: "Open Content Generator",
-        hint: "content-generator-qa.asafarim.com",
+        hint: "content-generator.asafarim.com",
         group: "Apps",
         run: () => (window.location.href = appsHrefs.contentGenerator),
       },

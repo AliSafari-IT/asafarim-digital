@@ -5,7 +5,7 @@ import { asafarimBrandTokens } from "@asafarim/ui";
 import { Sparkles, FileText, FolderOpen, MessageSquare, Save, Shield, ArrowRight, CheckCircle } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const currentAppUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "http://localhost:3001";
 
 const features = [

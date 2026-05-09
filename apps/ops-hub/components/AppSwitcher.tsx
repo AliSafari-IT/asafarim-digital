@@ -22,7 +22,7 @@ const apps: Array<{
     tagline: "Home · Content · Admin",
     tag: "Hub",
     urlEnv: "NEXT_PUBLIC_PORTAL_URL",
-    fallback: process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com",
+    fallback: process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com",
     mark: "A",
     gradient: "from-blue-500 to-indigo-600",
     ring: "ring-blue-500/30",
@@ -149,7 +149,7 @@ export function AppSwitcher({ current }: { current: AppKey }) {
                 Unified SSO · one account
               </span>
               <a
-                href={resolveUrl("NEXT_PUBLIC_PORTAL_URL", "https://portal-qa.asafarim.com")}
+                href={resolveUrl("NEXT_PUBLIC_PORTAL_URL", "https://portal.asafarim.com")}
                 className="text-[10px] font-medium text-[var(--color-accent)] hover:underline"
               >
                 Portal home →

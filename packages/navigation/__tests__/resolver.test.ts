@@ -236,9 +236,9 @@ describe("resolveCrossAppUrl", () => {
       updatedAt: new Date(),
     };
 
-    const appUrls = { portal: "https://portal-qa.asafarim.com" };
+    const appUrls = { portal: "https://portal.asafarim.com" };
     const result = resolveCrossAppUrl(item, appUrls);
-    expect(result).toBe("https://portal-qa.asafarim.com/profile");
+    expect(result).toBe("https://portal.asafarim.com/profile");
   });
 
   it("should return original href for internal navigation", () => {

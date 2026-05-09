@@ -22,8 +22,8 @@ const nav = [
 
 const SECTIONS = ["Growth", "Pipeline"] as const;
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
-const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
+const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator.asafarim.com";
 const opsHubUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL || "https://ops-hub.asafarim.com";
 const marketingContentUrl = process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "https://marketing-content.asafarim.com";
 

@@ -17,7 +17,7 @@ import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
 import { usePathname } from "next/navigation";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
 // Theme toggle component

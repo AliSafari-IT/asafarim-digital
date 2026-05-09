@@ -16,7 +16,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const currentAppUrl = process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "http://localhost:3004";
 
 const features = [

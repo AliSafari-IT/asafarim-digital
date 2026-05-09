@@ -113,8 +113,8 @@ ANTHROPIC_API_KEY=...
 ANTHROPIC_MODEL=claude-haiku-4-5
 
 # App URLs (production)
-NEXT_PUBLIC_PORTAL_URL=https://portal-qa.asafarim.com
-NEXT_PUBLIC_CONTENT_GENERATOR_URL=https://content-generator-qa.asafarim.com
+NEXT_PUBLIC_PORTAL_URL=https://portal.asafarim.com
+NEXT_PUBLIC_CONTENT_GENERATOR_URL=https://content-generator.asafarim.com
 NEXT_PUBLIC_OPS_HUB_URL=https://ops-hub.asafarim.com
 NEXT_PUBLIC_MARKETING_CONTENT_URL=https://marketing-content.asafarim.com
 NEXT_PUBLIC_EDUMATCH_URL=https://edumatch.asafarim.com
@@ -155,8 +155,8 @@ AUTH_COOKIE_DOMAIN=.asafarim.com
 ## App Routing Strategy
 
 Current setup uses **separate subdomains** for each app in QA/prod:
-- Portal: `https://portal-qa.asafarim.com`
-- Content Generator: `https://content-generator-qa.asafarim.com`
+- Portal: `https://portal.asafarim.com`
+- Content Generator: `https://content-generator.asafarim.com`
 - Ops Hub: `https://ops-hub.asafarim.com`
 - Marketing Content: `https://marketing-content.asafarim.com`
 - EduMatch: `https://edumatch.asafarim.com`
@@ -210,8 +210,8 @@ Required GitHub Secrets:
 
 Nginx configs are located in `infra/nginx/`:
 
-- `portal-qa.asafarim.com.conf` - Serves portal on port 3000
-- `content-generator-qa.asafarim.com.conf` - Serves content-generator on port 3002
+- `portal.asafarim.com.conf` - Serves portal on port 3000
+- `content-generator.asafarim.com.conf` - Serves content-generator on port 3002
 - `ops-hub.asafarim.com.conf` - Serves ops-hub on port 3003
 - `marketing-content.asafarim.com.conf` - Serves marketing-content on port 3004
 - `edumatch.asafarim.com.conf` - Serves edumatch on port 3005

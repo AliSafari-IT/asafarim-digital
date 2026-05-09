@@ -1,6 +1,6 @@
 import { createAuthMiddleware } from "@asafarim/auth/middleware";
 
-const portalUrl = process.env.PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.PORTAL_URL || "https://portal.asafarim.com";
 
 // All routes require auth + ops_admin/ops_viewer role (enforced in page/API via lib/rbac).
 // Middleware simply ensures the user is signed in; role gating is done server-side for

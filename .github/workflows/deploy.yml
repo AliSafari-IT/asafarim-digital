@@ -118,21 +118,21 @@ jobs:
             FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
             export COMPOSE_PARALLEL_LIMIT=1
-            sudo install -m 644 infra/nginx/portal-qa.asafarim.com.conf /etc/nginx/sites-available/portal-qa.asafarim.com.conf
-            sudo install -m 644 infra/nginx/content-generator-qa.asafarim.com.conf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf
+            sudo install -m 644 infra/nginx/portal.asafarim.com.conf /etc/nginx/sites-available/portal.asafarim.com.conf
+            sudo install -m 644 infra/nginx/content-generator.asafarim.com.conf /etc/nginx/sites-available/content-generator.asafarim.com.conf
             sudo install -m 644 infra/nginx/ops-hub.asafarim.com.conf /etc/nginx/sites-available/ops-hub.asafarim.com.conf
             sudo install -m 644 infra/nginx/marketing-content.asafarim.com.conf /etc/nginx/sites-available/marketing-content.asafarim.com.conf
             sudo install -m 644 infra/nginx/edumatch.asafarim.com.conf /etc/nginx/sites-available/edumatch.asafarim.com.conf
             sudo install -m 644 infra/nginx/vionto.asafarim.com.conf /etc/nginx/sites-available/vionto.asafarim.com.conf
             # Remove old duplicate configs before creating new symlinks
-            sudo rm -f /etc/nginx/sites-enabled/portal-qa.asafarim.com
-            sudo rm -f /etc/nginx/sites-enabled/content-generator-qa.asafarim.com
+            sudo rm -f /etc/nginx/sites-enabled/portal.asafarim.com
+            sudo rm -f /etc/nginx/sites-enabled/content-generator.asafarim.com
             sudo rm -f /etc/nginx/sites-enabled/ops-hub.asafarim.com
             sudo rm -f /etc/nginx/sites-enabled/marketing-content.asafarim.com
             sudo rm -f /etc/nginx/sites-enabled/edumatch.asafarim.com
             sudo rm -f /etc/nginx/sites-enabled/vionto.asafarim.com
-            sudo ln -sf /etc/nginx/sites-available/portal-qa.asafarim.com.conf /etc/nginx/sites-enabled/portal-qa.asafarim.com.conf
-            sudo ln -sf /etc/nginx/sites-available/content-generator-qa.asafarim.com.conf /etc/nginx/sites-enabled/content-generator-qa.asafarim.com.conf
+            sudo ln -sf /etc/nginx/sites-available/portal.asafarim.com.conf /etc/nginx/sites-enabled/portal.asafarim.com.conf
+            sudo ln -sf /etc/nginx/sites-available/content-generator.asafarim.com.conf /etc/nginx/sites-enabled/content-generator.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/ops-hub.asafarim.com.conf /etc/nginx/sites-enabled/ops-hub.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/marketing-content.asafarim.com.conf /etc/nginx/sites-enabled/marketing-content.asafarim.com.conf
             sudo ln -sf /etc/nginx/sites-available/edumatch.asafarim.com.conf /etc/nginx/sites-enabled/edumatch.asafarim.com.conf

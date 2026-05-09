@@ -16,7 +16,7 @@ import {
   BarChart3,
 } from "lucide-react";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const currentAppUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL || "http://localhost:3003";
 
 const features = [

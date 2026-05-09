@@ -18,7 +18,7 @@ import { getToken } from "next-auth/jwt";
  * import { createAuthMiddleware } from "@asafarim/auth/middleware";
  * export const middleware = createAuthMiddleware({
  *   publicRoutes: ["/", "/about", "/api/health"],
- *   signInUrl: "https://portal-qa.asafarim.com/sign-in",
+ *   signInUrl: "https://portal.asafarim.com/sign-in",
  * });
  * ```
  */

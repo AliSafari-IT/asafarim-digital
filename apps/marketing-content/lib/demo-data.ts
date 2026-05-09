@@ -86,7 +86,7 @@ export const seoTasks: SeoTask[] = [
   { id: "t2", page: "/guides/agent-workflows",           issue: "Add FAQ schema + author block",              priority: "medium", status: "open" },
   { id: "t3", page: "/blog/billing-rebuild",             issue: "Compress hero image (1.8MB → <300KB)",        priority: "high",   status: "open" },
   { id: "t4", page: "/showcase/content-generator",       issue: "Add internal links from 3 blog posts",        priority: "medium", status: "done" },
-  { id: "t5", page: "/",                                 issue: "Canonical tag conflict w/ portal-qa",         priority: "high",   status: "in_progress" },
+  { id: "t5", page: "/",                                 issue: "Canonical tag conflict w/ portal.asafarim.com",         priority: "high",   status: "in_progress" },
   { id: "t6", page: "/guides/pql-scoring",               issue: "Publish target date (stuck in review)",        priority: "low",    status: "open" },
 ];
 

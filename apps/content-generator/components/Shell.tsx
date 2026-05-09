@@ -20,8 +20,8 @@ const nav = [
   { href: "/#prompts", label: "Prompts", labelKey: "cg.nav.history", icon: <PromptsIcon /> },
 ];
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-qa.asafarim.com";
-const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator-qa.asafarim.com";
+const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
+const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator.asafarim.com";
 
 function GeneratorIcon() {
   return (
