@@ -25,7 +25,7 @@ COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/vionto-schemas ./packages/vionto-schemas
 
 # Full install so tsup can resolve all imports while bundling
-RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline
+RUN pnpm install --no-frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline
 
 # Generate Prisma client for the builder arch (needed so @asafarim/db can build)
 RUN cd packages/db && npx prisma generate
