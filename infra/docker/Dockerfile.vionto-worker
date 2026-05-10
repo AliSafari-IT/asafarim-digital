@@ -54,7 +54,7 @@ COPY --from=builder /repo/packages/db/prisma ./prisma
 
 # Install @prisma/client and regenerate for Alpine (musl) -- fresh npm install,
 # no pnpm virtual-store symlinks to worry about.
-RUN npm install @prisma/client && \
+RUN npm install @prisma/client@6.19.3 prisma@6.19.3 && \
     npx prisma generate --schema=prisma/schema.prisma
 
 # The fully self-contained worker bundle
