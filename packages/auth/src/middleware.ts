@@ -85,10 +85,22 @@ export function createAuthMiddleware(options: AuthMiddlewareOptions = {}) {
       // send an absolute callback URL so the sign-in app can bounce the
       // user back to the app they originally tried to access.
       const relativeCallbackUrl = `${req.nextUrl.pathname}${req.nextUrl.search}` || "/";
+
+      // Prefer the public-facing origin from forwarded headers (set by nginx)
+      // or AUTH_URL env var. Avoids leaking the internal bind address (0.0.0.0)
+      // when the app runs behind a reverse proxy inside Docker.
+      const forwardedHost = req.headers.get("x-forwarded-host");
+      const forwardedProto = req.headers.get("x-forwarded-proto") ?? "https";
+      const publicOrigin =
+        (forwardedHost ? `${forwardedProto}://${forwardedHost}` : null) ??
+        process.env.AUTH_URL ??
+        process.env.NEXT_PUBLIC_VIONTO_URL ??
+        req.nextUrl.origin;
+
       const callbackUrl =
-        redirectUrl.origin === req.nextUrl.origin
+        redirectUrl.origin === new URL(publicOrigin).origin
           ? relativeCallbackUrl
-          : new URL(relativeCallbackUrl, req.nextUrl.origin).toString();
+          : new URL(relativeCallbackUrl, publicOrigin).toString();
       redirectUrl.searchParams.set("callbackUrl", callbackUrl);
       return NextResponse.redirect(redirectUrl);
     }

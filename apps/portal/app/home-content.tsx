@@ -605,7 +605,7 @@ export function HomeContent({ content: _content }: { content: ContentMap }) {
                   </p>
                   <div style={{ display:"flex", gap:"14px", flexWrap:"wrap", justifyContent:"center" }}>
                     <HoverAnchor href="mailto:asafarim@gmail.com" primary>asafarim@gmail.com <span aria-hidden="true">→</span></HoverAnchor>
-                    <HoverAnchor href="https://github.com/asafarim" external>GitHub</HoverAnchor>
+                    <HoverAnchor href="https://github.com/alisafari-it" external>GitHub</HoverAnchor>
                   </div>
                 </div>
               </div>
