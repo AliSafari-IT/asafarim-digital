@@ -3,11 +3,15 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-# Install FFmpeg and required system libs
+# FFmpeg + font libs required by the render pipeline
 RUN apk add --no-cache ffmpeg fontconfig ttf-liberation
 
+# ─── Builder ──────────────────────────────────────────────────────────────────
 FROM base AS builder
 WORKDIR /repo
+
+# tsup for bundling -- global install avoids any lockfile constraint
+RUN npm install -g tsup
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/vionto ./apps/vionto
@@ -20,14 +24,25 @@ COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/shared-i18n ./packages/shared-i18n
 COPY packages/vionto-schemas ./packages/vionto-schemas
 
-# Build-time tooling such as tsup and prisma lives in workspace devDependencies.
+# Full install so tsup can resolve all imports while bundling
 RUN pnpm install --frozen-lockfile --filter vionto... --filter @asafarim/db... --prefer-offline
+
+# Generate Prisma client for the builder arch (needed so @asafarim/db can build)
+RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
-RUN CI=true pnpm prune --prod --ignore-scripts && \
-    pnpm store prune && \
-    rm -rf /root/.cache /tmp/* /repo/node_modules/.cache
 
+# Bundle worker.ts into a single self-contained CJS file.
+# All pure-JS deps (bullmq, ioredis, openai, aws-sdk, etc.) are INLINED.
+# Only @prisma/client stays external -- it has a native .node binary that must
+# be generated for the target platform (Alpine/musl) in the runner stage.
+RUN tsup apps/vionto/worker.ts \
+      --out-dir apps/vionto/worker-dist \
+      --format cjs \
+      --no-splitting \
+      --external @prisma/client
+
+# ─── Runner ───────────────────────────────────────────────────────────────────
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
@@ -36,16 +51,20 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 worker
 
-COPY --from=builder /repo/node_modules ./node_modules
-COPY --from=builder /repo/packages/db ./packages/db
-COPY --from=builder /repo/apps/vionto ./apps/vionto
+# Copy only the prisma schema so we can generate the native Alpine client.
+# Everything else (bullmq, ioredis, openai, aws-sdk...) is already bundled.
+COPY --from=builder /repo/packages/db/prisma ./prisma
 
-# Copy Prisma client to expected location
-RUN mkdir -p /app/node_modules/.prisma && \
-    find /app/node_modules/.pnpm -type d -name ".prisma" -exec cp -r {}/client /app/node_modules/.prisma/ \; && \
-    chown -R worker:nodejs /app/node_modules/.prisma
+# Install @prisma/client and regenerate for Alpine (musl) -- fresh npm install,
+# no pnpm virtual-store symlinks to worry about.
+RUN npm install @prisma/client && \
+    npx prisma generate --schema=prisma/schema.prisma
 
+# The fully self-contained worker bundle
+COPY --from=builder /repo/apps/vionto/worker-dist ./worker-dist
+
+RUN chown -R worker:nodejs /app
 USER worker
 
-# The worker entry point
-CMD ["npx", "tsx", "apps/vionto/worker.ts"]
+# Plain node -- no tsx, no npx download, no symlink resolution
+CMD ["node", "worker-dist/worker.js"]
