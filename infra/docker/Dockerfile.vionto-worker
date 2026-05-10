@@ -10,9 +10,6 @@ RUN apk add --no-cache ffmpeg fontconfig ttf-liberation
 FROM base AS builder
 WORKDIR /repo
 
-# tsup for bundling -- global install avoids any lockfile constraint
-RUN npm install -g tsup
-
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/vionto ./apps/vionto
 COPY packages/auth ./packages/auth
@@ -36,8 +33,8 @@ RUN pnpm --filter @asafarim/ui build
 # All pure-JS deps (bullmq, ioredis, openai, aws-sdk, etc.) are INLINED.
 # Only @prisma/client stays external -- it has a native .node binary that must
 # be generated for the target platform (Alpine/musl) in the runner stage.
-RUN tsup apps/vionto/worker.ts \
-      --out-dir apps/vionto/worker-dist \
+RUN pnpm --filter vionto exec tsup worker.ts \
+      --out-dir worker-dist \
       --format cjs \
       --no-splitting \
       --external @prisma/client
