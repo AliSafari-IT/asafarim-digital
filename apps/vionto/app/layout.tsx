@@ -5,6 +5,7 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { I18nProvider } from "@asafarim/shared-i18n";
 import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { viontoDictionaries } from "@/lib/i18n-dictionaries";
+import { readThemeFromCookie, themeInitScript } from "@asafarim/ui";
 import "./globals.css";
 
 const appUrl = process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com";
@@ -49,9 +50,17 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const initialLocale = resolveLocaleFromCookie(cookieStore.toString());
+  const theme = readThemeFromCookie(cookieStore.toString()) ?? "dark";
 
   return (
-    <html lang={initialLocale} suppressHydrationWarning>
+    <html lang={initialLocale} data-theme={theme} style={{ colorScheme: theme }} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: themeInitScript,
+          }}
+        />
+      </head>
       <body className="flex min-h-screen flex-col">
         <I18nProvider initialLocale={initialLocale} dictionaries={viontoDictionaries}>
           <SessionProvider>

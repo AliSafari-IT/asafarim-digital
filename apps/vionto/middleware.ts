@@ -6,7 +6,15 @@ const portalUrl =
     : process.env.PORTAL_URL || process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 
 export const middleware = createAuthMiddleware({
-  publicRoutes: ["/", "/api/health", "/api/navigation", "/api/projects", "/api/render", "/api/exports"],
+  publicRoutes: [
+    "/",
+    "/api/health",
+    "/api/navigation",
+    "/api/projects",
+    "/api/render",
+    "/api/exports",
+    "/api/audio",
+  ],
   signInUrl: `${portalUrl}/sign-in`,
 });
 
