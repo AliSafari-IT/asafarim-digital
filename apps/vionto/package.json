@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "worker:dev": "dotenv -e ../../.env -- tsx worker.ts",
-    "worker:build": "tsup worker.ts --out-dir worker-dist --format cjs --no-splitting --external @prisma/client --external bullmq --external ioredis --external openai --external @aws-sdk/client-s3 --external @aws-sdk/s3-request-presigner",
+    "worker:build": "tsup --config tsup.worker.config.ts",
     "build": "next build",
     "start": "next start --port 3006",
     "lint": "echo \"Lint skipped for Next.js 16 app; covered by typecheck/build\"",

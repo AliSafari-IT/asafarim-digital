@@ -29,15 +29,8 @@ RUN cd packages/db && npx prisma generate
 RUN pnpm --filter @asafarim/db build
 RUN pnpm --filter @asafarim/ui build
 
-# Bundle worker.ts into a single self-contained CJS file.
-# All pure-JS deps (bullmq, ioredis, openai, aws-sdk, etc.) are INLINED.
-# Only @prisma/client stays external -- it has a native .node binary that must
-# be generated for the target platform (Alpine/musl) in the runner stage.
-RUN pnpm --filter vionto exec tsup worker.ts \
-      --out-dir worker-dist \
-      --format cjs \
-      --no-splitting \
-      --external @prisma/client
+# Bundle worker.ts using the package.json script which has all correct --external flags
+RUN pnpm --filter vionto run worker:build
 
 # ─── Runner ───────────────────────────────────────────────────────────────────
 FROM base AS runner
@@ -52,9 +45,11 @@ RUN adduser --system --uid 1001 worker
 # Everything else (bullmq, ioredis, openai, aws-sdk...) is already bundled.
 COPY --from=builder /repo/packages/db/prisma ./prisma
 
-# Install @prisma/client and regenerate for Alpine (musl) -- fresh npm install,
-# no pnpm virtual-store symlinks to worry about.
-RUN npm install @prisma/client@6.19.3 prisma@6.19.3 && \
+# Install all external runtime deps and regenerate Prisma for Alpine (musl)
+RUN npm install \
+      @prisma/client@6.19.3 prisma@6.19.3 \
+      bullmq ioredis openai \
+      @aws-sdk/client-s3 @aws-sdk/s3-request-presigner && \
     npx prisma generate --schema=prisma/schema.prisma
 
 # The fully self-contained worker bundle
