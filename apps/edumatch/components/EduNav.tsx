@@ -14,11 +14,12 @@ import {
   AppSwitcher,
 } from "@asafarim/ui";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
-import type { AppCode, ResolvedNavItem } from "@asafarim/types";
-import { usePathname } from "next/navigation";
+import type { AppCode } from "@asafarim/types";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
-const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
+const portalUrl =
+  process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
+const edumatchUrl =
+  process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
 // Theme toggle component
 function ThemeToggle() {
@@ -44,11 +45,18 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-      className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+      aria-label={
+        theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
+      }
+      className="group inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
     >
       {theme === "dark" ? (
-        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-4 w-4"
+          aria-hidden="true"
+        >
           <path
             d="M12 3v2.5M12 18.5V21M4.64 4.64l1.77 1.77M17.59 17.59l1.77 1.77M3 12h2.5M18.5 12H21M4.64 19.36l1.77-1.77M17.59 6.41l1.77-1.77M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"
             stroke="currentColor"
@@ -58,7 +66,12 @@ function ThemeToggle() {
           />
         </svg>
       ) : (
-        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-4 w-4"
+          aria-hidden="true"
+        >
           <path
             d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"
             stroke="currentColor"
@@ -76,20 +89,43 @@ function ThemeToggle() {
 function UserMenu() {
   const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropPos, setDropPos] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
+  // Calculate where the dropdown should appear, clamped within the viewport.
+  const calcPos = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const dropW = 288; // w-72 = 18rem = 288px
+    const margin = 8;
+    // Prefer aligning right edge of dropdown to right edge of button
+    let left = r.right - dropW;
+    // Clamp so it never goes off the left or right edge
+    left = Math.max(margin, Math.min(left, window.innerWidth - dropW - margin));
+    setDropPos({ top: r.bottom + margin, left });
+  };
+
+  // Outside-click: close only when clicking outside BOTH the button and the dropdown panel.
   useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      const t = e.target as Node;
+      const inBtn = btnRef.current?.contains(t);
+      const inDrop = dropRef.current?.contains(t);
+      if (!inBtn && !inDrop) setOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+    document.addEventListener("mousedown", onMouseDown, true);
+    return () => document.removeEventListener("mousedown", onMouseDown, true);
+  }, [open]);
 
   if (status === "loading") {
-    return <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />;
+    return (
+      <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />
+    );
   }
 
   if (!session?.user) {
@@ -110,20 +146,28 @@ function UserMenu() {
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : session.user.email?.[0]?.toUpperCase() ?? "?";
+    : (session.user.email?.[0]?.toUpperCase() ?? "?");
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          calcPos();
+          setOpen((v) => !v);
+        }}
         aria-haspopup="true"
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-primary)]"
       >
         {session.user.image ? (
           <img
-            src={session.user.image.startsWith("http") ? session.user.image : `${portalUrl}${session.user.image}`}
+            src={
+              session.user.image.startsWith("http")
+                ? session.user.image
+                : `${portalUrl}${session.user.image}`
+            }
             alt={session.user.name ?? "User"}
             width={28}
             height={28}
@@ -141,16 +185,41 @@ function UserMenu() {
         <span className="hidden max-w-[120px] truncate sm:block">
           {session.user.name ?? session.user.email}
         </span>
-        <svg viewBox="0 0 16 16" fill="none" className="h-3 w-3 text-[var(--color-text-muted)]" aria-hidden="true">
-          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          viewBox="0 0 16 16"
+          fill="none"
+          className="h-3 w-3 text-[var(--color-text-muted)]"
+          aria-hidden="true"
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 min-w-[260px] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-2 shadow-lg">
+        <div
+          ref={dropRef}
+          style={{
+            position: "fixed",
+            top: dropPos.top,
+            left: dropPos.left,
+            zIndex: 9999,
+            width: 288,
+          }}
+          className="rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-2 shadow-2xl"
+        >
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-            <p className="text-sm font-semibold">{session.user.name ?? "User"}</p>
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">{session.user.email}</p>
+            <p className="text-sm font-semibold">
+              {session.user.name ?? "User"}
+            </p>
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+              {session.user.email}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {session.user.username && (
                 <span className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[11px] text-[var(--color-text-muted)]">
@@ -164,7 +233,9 @@ function UserMenu() {
                     : "border border-amber-400/30 bg-amber-400/10 text-amber-400"
                 }`}
               >
-                {session.user.emailVerified ? "Verified" : "Verification pending"}
+                {session.user.emailVerified
+                  ? "Verified"
+                  : "Verification pending"}
               </span>
             </div>
           </div>
@@ -217,46 +288,82 @@ function EduLogo() {
   return (
     <Link href="/" className="flex items-center gap-2.5">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#14532d] to-[#052e16] shadow-lg shadow-green-500/20 ring-1 ring-green-500/30">
-        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6">
+        <svg
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-6 w-6"
+        >
           <defs>
             <linearGradient id="capG" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#4ade80"/>
-              <stop offset="100%" stopColor="#10b981"/>
+              <stop offset="0%" stopColor="#4ade80" />
+              <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
           </defs>
-          <polygon points="16,6 26,11 16,16 6,11" fill="url(#capG)"/>
-          <path d="M9 13 L9 20 Q16 24 23 20 L23 13" stroke="#4ade80" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="26" y1="11" x2="26" y2="19" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round"/>
-          <circle cx="26" cy="20.5" r="1.8" fill="#34d399"/>
-          <circle cx="16" cy="11" r="2" fill="#ffffff" opacity="0.9"/>
+          <polygon points="16,6 26,11 16,16 6,11" fill="url(#capG)" />
+          <path
+            d="M9 13 L9 20 Q16 24 23 20 L23 13"
+            stroke="#4ade80"
+            strokeWidth="1.6"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <line
+            x1="26"
+            y1="11"
+            x2="26"
+            y2="19"
+            stroke="#34d399"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <circle cx="26" cy="20.5" r="1.8" fill="#34d399" />
+          <circle cx="16" cy="11" r="2" fill="#ffffff" opacity="0.9" />
         </svg>
       </div>
       <span className="text-lg font-bold">
-        <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">Edu</span>
+        <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+          Edu
+        </span>
         <span className="text-[var(--color-text)]">Match</span>
       </span>
     </Link>
   );
 }
 
-// Right content component for navbar
-function RightContent() {
+/**
+ * Controls that are always pinned in the navbar bar at every breakpoint.
+ * Language selector + theme toggle are small enough to always stay visible.
+ */
+function CompactControls() {
   return (
-    <div className="flex items-center gap-2">
-      <CountryLanguageSelector />
+    <>
+      {/* Show flag+lang on sm+, flag-only on xs */}
+      <CountryLanguageSelector compact={false} className="hidden sm:block" />
+      <CountryLanguageSelector compact={true} className="sm:hidden" />
       <ThemeToggle />
+    </>
+  );
+}
+
+/**
+ * Right content that lives on the desktop navbar rail and in the mobile
+ * drawer — app switcher + user account menu.
+ */
+function DrawerContent() {
+  return (
+    <>
       <AppSwitcher current="edumatch" variant="default" />
       <UserMenu />
-    </div>
+    </>
   );
 }
 
 // EduMatch-specific wrapper around CommonNavbar
 export function EduNav() {
-  const { items, loading, error } = useNavigation("edumatch" as AppCode, "header");
-  const pathname = usePathname();
+  const { items, error } = useNavigation("edumatch" as AppCode, "header");
 
-  // Handle error state gracefully - fall back to minimal nav
   if (error) {
     console.error("Navigation fetch error:", error);
   }
@@ -266,7 +373,8 @@ export function EduNav() {
       items={items}
       app="edumatch"
       logo={<EduLogo />}
-      rightContent={<RightContent />}
+      compactControls={<CompactControls />}
+      rightContent={<DrawerContent />}
       className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl"
       sticky={true}
     />

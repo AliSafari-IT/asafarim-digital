@@ -1,135 +1,161 @@
 @import "tailwindcss";
 @import "@asafarim/country-language-selector/styles.css";
-@source "../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
 
-/* Explicitly generate responsive navbar classes from @asafarim/ui */
-@source inline("hidden md:flex md:hidden items-center gap-1 gap-4 p-2 rounded-md w-6 h-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 justify-between h-16 py-4 border-t flex-col mt-4 pt-4");
+/*
+ * Safelist — force-generate classes used in @asafarim/ui components.
+ * These classes are applied dynamically (via string concatenation or
+ * conditionals) so Tailwind's static scanner would otherwise miss them.
+ */
+@source inline("lg:hidden lg:flex hidden flex flex-1 flex-shrink-0 flex-col flex-wrap items-center items-start justify-between gap-0.5 gap-1 gap-1.5 gap-2 gap-3 gap-4 h-9 h-16 w-9 px-4 px-1 py-3 py-4 sm:px-6 max-w-7xl mx-auto min-w-0 overflow-hidden overflow-y-auto sticky top-0 top-16 z-40 z-50 fixed inset-0 border-b border-t border-l rounded-lg rounded-xl rounded-2xl shadow-2xl space-y-0.5 mt-0.5 mt-3 mt-4 pt-3 pt-4 whitespace-nowrap opacity-0 opacity-100 invisible visible");
 
 :root {
-  /* ─── Brand Core ─────────────────────────────────────────── */
-  --brand-midnight: #0D0D0F;
-  --brand-azure: #3A7BFF;
-  --brand-slate: #A3A9B7;
-  --brand-mint: #4FF2C9;
-  --brand-violet: #C084FC;
-  --brand-pink: #F472B6;
-  --brand-text: #F5F7FB;
-  --brand-border-dark: #2A2F3B;
-  --brand-elevated: #14161C;
+    /* ─── Brand Core ─────────────────────────────────────────── */
+    --brand-midnight: #0d0d0f;
+    --brand-azure: #3a7bff;
+    --brand-slate: #a3a9b7;
+    --brand-mint: #4ff2c9;
+    --brand-violet: #c084fc;
+    --brand-pink: #f472b6;
+    --brand-text: #f5f7fb;
+    --brand-border-dark: #2a2f3b;
+    --brand-elevated: #14161c;
 
-  /* ─── EduMatch Semantic Colors (education-themed blue tint) ─── */
-  --color-bg: #0b1020;
-  --color-surface: #111733;
-  --color-surface-soft: #0d1429;
-  --color-panel: rgba(17, 23, 51, 0.9);
-  --color-panel-strong: rgba(13, 20, 41, 0.95);
-  --color-border: #1f2a55;
-  --color-border-strong: rgba(111, 127, 189, 0.4);
-  --color-text: #f4f7ff;
-  --color-text-secondary: #97a3c9;
-  --color-text-muted: #97a3c9;
-  --color-text-subtle: #6b7a9c;
-  --color-primary: #6c8cff;
-  --color-primary-dark: #4b6bff;
-  --color-primary-soft: rgba(108, 140, 255, 0.15);
-  --color-accent: #4ff2c9;
-  --color-success: #4ff2c9;
-  --color-warning: #ffbe5b;
-  --color-danger: #ff7b92;
-  --color-bg-soft: rgba(11, 16, 32, 0.6);
+    /* ─── EduMatch Semantic Colors (education-themed blue tint) ─── */
+    --color-bg: #0b1020;
+    --color-surface: #111733;
+    --color-surface-soft: #0d1429;
+    --color-panel: rgba(17, 23, 51, 0.9);
+    --color-panel-strong: rgba(13, 20, 41, 0.95);
+    --color-border: #1f2a55;
+    --color-border-strong: rgba(111, 127, 189, 0.4);
+    --color-text: #f4f7ff;
+    --color-text-secondary: #97a3c9;
+    --color-text-muted: #97a3c9;
+    --color-text-subtle: #6b7a9c;
+    --color-primary: #6c8cff;
+    --color-primary-dark: #4b6bff;
+    --color-primary-soft: rgba(108, 140, 255, 0.15);
+    --color-accent: #4ff2c9;
+    --color-success: #4ff2c9;
+    --color-warning: #ffbe5b;
+    --color-danger: #ff7b92;
+    --color-bg-soft: rgba(11, 16, 32, 0.6);
 
-  /* ─── Gradients ──────────────────────────────────────────── */
-  --gradient-brand: linear-gradient(135deg, #6c8cff 0%, #4ff2c9 100%);
-  --gradient-headline: linear-gradient(120deg, #6AA3FF 0%, #A78BFA 50%, #5DE4C7 100%);
-  --gradient-violet: linear-gradient(135deg, #C084FC, #F472B6);
-  --gradient-mint: linear-gradient(135deg, #36C6A8, #5DE4C7);
-  --gradient-azure: linear-gradient(135deg, #4C7DFF, #6AA3FF);
+    /* ─── Gradients ──────────────────────────────────────────── */
+    --gradient-brand: linear-gradient(135deg, #6c8cff 0%, #4ff2c9 100%);
+    --gradient-headline: linear-gradient(
+        120deg,
+        #6aa3ff 0%,
+        #a78bfa 50%,
+        #5de4c7 100%
+    );
+    --gradient-violet: linear-gradient(135deg, #c084fc, #f472b6);
+    --gradient-mint: linear-gradient(135deg, #36c6a8, #5de4c7);
+    --gradient-azure: linear-gradient(135deg, #4c7dff, #6aa3ff);
 
-  /* ─── Shadows ──────────────────────────────────────────────── */
-  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
-  --shadow-glow: 0 20px 40px -22px rgba(76, 125, 255, 0.75);
-  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.50);
-  --shadow-brand-glow: 0 0 0 1px rgba(58, 123, 255, 0.35), 0 12px 36px -20px rgba(79, 242, 201, 0.55);
+    /* ─── Shadows ──────────────────────────────────────────────── */
+    --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.72);
+    --shadow-glow: 0 20px 40px -22px rgba(76, 125, 255, 0.75);
+    --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.5);
+    --shadow-brand-glow:
+        0 0 0 1px rgba(58, 123, 255, 0.35),
+        0 12px 36px -20px rgba(79, 242, 201, 0.55);
 
-  /* ─── Radius ───────────────────────────────────────────────── */
-  --radius-xs: 0.5rem;
-  --radius-sm: 0.625rem;
-  --radius-md: 0.875rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2rem;
-  --radius-pill: 9999px;
+    /* ─── Radius ───────────────────────────────────────────────── */
+    --radius-xs: 0.5rem;
+    --radius-sm: 0.625rem;
+    --radius-md: 0.875rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --radius-2xl: 1.5rem;
+    --radius-3xl: 2rem;
+    --radius-pill: 9999px;
 
-  /* ─── Typography ───────────────────────────────────────────── */
-  --font-sans: "Geist", "Manrope", "Inter Tight", "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Geist", "Manrope", "Inter Tight", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", "Consolas", "SFMono-Regular", monospace;
+    /* ─── Typography ───────────────────────────────────────────── */
+    --font-sans:
+        "Geist", "Manrope", "Inter Tight", "Inter", "Segoe UI", system-ui,
+        sans-serif;
+    --font-display:
+        "Geist", "Manrope", "Inter Tight", "Inter", system-ui, sans-serif;
+    --font-mono:
+        "JetBrains Mono", "IBM Plex Mono", "Consolas", "SFMono-Regular",
+        monospace;
 
-  /* Type Scale */
-  --fs-eyebrow: 0.6875rem;
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.875rem;
-  --fs-base: 1rem;
-  --fs-lg: 1.125rem;
-  --fs-xl: 1.25rem;
-  --fs-2xl: 1.5rem;
-  --fs-3xl: 1.875rem;
-  --fs-4xl: 2.25rem;
-  --fs-5xl: 3rem;
-  --fs-6xl: 3.75rem;
-  --fs-7xl: 5.25rem;
+    /* Type Scale */
+    --fs-eyebrow: 0.6875rem;
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.875rem;
+    --fs-base: 1rem;
+    --fs-lg: 1.125rem;
+    --fs-xl: 1.25rem;
+    --fs-2xl: 1.5rem;
+    --fs-3xl: 1.875rem;
+    --fs-4xl: 2.25rem;
+    --fs-5xl: 3rem;
+    --fs-6xl: 3.75rem;
+    --fs-7xl: 5.25rem;
 
-  /* Tracking */
-  --tracking-eyebrow: 0.22em;
-  --tracking-display: -0.05em;
-  --tracking-h1: -0.04em;
-  --tracking-h2: -0.03em;
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0;
+    /* Tracking */
+    --tracking-eyebrow: 0.22em;
+    --tracking-display: -0.05em;
+    --tracking-h1: -0.04em;
+    --tracking-h2: -0.03em;
+    --tracking-tight: -0.02em;
+    --tracking-normal: 0;
 
-  /* ─── Motion ───────────────────────────────────────────────── */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
-  --duration-fast: 180ms;
-  --duration-base: 300ms;
-  --duration-slow: 500ms;
+    /* ─── Motion ───────────────────────────────────────────────── */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+    --duration-fast: 180ms;
+    --duration-base: 300ms;
+    --duration-slow: 500ms;
 }
 
 html[data-theme="light"] {
-  /* ─── Light Theme Colors ───────────────────────────────────── */
-  --color-bg: #f7f9ff;
-  --color-surface: #ffffff;
-  --color-surface-soft: #f1f5f9;
-  --color-panel: rgba(255, 255, 255, 0.9);
-  --color-panel-strong: rgba(241, 245, 249, 0.95);
-  --color-border: #e2e8f0;
-  --color-border-strong: rgba(148, 163, 184, 0.4);
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
-  --color-text-subtle: #94a3b8;
-  --color-primary: #4b6bff;
-  --color-primary-dark: #2f4ad6;
-  --color-primary-soft: rgba(75, 107, 255, 0.15);
-  --color-accent: #10b981;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-bg-soft: rgba(247, 249, 255, 0.6);
+    /* ─── Light Theme Colors ───────────────────────────────────── */
+    --color-bg: #f7f9ff;
+    --color-surface: #ffffff;
+    --color-surface-soft: #f1f5f9;
+    --color-panel: rgba(255, 255, 255, 0.9);
+    --color-panel-strong: rgba(241, 245, 249, 0.95);
+    --color-border: #e2e8f0;
+    --color-border-strong: rgba(148, 163, 184, 0.4);
+    --color-text: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #64748b;
+    --color-text-subtle: #94a3b8;
+    --color-primary: #4b6bff;
+    --color-primary-dark: #2f4ad6;
+    --color-primary-soft: rgba(75, 107, 255, 0.15);
+    --color-accent: #10b981;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-bg-soft: rgba(247, 249, 255, 0.6);
 
-  /* ─── Light Theme Shadows ──────────────────────────────────── */
-  --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 18px 36px -20px rgba(34, 83, 216, 0.35);
-  --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
+    /* ─── Light Theme Shadows ──────────────────────────────────── */
+    --shadow-card: 0 28px 80px -40px rgba(0, 0, 0, 0.15);
+    --shadow-glow: 0 18px 36px -20px rgba(34, 83, 216, 0.35);
+    --shadow-brand-card: 0 16px 50px -28px rgba(58, 123, 255, 0.15);
 }
 
 * {
-  border-color: var(--color-border);
+    border-color: var(--color-border);
+    box-sizing: border-box;
+}
+
+html {
+    /* Prevent the page from ever scrolling horizontally */
+    overflow-x: hidden;
 }
 
 body {
-  font-family: "Geist", "Inter Tight", "Inter", "Segoe UI", sans-serif;
-  background: var(--color-bg);
-  color: var(--color-text);
+    font-family: "Geist", "Inter Tight", "Inter", "Segoe UI", sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    /* Contain width to the viewport — never clip visible content */
+    min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
