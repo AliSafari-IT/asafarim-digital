@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Inquiry = {
   id: string;
@@ -14,18 +15,26 @@ type Inquiry = {
 };
 
 export default function StudentDashboard() {
+  const { t } = useTranslation();
   const { data: session, status } = useSession();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
-  const signinUrl = process.env.NEXTAUTH_URL ? `${process.env.NEXTAUTH_URL}/api/auth/signin` : "/api/auth/signin";
-  const EDUMATCH_URL = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
+  const signinUrl = process.env.NEXTAUTH_URL
+    ? `${process.env.NEXTAUTH_URL}/api/auth/signin`
+    : "/api/auth/signin";
+  const EDUMATCH_URL =
+    process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
   useEffect(() => {
     if (status === "authenticated") {
       Promise.all([
-        fetch(`${EDUMATCH_URL}/api/inquiries`).then((r) => r.json()).catch(() => ({ items: [] })),
-        fetch(`${EDUMATCH_URL}/api/student/profile`).then((r) => ({ ok: r.ok })).catch(() => ({ ok: false })),
+        fetch(`${EDUMATCH_URL}/api/inquiries`)
+          .then((r) => r.json())
+          .catch(() => ({ items: [] })),
+        fetch(`${EDUMATCH_URL}/api/student/profile`)
+          .then((r) => ({ ok: r.ok }))
+          .catch(() => ({ ok: false })),
       ]).then(([inquiryData, profileData]) => {
         setInquiries((inquiryData as { items?: Inquiry[] }).items ?? []);
         setHasProfile((profileData as { ok: boolean }).ok);
@@ -46,9 +55,14 @@ export default function StudentDashboard() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center">
-          <h1 className="mb-4 text-2xl font-bold">Please sign in</h1>
-          <Link href={signinUrl} className="text-[var(--color-primary)] hover:underline">
-            Sign in
+          <h1 className="mb-4 text-2xl font-bold">
+            {t("edumatch.student.signInRequired")}
+          </h1>
+          <Link
+            href={signinUrl}
+            className="text-[var(--color-primary)] hover:underline"
+          >
+            {t("edumatch.student.signIn")}
           </Link>
         </div>
       </div>
@@ -57,84 +71,100 @@ export default function StudentDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-        {hasProfile === false && (
-          <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
-            <div className="mt-0.5 text-amber-500 text-xl">⚠</div>
-            <div className="flex-1">
-              <p className="font-semibold text-amber-800">Student profile not set up yet</p>
-              <p className="text-sm text-amber-700 mt-0.5">
-                You need a student profile before you can submit inquiries. It only takes a few seconds.
-              </p>
-            </div>
-            <Link
-              href={`${EDUMATCH_URL}/student/inquiry/new`}
-              className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
-            >
-              Set up profile
-            </Link>
+      {hasProfile === false && (
+        <div className="mb-6 flex items-start gap-4 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
+          <div className="mt-0.5 text-amber-500 text-xl">⚠</div>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-800">
+              {t("edumatch.student.profileMissing.title")}
+            </p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              {t("edumatch.student.profileMissing.desc")}
+            </p>
           </div>
-        )}
-
-        <div className="mb-8 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-[var(--color-text)]">My Inquiries</h2>
-          <div className="flex items-center gap-3">
-            <Link
-              href={`${EDUMATCH_URL}/student/profile`}
-              className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
-            >
-              {hasProfile ? "Edit Profile" : "Create Profile"}
-            </Link>
-            <Link
-              href={`${EDUMATCH_URL}/student/inquiry/new`}
-              className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
-            >
-              Ask a Question
-            </Link>
-          </div>
+          <Link
+            href={`${EDUMATCH_URL}/student/inquiry/new`}
+            className="shrink-0 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition"
+          >
+            {t("edumatch.student.profileMissing.action")}
+          </Link>
         </div>
+      )}
 
-        {inquiries.length === 0 ? (
-          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center">
-            <p className="mb-4 text-[var(--color-text-muted)]">No inquiries yet</p>
+      <div className="mb-8 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[var(--color-text)]">
+          {t("edumatch.dashboard.inquiries")}
+        </h2>
+        <div className="flex items-center gap-3">
+          <Link
+            href={`${EDUMATCH_URL}/student/profile`}
+            className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
+          >
+            {hasProfile
+              ? t("edumatch.student.editProfile")
+              : t("edumatch.student.createProfile")}
+          </Link>
+          <Link
+            href={`${EDUMATCH_URL}/student/inquiry/new`}
+            className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+          >
+            {t("edumatch.dashboard.askQuestion")}
+          </Link>
+        </div>
+      </div>
+
+      {inquiries.length === 0 ? (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center">
+          <p className="mb-4 text-[var(--color-text-muted)]">
+            {t("edumatch.dashboard.noInquiries")}
+          </p>
+          <Link
+            href={`${EDUMATCH_URL}/student/inquiry/new`}
+            className="text-[var(--color-primary)] hover:underline"
+          >
+            {t("edumatch.dashboard.askFirst")}
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {inquiries.map((inquiry) => (
             <Link
-              href={`${EDUMATCH_URL}/student/inquiry/new`}
-              className="text-[var(--color-primary)] hover:underline"
+              key={inquiry.id}
+              href={`${EDUMATCH_URL}/student/inquiry/${inquiry.id}`}
+              className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5 transition hover:border-[var(--color-primary)] hover:shadow-lg"
             >
-              Ask your first question
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {inquiries.map((inquiry) => (
-              <Link
-                key={inquiry.id}
-                href={`${EDUMATCH_URL}/student/inquiry/${inquiry.id}`}
-                className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5 transition hover:border-[var(--color-primary)] hover:shadow-lg"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-[var(--color-text)] group-hover:text-[var(--color-primary)]">
-                      {inquiry.subject}
-                    </h3>
-                    <p className="text-sm text-[var(--color-text-muted)]">{inquiry.gradeLevel}</p>
-                  </div>
-                  <StatusBadge status={inquiry.status} />
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-[var(--color-text)] group-hover:text-[var(--color-primary)]">
+                    {inquiry.subject}
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-muted)]">
+                    {inquiry.gradeLevel}
+                  </p>
                 </div>
-                <p className="mt-3 line-clamp-2 text-sm text-[var(--color-text-muted)]">
-                  {inquiry.description}
-                </p>
-                <p className="mt-4 text-xs text-[var(--color-text-muted)]">
-                  {new Date(inquiry.createdAt).toLocaleDateString()}
-                </p>
-              </Link>
-            ))}
-          </div>
-        )}
+                <StatusBadge status={inquiry.status} t={t} />
+              </div>
+              <p className="mt-3 line-clamp-2 text-sm text-[var(--color-text-muted)]">
+                {inquiry.description}
+              </p>
+              <p className="mt-4 text-xs text-[var(--color-text-muted)]">
+                {new Date(inquiry.createdAt).toLocaleDateString()}
+              </p>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({
+  status,
+  t,
+}: {
+  status: string;
+  t: (key: string) => string;
+}) {
   const styles: Record<string, string> = {
     NEW: "bg-gray-100 text-gray-700",
     AI_RESPONDED: "bg-blue-100 text-blue-700",
@@ -144,8 +174,10 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[status] || styles.NEW}`}>
-      {status.replace("_", " ")}
+    <span
+      className={`rounded-full px-2.5 py-1 text-xs font-medium ${styles[status] || styles.NEW}`}
+    >
+      {t("edumatch.status." + status) || status.replace("_", " ")}
     </span>
   );
 }

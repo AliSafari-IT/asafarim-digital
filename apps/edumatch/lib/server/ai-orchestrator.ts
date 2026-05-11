@@ -29,7 +29,10 @@ const OPENAI_CHAT_MODEL = process.env.OPENAI_MODEL_CHAT ?? "gpt-4o-mini";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5";
 
 const OPENAI_MAX_TOKENS = parseInt(process.env.OPENAI_MAX_TOKENS ?? "4000", 10);
-const ANTHROPIC_MAX_TOKENS = parseInt(process.env.ANTHROPIC_MAX_TOKENS ?? "4000", 10);
+const ANTHROPIC_MAX_TOKENS = parseInt(
+  process.env.ANTHROPIC_MAX_TOKENS ?? "4000",
+  10,
+);
 
 export type VisionContent =
   | { type: "text"; text: string }
@@ -57,7 +60,8 @@ export type AiResponseFailure = { error: string };
 export type AiResponseResult = AiResponseSuccess | AiResponseFailure;
 
 function getProviderError(payload: unknown): string | undefined {
-  if (!payload || typeof payload !== "object" || !("error" in payload)) return undefined;
+  if (!payload || typeof payload !== "object" || !("error" in payload))
+    return undefined;
   const err = (payload as { error?: { message?: string } }).error;
   return typeof err?.message === "string" ? err.message : undefined;
 }
@@ -66,7 +70,9 @@ function getProviderError(payload: unknown): string | undefined {
  * Transcribe audio using OpenAI Whisper.
  * Returns the transcript text or null if audio service unavailable.
  */
-export async function transcribeAudio(audioUrl: string): Promise<TranscriptionResult | null> {
+export async function transcribeAudio(
+  audioUrl: string,
+): Promise<TranscriptionResult | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -76,22 +82,33 @@ export async function transcribeAudio(audioUrl: string): Promise<TranscriptionRe
 
   const blob = await audioRes.blob();
   const form = new FormData();
-  form.append("file", new File([blob], "voice.webm", { type: "audio/webm" }), "voice.webm");
+  form.append(
+    "file",
+    new File([blob], "voice.webm", { type: "audio/webm" }),
+    "voice.webm",
+  );
   form.append("model", "whisper-1");
   form.append("response_format", "json");
 
-  const upstream = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
-  });
+  const upstream = await fetch(
+    "https://api.openai.com/v1/audio/transcriptions",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
+    },
+  );
 
   const payload = (await upstream.json()) as unknown;
   if (!upstream.ok) {
     console.error("[Whisper] failed:", getProviderError(payload) ?? "unknown");
     return null;
   }
-  const data = payload as { text?: string; duration?: number; language?: string };
+  const data = payload as {
+    text?: string;
+    duration?: number;
+    language?: string;
+  };
   return {
     text: typeof data.text === "string" ? data.text : "",
     duration: typeof data.duration === "number" ? data.duration : undefined,
@@ -164,7 +181,11 @@ export async function generateWithOpenAI(
 
   const data = payload as {
     choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
   };
   const choice = data.choices?.[0];
   const output = choice?.message?.content?.trim();
@@ -215,7 +236,9 @@ export async function generateWithAnthropic(
 
   const payload = (await upstream.json()) as unknown;
   if (!upstream.ok) {
-    return { error: getProviderError(payload) ?? `Anthropic ${upstream.status}` };
+    return {
+      error: getProviderError(payload) ?? `Anthropic ${upstream.status}`,
+    };
   }
 
   const data = payload as {
@@ -271,7 +294,8 @@ export async function orchestrateResponse(
   });
   if (!inquiry) return { error: "Inquiry not found." };
 
-  const attachments = (inquiry.attachments as Array<{ url: string; mime: string }>) ?? [];
+  const attachments =
+    (inquiry.attachments as Array<{ url: string; mime: string }>) ?? [];
 
   // 1) Transcribe audio (optional)
   let audioText = "";
@@ -344,7 +368,10 @@ export async function orchestrateResponse(
   const errors: string[] = [];
 
   if (!forceProvider || forceProvider === "openai") {
-    const visionContent = await buildVisionContent(baseDescription, attachments);
+    const visionContent = await buildVisionContent(
+      baseDescription,
+      attachments,
+    );
     const openai = await generateWithOpenAI(visionContent, systemPrompt);
     if ("output" in openai) {
       result = openai;
@@ -352,7 +379,10 @@ export async function orchestrateResponse(
       errors.push(`OpenAI: ${openai.error}`);
       // Fallback to Anthropic
       if (!forceProvider) {
-        const anthropic = await generateWithAnthropic(baseDescription, systemPrompt);
+        const anthropic = await generateWithAnthropic(
+          baseDescription,
+          systemPrompt,
+        );
         if ("output" in anthropic) {
           result = anthropic;
         } else {
@@ -365,7 +395,10 @@ export async function orchestrateResponse(
     }
   } else {
     // Force Anthropic
-    const anthropic = await generateWithAnthropic(baseDescription, systemPrompt);
+    const anthropic = await generateWithAnthropic(
+      baseDescription,
+      systemPrompt,
+    );
     if ("output" in anthropic) {
       result = anthropic;
     } else {
@@ -414,7 +447,10 @@ export async function orchestrateResponse(
       entityId: responseRow.id,
       prevState: inquiry.status,
       nextState: "AI_RESPONDED",
-      reason: moderation.outcome === "REVIEW" ? `borderline: ${moderation.category}` : undefined,
+      reason:
+        moderation.outcome === "REVIEW"
+          ? `borderline: ${moderation.category}`
+          : undefined,
       metadata: { provider: result.provider, model: result.model },
     });
   }
@@ -429,7 +465,11 @@ export async function orchestrateResponse(
 export async function* streamOpenAI(
   content: VisionContent[],
   systemPrompt: string,
-): AsyncGenerator<{ token?: string; done?: boolean; error?: string }, void, unknown> {
+): AsyncGenerator<
+  { token?: string; done?: boolean; error?: string },
+  void,
+  unknown
+> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     yield { error: "OPENAI_API_KEY not configured.", done: true };
@@ -458,7 +498,10 @@ export async function* streamOpenAI(
 
   if (!upstream.ok) {
     const payload = (await upstream.json().catch(() => ({}))) as unknown;
-    yield { error: getProviderError(payload) ?? `OpenAI ${upstream.status}`, done: true };
+    yield {
+      error: getProviderError(payload) ?? `OpenAI ${upstream.status}`,
+      done: true,
+    };
     return;
   }
 
@@ -476,20 +519,23 @@ export async function* streamOpenAI(
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
 
-    const lines = buffer.split("\\n");
+    const lines = buffer.split("\n");
     buffer = lines.pop() ?? "";
 
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || !trimmed.startsWith("data:")) continue;
-      const json = trimmed.replace(/^data:\\s*/, "");
+      const json = trimmed.replace(/^data:\s*/, "");
       if (json === "[DONE]") {
         yield { done: true };
         return;
       }
       try {
         const parsed = JSON.parse(json) as {
-          choices?: Array<{ delta?: { content?: string }; finish_reason?: string }>;
+          choices?: Array<{
+            delta?: { content?: string };
+            finish_reason?: string;
+          }>;
         };
         const token = parsed.choices?.[0]?.delta?.content;
         if (token) yield { token };
@@ -513,7 +559,11 @@ export async function* streamOpenAI(
 export async function* streamAnthropic(
   content: VisionContent[],
   systemPrompt: string,
-): AsyncGenerator<{ token?: string; done?: boolean; error?: string }, void, unknown> {
+): AsyncGenerator<
+  { token?: string; done?: boolean; error?: string },
+  void,
+  unknown
+> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     yield { error: "ANTHROPIC_API_KEY not configured.", done: true };
@@ -544,7 +594,10 @@ export async function* streamAnthropic(
 
   if (!upstream.ok) {
     const payload = (await upstream.json().catch(() => ({}))) as unknown;
-    yield { error: getProviderError(payload) ?? `Anthropic ${upstream.status}`, done: true };
+    yield {
+      error: getProviderError(payload) ?? `Anthropic ${upstream.status}`,
+      done: true,
+    };
     return;
   }
 

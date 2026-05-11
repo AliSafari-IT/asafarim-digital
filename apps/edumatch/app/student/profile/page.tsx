@@ -3,18 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 const SUBJECTS_OF_INTEREST = [
-  "Mathematics", "Physics", "Chemistry", "Biology", "English",
-  "History", "Geography", "Computer Science", "Economics", "Art",
-  "Music", "Languages", "Other",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "English",
+  "History",
+  "Geography",
+  "Computer Science",
+  "Economics",
+  "Art",
+  "Music",
+  "Languages",
+  "Other",
 ];
-
-const GRADE_LEVELS = [
-  { value: "K12", label: "K–12 (School)" },
-  { value: "UNDERGRAD", label: "Undergraduate" },
-  { value: "GRAD", label: "Graduate / Postgrad" },
-] as const;
 
 type Profile = {
   gradeLevel: "K12" | "UNDERGRAD" | "GRAD";
@@ -29,14 +34,24 @@ type Profile = {
 };
 
 export default function StudentProfilePage() {
+  const { t } = useTranslation();
   const router = useRouter();
+
+  const GRADE_LEVELS: { value: "K12" | "UNDERGRAD" | "GRAD"; label: string }[] =
+    [
+      { value: "K12", label: t("edumatch.inquiry.new.grade.k12") },
+      { value: "UNDERGRAD", label: t("edumatch.inquiry.new.grade.undergrad") },
+      { value: "GRAD", label: t("edumatch.inquiry.new.grade.grad") },
+    ];
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [gradeLevel, setGradeLevel] = useState<"K12" | "UNDERGRAD" | "GRAD">("K12");
+  const [gradeLevel, setGradeLevel] = useState<"K12" | "UNDERGRAD" | "GRAD">(
+    "K12",
+  );
   const [subjects, setSubjects] = useState<string[]>([]);
   const [address, setAddress] = useState({
     line1: "",
@@ -87,7 +102,7 @@ export default function StudentProfilePage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json() as { error?: string };
+      const data = (await res.json()) as { error?: string };
 
       if (!res.ok) {
         setError(data.error ?? "Failed to save profile.");
@@ -99,7 +114,7 @@ export default function StudentProfilePage() {
       setExists(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("edumatch.inquiry.new.networkError"));
     } finally {
       setSaving(false);
     }
@@ -118,18 +133,23 @@ export default function StudentProfilePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6">
-        <Link href="/student" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Back to Dashboard
+        <Link
+          href="/student"
+          className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+        >
+          {t("edumatch.profile.student.backToDashboard")}
         </Link>
       </div>
 
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-2">
-        {exists ? "Edit Student Profile" : "Create Student Profile"}
+        {exists
+          ? t("edumatch.profile.student.title.edit")
+          : t("edumatch.profile.student.title.create")}
       </h1>
       <p className="text-[var(--color-text-muted)] mb-6">
         {exists
-          ? "Update your grade level and subjects of interest."
-          : "Set up your student profile to start asking questions and get matched with tutors."}
+          ? t("edumatch.profile.student.subtitle.edit")
+          : t("edumatch.profile.student.subtitle.create")}
       </p>
 
       {error && (
@@ -140,7 +160,7 @@ export default function StudentProfilePage() {
 
       {success && (
         <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-          Profile saved successfully!
+          {t("edumatch.profile.student.savedOk")}
         </div>
       )}
 
@@ -148,7 +168,7 @@ export default function StudentProfilePage() {
         {/* Grade Level */}
         <div>
           <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-            Grade Level *
+            {t("edumatch.profile.student.gradeLevel")}
           </label>
           <div className="grid grid-cols-3 gap-3">
             {GRADE_LEVELS.map((g) => (
@@ -171,7 +191,7 @@ export default function StudentProfilePage() {
         {/* Subjects */}
         <div>
           <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-            Subjects of Interest
+            {t("edumatch.profile.student.subjects")}
           </label>
           <div className="flex flex-wrap gap-2">
             {SUBJECTS_OF_INTEREST.map((s) => {
@@ -182,7 +202,7 @@ export default function StudentProfilePage() {
                   type="button"
                   onClick={() =>
                     setSubjects((prev) =>
-                      active ? prev.filter((x) => x !== s) : [...prev, s]
+                      active ? prev.filter((x) => x !== s) : [...prev, s],
                     )
                   }
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
@@ -197,55 +217,67 @@ export default function StudentProfilePage() {
             })}
           </div>
           <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-            Select subjects you&apos;re interested in learning. This helps us match you with relevant tutors.
+            {t("edumatch.profile.student.subjectsHint")}
           </p>
         </div>
 
         {/* Address (Optional) */}
         <div className="border-t border-[var(--color-border)] pt-6">
-          <h3 className="text-sm font-medium text-[var(--color-text)] mb-4">Home Address (Optional)</h3>
+          <h3 className="text-sm font-medium text-[var(--color-text)] mb-4">
+            {t("edumatch.profile.student.address.title")}
+          </h3>
           <div className="space-y-3">
             <input
               type="text"
-              placeholder="Street address"
+              placeholder={t("edumatch.profile.student.address.street")}
               value={address.line1}
-              onChange={(e) => setAddress({ ...address, line1: e.target.value })}
+              onChange={(e) =>
+                setAddress({ ...address, line1: e.target.value })
+              }
               className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
             <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder="City"
+                placeholder={t("edumatch.profile.student.address.city")}
                 value={address.city}
-                onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                onChange={(e) =>
+                  setAddress({ ...address, city: e.target.value })
+                }
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               />
               <input
                 type="text"
-                placeholder="Region / State"
+                placeholder={t("edumatch.profile.student.address.region")}
                 value={address.region}
-                onChange={(e) => setAddress({ ...address, region: e.target.value })}
+                onChange={(e) =>
+                  setAddress({ ...address, region: e.target.value })
+                }
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder="Postal Code"
+                placeholder={t("edumatch.profile.student.address.postalCode")}
                 value={address.postalCode}
-                onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
+                onChange={(e) =>
+                  setAddress({ ...address, postalCode: e.target.value })
+                }
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               />
               <input
                 type="text"
-                placeholder="Country"
+                placeholder={t("edumatch.profile.student.address.country")}
                 value={address.country}
-                onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                onChange={(e) =>
+                  setAddress({ ...address, country: e.target.value })
+                }
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               />
             </div>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Used for matching with nearby tutors. You can leave this blank and use online-only tutors.
+              {t("edumatch.profile.student.address.hint")}
             </p>
           </div>
         </div>
@@ -256,7 +288,7 @@ export default function StudentProfilePage() {
             href="/student"
             className="rounded-lg border border-[var(--color-border-strong)] px-5 py-2.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
           >
-            Cancel
+            {t("edumatch.profile.student.cancel")}
           </Link>
           <button
             type="submit"
@@ -266,9 +298,13 @@ export default function StudentProfilePage() {
             {saving ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Saving…
+                {t("edumatch.profile.student.saving")}
               </>
-            ) : exists ? "Save Changes" : "Create Profile"}
+            ) : exists ? (
+              t("edumatch.profile.student.save")
+            ) : (
+              t("edumatch.profile.student.create")
+            )}
           </button>
         </div>
       </form>

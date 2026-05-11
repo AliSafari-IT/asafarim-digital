@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type QuoteRequest = {
   id: string;
@@ -31,6 +32,7 @@ const DEFAULT_FORM: QuoteForm = {
 };
 
 export default function TutorRequestsPage() {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +43,16 @@ export default function TutorRequestsPage() {
 
   useEffect(() => {
     async function loadRequests(lat?: number, lng?: number) {
-      const url = lat != null && lng != null
-        ? `/api/tutors/quote-requests?lat=${lat}&lng=${lng}`
-        : `/api/tutors/quote-requests`;
+      const url =
+        lat != null && lng != null
+          ? `/api/tutors/quote-requests?lat=${lat}&lng=${lng}`
+          : `/api/tutors/quote-requests`;
 
       const r = await fetch(url);
-      const data = await r.json() as { items?: QuoteRequest[]; error?: string };
+      const data = (await r.json()) as {
+        items?: QuoteRequest[];
+        error?: string;
+      };
 
       if (data.error) {
         // If no location in profile, try browser geolocation
@@ -55,12 +61,12 @@ export default function TutorRequestsPage() {
             navigator.geolocation.getCurrentPosition(
               (pos) => loadRequests(pos.coords.latitude, pos.coords.longitude),
               () => {
-                setError("Add your home address in your tutor profile to see nearby quote requests.");
+                setError(t("edumatch.requests.addProfile"));
                 setLoading(false);
               },
             );
           } else {
-            setError("Add your home address in your tutor profile to see nearby quote requests.");
+            setError(t("edumatch.requests.addProfile"));
             setLoading(false);
           }
           return;
@@ -79,7 +85,12 @@ export default function TutorRequestsPage() {
   }, []);
 
   function getForm(id: string): QuoteForm {
-    return forms[id] ?? { ...DEFAULT_FORM, slots: [{ start: "", end: "", mode: "ONLINE" }] };
+    return (
+      forms[id] ?? {
+        ...DEFAULT_FORM,
+        slots: [{ start: "", end: "", mode: "ONLINE" }],
+      }
+    );
   }
 
   function setForm(id: string, patch: Partial<QuoteForm>) {
@@ -95,7 +106,9 @@ export default function TutorRequestsPage() {
   function addSlot(id: string) {
     const f = getForm(id);
     if (f.slots.length >= 5) return;
-    setForm(id, { slots: [...f.slots, { start: "", end: "", mode: "ONLINE" }] });
+    setForm(id, {
+      slots: [...f.slots, { start: "", end: "", mode: "ONLINE" }],
+    });
   }
 
   function removeSlot(id: string, idx: number) {
@@ -107,7 +120,7 @@ export default function TutorRequestsPage() {
     const f = getForm(qrId);
     const slots = f.slots.filter((s) => s.start && s.end);
     if (slots.length === 0) {
-      setError("Add at least one availability slot before submitting.");
+      setError(t("edumatch.requests.noSlotError"));
       return;
     }
 
@@ -126,7 +139,7 @@ export default function TutorRequestsPage() {
         }),
       });
 
-      const data = await res.json() as { id?: string; error?: string };
+      const data = (await res.json()) as { id?: string; error?: string };
 
       if (!res.ok) {
         setError(data.error ?? "Failed to submit quote.");
@@ -136,7 +149,7 @@ export default function TutorRequestsPage() {
       setSubmitted((prev) => new Set(prev).add(qrId));
       setExpandedId(null);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("edumatch.inquiry.new.networkError"));
     } finally {
       setSubmitting(null);
     }
@@ -157,16 +170,23 @@ export default function TutorRequestsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3 text-sm">
-        <Link href="/tutor" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Dashboard
+        <Link
+          href="/tutor"
+          className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+        >
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">Quote Requests</span>
+        <span className="text-[var(--color-text)]">
+          {t("edumatch.requests.title")}
+        </span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Quote Requests</h1>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">
+        {t("edumatch.requests.title")}
+      </h1>
       <p className="text-sm text-[var(--color-text-muted)] mb-6">
-        Students near you looking for help in your subjects.
+        {t("edumatch.requests.subtitle")}
       </p>
 
       {error && (
@@ -175,12 +195,20 @@ export default function TutorRequestsPage() {
             <div>
               {error}
               {error.includes("profile") && (
-                <Link href="/tutor/profile" className="ml-1 font-semibold underline hover:text-amber-900">
+                <Link
+                  href="/tutor/profile"
+                  className="ml-1 font-semibold underline hover:text-amber-900"
+                >
                   Update tutor profile →
                 </Link>
               )}
             </div>
-            <button onClick={() => setError(null)} className="shrink-0 underline text-xs">dismiss</button>
+            <button
+              onClick={() => setError(null)}
+              className="shrink-0 underline text-xs"
+            >
+              dismiss
+            </button>
           </div>
         </div>
       )}
@@ -188,12 +216,12 @@ export default function TutorRequestsPage() {
       {/* Open requests */}
       <section className="mb-8">
         <h2 className="text-base font-semibold text-[var(--color-text)] mb-3">
-          Open ({openRequests.length})
+          {t("edumatch.requests.open", { n: openRequests.length })}
         </h2>
 
         {openRequests.length === 0 ? (
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-            No open requests matching your subjects right now.
+            {t("edumatch.requests.noOpen")}
           </div>
         ) : (
           <div className="space-y-4">
@@ -203,7 +231,10 @@ export default function TutorRequestsPage() {
               const isSubmitting = submitting === req.id;
               const expiresIn = Math.max(
                 0,
-                Math.floor((new Date(req.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60)),
+                Math.floor(
+                  (new Date(req.expiresAt).getTime() - Date.now()) /
+                    (1000 * 60 * 60),
+                ),
               );
 
               return (
@@ -219,7 +250,9 @@ export default function TutorRequestsPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-[var(--color-text)]">{req.subject}</span>
+                          <span className="font-semibold text-[var(--color-text)]">
+                            {req.subject}
+                          </span>
                           <span className="rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] px-2 py-0.5 text-xs text-[var(--color-text-muted)]">
                             {req.gradeLevel}
                           </span>
@@ -234,18 +267,20 @@ export default function TutorRequestsPage() {
                         </p>
                       </div>
                       <div className="text-right ml-4 shrink-0">
-                        <p className="text-xs text-[var(--color-text-muted)]">Expires in</p>
-                        <p className={`font-semibold text-sm ${expiresIn < 6 ? "text-red-500" : "text-[var(--color-text)]"}`}>
-                          {expiresIn}h
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {t("edumatch.requests.expiresIn", { n: expiresIn })}
                         </p>
                       </div>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-xs text-[var(--color-text-muted)]">
-                        Requested {new Date(req.requestedAt).toLocaleDateString()}
+                        Requested{" "}
+                        {new Date(req.requestedAt).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-medium text-[var(--color-primary)]">
-                        {isExpanded ? "▲ Collapse" : "▼ Submit Quote"}
+                        {isExpanded
+                          ? t("edumatch.requests.hideForm")
+                          : t("edumatch.requests.submitQuote")}
                       </span>
                     </div>
                   </button>
@@ -253,13 +288,15 @@ export default function TutorRequestsPage() {
                   {/* Quote form */}
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)] p-5 bg-[var(--color-surface)]">
-                      <h3 className="text-sm font-semibold text-[var(--color-text)] mb-4">Submit Your Quote</h3>
+                      <h3 className="text-sm font-semibold text-[var(--color-text)] mb-4">
+                        Submit Your Quote
+                      </h3>
 
                       {/* Rate + hours */}
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                           <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">
-                            Hourly Rate (€)
+                            {t("edumatch.requests.rate")}
                           </label>
                           <input
                             type="number"
@@ -267,14 +304,18 @@ export default function TutorRequestsPage() {
                             max={1000}
                             value={f.hourlyRateCents / 100}
                             onChange={(e) =>
-                              setForm(req.id, { hourlyRateCents: Math.round(parseFloat(e.target.value) * 100) })
+                              setForm(req.id, {
+                                hourlyRateCents: Math.round(
+                                  parseFloat(e.target.value) * 100,
+                                ),
+                              })
                             }
                             className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">
-                            Estimated Hours
+                            {t("edumatch.requests.hours")}
                           </label>
                           <input
                             type="number"
@@ -282,7 +323,11 @@ export default function TutorRequestsPage() {
                             max={100}
                             step={0.5}
                             value={f.estimatedHours}
-                            onChange={(e) => setForm(req.id, { estimatedHours: parseFloat(e.target.value) })}
+                            onChange={(e) =>
+                              setForm(req.id, {
+                                estimatedHours: parseFloat(e.target.value),
+                              })
+                            }
                             className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                           />
                         </div>
@@ -292,7 +337,11 @@ export default function TutorRequestsPage() {
                       <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm">
                         <span className="text-green-600">Total: </span>
                         <span className="font-bold text-green-700">
-                          €{((f.hourlyRateCents / 100) * f.estimatedHours).toFixed(2)}
+                          €
+                          {(
+                            (f.hourlyRateCents / 100) *
+                            f.estimatedHours
+                          ).toFixed(2)}
                         </span>
                       </div>
 
@@ -300,46 +349,65 @@ export default function TutorRequestsPage() {
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <label className="text-xs font-medium text-[var(--color-text-muted)]">
-                            Availability Slots (min 1)
+                            {t("edumatch.requests.slots.title")}
                           </label>
                           {f.slots.length < 5 && (
                             <button
                               onClick={() => addSlot(req.id)}
                               className="text-xs text-[var(--color-primary)] hover:underline"
                             >
-                              + Add slot
+                              {t("edumatch.requests.slots.add")}
                             </button>
                           )}
                         </div>
                         <div className="space-y-2">
                           {f.slots.map((slot, idx) => (
-                            <div key={idx} className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 items-center">
+                            <div
+                              key={idx}
+                              className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 items-center"
+                            >
                               <input
                                 type="datetime-local"
                                 value={slot.start}
-                                onChange={(e) => setSlot(req.id, idx, { start: e.target.value })}
+                                onChange={(e) =>
+                                  setSlot(req.id, idx, {
+                                    start: e.target.value,
+                                  })
+                                }
                                 className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                               />
                               <input
                                 type="datetime-local"
                                 value={slot.end}
-                                onChange={(e) => setSlot(req.id, idx, { end: e.target.value })}
+                                onChange={(e) =>
+                                  setSlot(req.id, idx, { end: e.target.value })
+                                }
                                 className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                               />
                               <select
                                 value={slot.mode}
-                                onChange={(e) => setSlot(req.id, idx, { mode: e.target.value as "ONLINE" | "IN_PERSON" })}
+                                onChange={(e) =>
+                                  setSlot(req.id, idx, {
+                                    mode: e.target.value as
+                                      | "ONLINE"
+                                      | "IN_PERSON",
+                                  })
+                                }
                                 className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none"
                               >
-                                <option value="ONLINE">Online</option>
-                                <option value="IN_PERSON">In-Person</option>
+                                <option value="ONLINE">
+                                  {t("edumatch.requests.slots.mode.online")}
+                                </option>
+                                <option value="IN_PERSON">
+                                  {t("edumatch.requests.slots.mode.inPerson")}
+                                </option>
                               </select>
                               {f.slots.length > 1 && (
                                 <button
                                   onClick={() => removeSlot(req.id, idx)}
                                   className="text-red-400 hover:text-red-600 text-xs px-1"
                                 >
-                                  ✕
+                                  {t("edumatch.requests.slots.remove")}
                                 </button>
                               )}
                             </div>
@@ -350,13 +418,15 @@ export default function TutorRequestsPage() {
                       {/* Notes */}
                       <div className="mb-4">
                         <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">
-                          Notes (optional)
+                          {t("edumatch.requests.notes")}
                         </label>
                         <textarea
                           rows={2}
                           maxLength={500}
                           value={f.notes}
-                          onChange={(e) => setForm(req.id, { notes: e.target.value })}
+                          onChange={(e) =>
+                            setForm(req.id, { notes: e.target.value })
+                          }
                           placeholder="Any extra info for the student…"
                           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                         />
@@ -368,7 +438,9 @@ export default function TutorRequestsPage() {
                           disabled={isSubmitting}
                           className="flex-1 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition"
                         >
-                          {isSubmitting ? "Submitting…" : "Send Quote"}
+                          {isSubmitting
+                            ? t("edumatch.requests.submitting")
+                            : t("edumatch.requests.submitQuote")}
                         </button>
                         <button
                           onClick={() => setExpandedId(null)}
@@ -390,7 +462,7 @@ export default function TutorRequestsPage() {
       {quotedRequests.length > 0 && (
         <section>
           <h2 className="text-base font-semibold text-[var(--color-text)] mb-3">
-            Quoted ({quotedRequests.length})
+            {t("edumatch.requests.quoted", { n: quotedRequests.length })}
           </h2>
           <div className="space-y-3">
             {quotedRequests.map((req) => (
@@ -400,8 +472,12 @@ export default function TutorRequestsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="font-medium text-sm text-[var(--color-text)]">{req.subject}</span>
-                    <span className="ml-2 text-xs text-[var(--color-text-muted)]">{req.gradeLevel}</span>
+                    <span className="font-medium text-sm text-[var(--color-text)]">
+                      {req.subject}
+                    </span>
+                    <span className="ml-2 text-xs text-[var(--color-text-muted)]">
+                      {req.gradeLevel}
+                    </span>
                   </div>
                   <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
                     ✓ Quote Sent
