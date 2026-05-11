@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { SessionProvider } from "@/components/SessionProvider";
@@ -14,6 +14,12 @@ const appName = "EduMatch";
 const appDescription =
   "AI-first homework help and a tutor marketplace — get unstuck or get matched.";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata: Metadata = {
   title: {
     default: `${appName} | AI homework help & tutor marketplace`,
@@ -22,12 +28,8 @@ export const metadata: Metadata = {
   description: appDescription,
   applicationName: appName,
   icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/apple-icon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
   },
   robots: {
     index: false,
@@ -35,14 +37,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const cookieStore = await cookies();
   const cookieTheme = readThemeFromCookie(cookieStore.toString());
   const initialTheme = cookieTheme ?? "dark";
   const initialLocale = resolveLocaleFromCookie(cookieStore.toString());
 
   return (
-    <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme}>
+    <html
+      lang={initialLocale}
+      suppressHydrationWarning
+      data-theme={initialTheme}
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -51,7 +61,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
-        <I18nProvider initialLocale={initialLocale} dictionaries={edumatchDictionaries}>
+        <I18nProvider
+          initialLocale={initialLocale}
+          dictionaries={edumatchDictionaries}
+        >
           <SessionProvider>
             <EduNav />
             <main className="flex-1">{children}</main>
