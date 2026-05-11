@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 
-const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
-const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
+const portalUrl =
+  process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
+const edumatchUrl =
+  process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com";
 
 export default function HomePage() {
   const { data: session } = useSession();
+  const { t } = useTranslation();
   const [callbackUrl, setCallbackUrl] = useState(edumatchUrl);
 
   useEffect(() => {
@@ -27,17 +31,16 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-5xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-4 py-1.5 text-sm font-medium text-green-400">
             <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-            Now Live — Get AI Help Instantly
+            {t("edumatch.hero.badge")}
           </div>
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-[var(--color-text)] sm:text-6xl">
-            Get Unstuck with{" "}
+            {t("edumatch.hero.title").split("AI + Expert Tutors")[0]}
             <span className="bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
               AI + Expert Tutors
             </span>
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-[var(--color-text-muted)]">
-            Snap a photo, get an AI explanation in seconds. Need deeper help?
-            Get matched with verified tutors and book sessions instantly.
+            {t("edumatch.hero.subtitle")}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
@@ -46,14 +49,14 @@ export default function HomePage() {
                 href="/student/inquiry/new"
                 className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
               >
-                Ask a Question
+                {t("edumatch.hero.cta.ask")}
               </Link>
             ) : isTutor ? (
               <Link
                 href="/tutor"
                 className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
               >
-                Go to Dashboard
+                {t("edumatch.hero.cta.dashboard")}
               </Link>
             ) : session?.user ? (
               // Logged in but no role selected yet - show role selection
@@ -62,13 +65,13 @@ export default function HomePage() {
                   href="/student"
                   className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
                 >
-                  Continue as Student
+                  {t("edumatch.hero.cta.student")}
                 </Link>
                 <Link
                   href="/tutor"
                   className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-8 py-4 text-base font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                 >
-                  Become a Tutor
+                  {t("edumatch.hero.cta.tutor")}
                 </Link>
               </>
             ) : (
@@ -78,13 +81,13 @@ export default function HomePage() {
                   href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                   className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90 hover:shadow-xl"
                 >
-                  Get Started as Student
+                  {t("edumatch.hero.cta.student")}
                 </Link>
                 <Link
                   href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`}
                   className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-8 py-4 text-base font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                 >
-                  Become a Tutor
+                  {t("edumatch.hero.cta.tutor")}
                 </Link>
               </>
             )}
@@ -96,23 +99,23 @@ export default function HomePage() {
       <section className="border-y border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-12 text-center text-3xl font-bold text-[var(--color-text)]">
-            How EduMatch Works
+            {t("edumatch.how.title")}
           </h2>
           <div className="grid gap-8 md:grid-cols-3">
             <StepCard
               number="1"
-              title="Ask Your Question"
-              description="Upload a photo, voice note, or type your question. Our AI understands context and complexity."
+              title={t("edumatch.how.step1.title")}
+              description={t("edumatch.how.step1.desc")}
             />
             <StepCard
               number="2"
-              title="Get AI Help"
-              description="Receive a detailed explanation in seconds. Follow-up questions are free."
+              title={t("edumatch.how.step2.title")}
+              description={t("edumatch.how.step2.desc")}
             />
             <StepCard
               number="3"
-              title="Match with Tutors"
-              description="Need more help? Request quotes from verified local tutors. Compare and book instantly."
+              title={t("edumatch.how.step3.title")}
+              description={t("edumatch.how.step3.desc")}
             />
           </div>
         </div>
@@ -123,32 +126,32 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <span className="text-sm font-semibold uppercase tracking-wider text-green-400">
-              For Students
+              {t("edumatch.students.section")}
             </span>
             <h2 className="mt-2 text-3xl font-bold text-[var(--color-text)]">
-              Homework Help, Reimagined
+              {t("edumatch.students.title")}
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <FeatureCard
               icon={<SparklesIcon />}
-              title="AI Explanations"
-              description="Get step-by-step explanations tailored to your grade level and subject."
+              title={t("edumatch.students.feature1.title")}
+              description={t("edumatch.students.feature1.desc")}
             />
             <FeatureCard
               icon={<MediaIcon />}
-              title="Any Format"
-              description="Upload photos, voice notes, or text. We handle images, audio, and documents."
+              title={t("edumatch.students.feature2.title")}
+              description={t("edumatch.students.feature2.desc")}
             />
             <FeatureCard
               icon={<TutorIcon />}
-              title="Expert Tutors"
-              description="Verified tutors matched to your location and subject needs."
+              title={t("edumatch.students.feature3.title")}
+              description={t("edumatch.students.feature3.desc")}
             />
             <FeatureCard
               icon={<SecureIcon />}
-              title="Safe Payments"
-              description="Secure checkout with Stripe. Pay only when you book a session."
+              title={t("edumatch.students.feature4.title")}
+              description={t("edumatch.students.feature4.desc")}
             />
           </div>
         </div>
@@ -159,27 +162,27 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <span className="text-sm font-semibold uppercase tracking-wider text-emerald-400">
-              For Tutors
+              {t("edumatch.tutors.section")}
             </span>
             <h2 className="mt-2 text-3xl font-bold text-[var(--color-text)]">
-              Earn Teaching What You Love
+              {t("edumatch.tutors.title")}
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <FeatureCard
               icon={<WalletIcon />}
-              title="Set Your Rate"
-              description="You control your hourly rate. We add a small platform fee."
+              title={t("edumatch.tutors.feature1.title")}
+              description={t("edumatch.tutors.feature1.desc")}
             />
             <FeatureCard
               icon={<CalendarIcon />}
-              title="Flexible Schedule"
-              description="Choose when you're available. Students book slots that work for you."
+              title={t("edumatch.tutors.feature2.title")}
+              description={t("edumatch.tutors.feature2.desc")}
             />
             <FeatureCard
               icon={<PayoutIcon />}
-              title="Fast Payouts"
-              description="Get paid to your bank account within 48 hours of session completion."
+              title={t("edumatch.tutors.feature3.title")}
+              description={t("edumatch.tutors.feature3.desc")}
             />
           </div>
           <div className="mt-12 text-center">
@@ -187,7 +190,7 @@ export default function HomePage() {
               href="/tutor"
               className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-6 py-3 font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
             >
-              Start Tutoring Today
+              {t("edumatch.tutors.cta")}
               <ArrowRightIcon />
             </Link>
           </div>
@@ -198,9 +201,9 @@ export default function HomePage() {
       <section className="px-4 py-16">
         <div className="mx-auto max-w-4xl">
           <div className="grid gap-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center sm:grid-cols-3">
-            <Stat value="10K+" label="Questions Answered" />
-            <Stat value="500+" label="Verified Tutors" />
-            <Stat value="98%" label="Student Satisfaction" />
+            <Stat value="10K+" label={t("edumatch.stats.questions")} />
+            <Stat value="500+" label={t("edumatch.stats.tutors")} />
+            <Stat value="98%" label={t("edumatch.stats.satisfaction")} />
           </div>
         </div>
       </section>
@@ -209,23 +212,23 @@ export default function HomePage() {
       <section className="px-4 py-20">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="mb-4 text-3xl font-bold text-[var(--color-text)]">
-            Ready to Get Started?
+            {t("edumatch.cta.title")}
           </h2>
           <p className="mb-8 text-[var(--color-text-muted)]">
-            Join thousands of students getting help and tutors earning income.
+            {t("edumatch.cta.subtitle")}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/student/inquiry/new"
               className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-8 py-4 font-semibold text-white shadow-lg shadow-green-500/25 transition hover:opacity-90"
             >
-              Ask a Question
+              {t("edumatch.cta.ask")}
             </Link>
             <Link
               href="/tutor"
               className="rounded-xl border border-[var(--color-border-strong)] px-8 py-4 font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
             >
-              Become a Tutor
+              {t("edumatch.cta.tutor")}
             </Link>
           </div>
         </div>
@@ -234,19 +237,37 @@ export default function HomePage() {
   );
 }
 
-function StepCard({ number, title, description }: { number: string; title: string; description: string }) {
+function StepCard({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="relative rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-lg font-bold text-white">
         {number}
       </div>
-      <h3 className="mb-2 text-lg font-semibold text-[var(--color-text)]">{title}</h3>
+      <h3 className="mb-2 text-lg font-semibold text-[var(--color-text)]">
+        {title}
+      </h3>
       <p className="text-sm text-[var(--color-text-muted)]">{description}</p>
     </div>
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5 transition hover:border-green-500/30">
       <div className="mb-4 text-green-400">{icon}</div>
@@ -268,65 +289,144 @@ function Stat({ value, label }: { value: string; label: string }) {
 // Icons
 function SparklesIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+      />
     </svg>
   );
 }
 
 function MediaIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
     </svg>
   );
 }
 
 function TutorIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+      />
     </svg>
   );
 }
 
 function SecureIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+      />
     </svg>
   );
 }
 
 function WalletIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+      />
     </svg>
   );
 }
 
 function CalendarIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
     </svg>
   );
 }
 
 function PayoutIcon() {
   return (
-    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   );
 }
 
 function ArrowRightIcon() {
   return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <svg
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
     </svg>
   );
 }
-

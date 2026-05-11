@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Attachment = {
   url: string;
@@ -40,30 +41,40 @@ type StudentProfile = {
   homeLng: number | null;
 };
 
-const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  NEW: { label: "New", cls: "bg-gray-100 text-gray-700" },
-  AI_RESPONDED: { label: "AI Responded", cls: "bg-blue-100 text-blue-700" },
-  TUTOR_REQUESTED: {
-    label: "Tutor Requested",
-    cls: "bg-yellow-100 text-yellow-700",
-  },
-  BOOKED: { label: "Booked", cls: "bg-green-100 text-green-700" },
-  CLOSED: { label: "Closed", cls: "bg-gray-100 text-gray-500" },
-  REFUSED: { label: "Refused", cls: "bg-red-100 text-red-700" },
-};
-
-/**
- * AI accuracy/safety disclaimer shown alongside any AI explanation. Mirrors
- * the server-side AI_DISCLAIMER constant in lib/server/moderation.ts.
- */
-const AI_DISCLAIMER_TEXT =
-  "EduMatch AI is a study aid, not a final authority. It can be wrong or incomplete. " +
-  "Always check answers against your textbook, teacher, or a verified tutor before relying on them — " +
-  "and never submit AI text as your own work.";
-
 export default function InquiryDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+
+  const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+    NEW: { label: t("edumatch.status.NEW"), cls: "bg-gray-100 text-gray-700" },
+    AI_RESPONDED: {
+      label: t("edumatch.status.AI_RESPONDED"),
+      cls: "bg-blue-100 text-blue-700",
+    },
+    TUTOR_REQUESTED: {
+      label: t("edumatch.status.TUTOR_REQUESTED"),
+      cls: "bg-yellow-100 text-yellow-700",
+    },
+    BOOKED: {
+      label: t("edumatch.status.BOOKED"),
+      cls: "bg-green-100 text-green-700",
+    },
+    CLOSED: {
+      label: t("edumatch.status.CLOSED"),
+      cls: "bg-gray-100 text-gray-500",
+    },
+    REFUSED: {
+      label: t("edumatch.status.REFUSED"),
+      cls: "bg-red-100 text-red-700",
+    },
+  };
+
+  /**
+   * AI accuracy/safety disclaimer shown alongside any AI explanation. Mirrors
+   * the server-side AI_DISCLAIMER constant in lib/server/moderation.ts.
+   */
+  const AI_DISCLAIMER_TEXT = t("edumatch.inquiry.detail.disclaimer");
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +158,7 @@ export default function InquiryDetail() {
       });
 
       if (!res.ok || !res.body) {
-        setError("AI service unavailable.");
+        setError(t("edumatch.inquiry.detail.aiUnavailable"));
         setStreaming(false);
         return;
       }
@@ -226,7 +237,7 @@ export default function InquiryDetail() {
       }
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== "AbortError") {
-        setError("Stream interrupted.");
+        setError(t("edumatch.inquiry.detail.streamInterrupted"));
       }
       setStreaming(false);
     }
@@ -267,9 +278,7 @@ export default function InquiryDetail() {
 
     const location = await getLocation();
     if (!location) {
-      setError(
-        "Location required to find nearby tutors. Please set your home location in your student profile or allow browser location access.",
-      );
+      setError(t("edumatch.inquiry.detail.locationRequired"));
       return;
     }
 
@@ -306,7 +315,7 @@ export default function InquiryDetail() {
         }, 2500);
       }
     } catch {
-      setError("Failed to request tutor quotes.");
+      setError(t("edumatch.inquiry.detail.quoteFailed"));
     } finally {
       setRequestingQuotes(false);
     }
@@ -351,7 +360,7 @@ export default function InquiryDetail() {
           href="/student"
           className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
         >
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
         <span className="text-sm text-[var(--color-text)]">
@@ -403,19 +412,21 @@ export default function InquiryDetail() {
       {/* Error banner */}
       {quoteSuccess && (
         <div className="mb-4 rounded-lg bg-green-50 border border-green-300 px-4 py-4 text-sm text-green-800">
-          <p className="font-semibold mb-1">✅ Request sent to tutors!</p>
+          <p className="font-semibold mb-1">
+            {t("edumatch.inquiry.detail.quoteSuccess.title")}
+          </p>
           {quoteSuccess.matchedTutors > 0 ? (
             <p>
-              <strong>{quoteSuccess.matchedTutors}</strong> tutor
-              {quoteSuccess.matchedTutors === 1 ? " has" : "s have"} been
-              notified and can now submit a quote. You&apos;ll be taken to the
-              quotes page in a moment…
+              {quoteSuccess.matchedTutors === 1
+                ? t("edumatch.inquiry.detail.quoteSuccess.notified", {
+                    n: quoteSuccess.matchedTutors,
+                  })
+                : t("edumatch.inquiry.detail.quoteSuccess.notifiedPlural", {
+                    n: quoteSuccess.matchedTutors,
+                  })}
             </p>
           ) : (
-            <p>
-              No tutors are available nearby right now, but your request has
-              been saved. You&apos;ll be taken to the quotes page in a moment…
-            </p>
+            <p>{t("edumatch.inquiry.detail.quoteSuccess.noTutors")}</p>
           )}
         </div>
       )}
@@ -424,7 +435,7 @@ export default function InquiryDetail() {
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
-            dismiss
+            {t("edumatch.inquiry.detail.dismiss")}
           </button>
         </div>
       )}
@@ -433,7 +444,7 @@ export default function InquiryDetail() {
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[var(--color-text)]">
-            AI Explanation
+            {t("edumatch.inquiry.detail.aiTitle")}
           </h2>
           {canAskAI && (
             <button
@@ -444,12 +455,12 @@ export default function InquiryDetail() {
               {streaming ? (
                 <>
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Thinking…
+                  {t("edumatch.inquiry.detail.thinking")}
                 </>
               ) : streamDone ? (
-                "Ask Again"
+                t("edumatch.inquiry.detail.askAgain")
               ) : (
-                "Ask AI"
+                t("edumatch.inquiry.detail.askAi")
               )}
             </button>
           )}
@@ -469,10 +480,11 @@ export default function InquiryDetail() {
             data-testid="ai-refusal"
             className="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
           >
-            <strong>EduMatch AI declined this request.</strong>{" "}
+            <strong>{t("edumatch.inquiry.detail.moderation.refused")}</strong>{" "}
             <span className="text-red-700">
-              Category: {moderationOutcome.category}. The message below explains
-              what we can help with instead.
+              {t("edumatch.inquiry.detail.moderation.category", {
+                category: moderationOutcome.category,
+              })}
             </span>
           </div>
         )}
@@ -490,8 +502,8 @@ export default function InquiryDetail() {
         ) : (
           <div className="rounded-lg bg-[var(--color-surface)] p-8 text-center text-sm text-[var(--color-text-muted)]">
             {streaming
-              ? "Generating AI response…"
-              : 'Click "Ask AI" to get an explanation from EduMatch AI.'}
+              ? t("edumatch.inquiry.detail.generating")
+              : t("edumatch.inquiry.detail.askPrompt")}
           </div>
         )}
       </div>
@@ -504,7 +516,9 @@ export default function InquiryDetail() {
             disabled={requestingQuotes}
             className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            {requestingQuotes ? "Requesting…" : "Request Tutor Quotes"}
+            {requestingQuotes
+              ? t("edumatch.inquiry.detail.requesting")
+              : t("edumatch.inquiry.detail.requestTutors")}
           </button>
         )}
         {(inquiry.status === "TUTOR_REQUESTED" || quoteRequestId) && (
@@ -512,7 +526,7 @@ export default function InquiryDetail() {
             href={`/student/inquiry/${id}/quotes${quoteRequestId ? `?qr=${quoteRequestId}` : ""}`}
             className="rounded-lg border border-[var(--color-border-strong)] px-5 py-2.5 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
           >
-            View Quotes
+            {t("edumatch.inquiry.detail.viewQuotes")}
           </Link>
         )}
       </div>

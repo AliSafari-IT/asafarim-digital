@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation, type TranslateFn } from "@asafarim/shared-i18n";
 
 type AvailabilitySlot = {
   start: string;
@@ -35,6 +36,7 @@ type Quote = {
 };
 
 export default function QuotesPage() {
+  const { t } = useTranslation();
   const { id: inquiryId } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -63,9 +65,7 @@ export default function QuotesPage() {
       }
 
       if (!quoteRequestId) {
-        setError(
-          "No quote request found. Please go back and request tutor quotes.",
-        );
+        setError(t("edumatch.quotes.noRequestFound"));
         setLoading(false);
         return;
       }
@@ -138,41 +138,41 @@ export default function QuotesPage() {
           href="/student"
           className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
         >
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
         <Link
           href={`/student/inquiry/${inquiryId}`}
           className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
         >
-          Inquiry
+          {t("edumatch.quotes.breadcrumb.inquiry")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">Tutor Quotes</span>
+        <span className="text-[var(--color-text)]">
+          {t("edumatch.quotes.title")}
+        </span>
       </div>
 
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-2">
-        Tutor Quotes
+        {t("edumatch.quotes.title")}
       </h1>
       <p className="text-sm text-[var(--color-text-muted)] mb-6">
-        Review quotes from available tutors. Accept one to confirm your booking.
+        {t("edumatch.quotes.subtitle")}
       </p>
 
       {justRequested && (
         <div className="mb-5 rounded-xl border border-green-300 bg-green-50 px-5 py-4">
           <p className="font-semibold text-green-800 mb-1">
-            🎉 Your request has been sent!
+            {t("edumatch.quotes.justRequested.title")}
           </p>
           <p className="text-sm text-green-700">
-            Matching tutors have been notified and can now submit a quote. This
-            page will show their responses as they arrive — quotes are typically
-            sent within a few hours.
+            {t("edumatch.quotes.justRequested.desc")}
           </p>
           <button
             onClick={() => setJustRequested(false)}
             className="mt-3 text-xs text-green-600 underline hover:text-green-800"
           >
-            Dismiss
+            {t("edumatch.quotes.justRequested.dismiss")}
           </button>
         </div>
       )}
@@ -181,16 +181,18 @@ export default function QuotesPage() {
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">
-            dismiss
+            {t("edumatch.inquiry.detail.dismiss")}
           </button>
         </div>
       )}
 
       {quotes.length === 0 ? (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-10 text-center">
-          <p className="text-[var(--color-text-muted)] mb-2">No quotes yet.</p>
+          <p className="text-[var(--color-text-muted)] mb-2">
+            {t("edumatch.quotes.noQuotes")}
+          </p>
           <p className="text-xs text-[var(--color-text-muted)]">
-            Tutors have been notified — check back soon.
+            {t("edumatch.quotes.noQuotesSub")}
           </p>
         </div>
       ) : (
@@ -232,17 +234,20 @@ export default function QuotesPage() {
                       </span>
                       {profile?.verifiedAt && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                          ✓ Verified
+                          {t("edumatch.quotes.verified")}
                         </span>
                       )}
-                      <StatusBadge status={quote.status} />
+                      <StatusBadge status={quote.status} t={t} />
                     </div>
                     {profile && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <StarRating rating={profile.ratingAvg} />
                         <span className="text-xs text-[var(--color-text-muted)]">
                           ({profile.ratingCount}{" "}
-                          {profile.ratingCount === 1 ? "review" : "reviews"})
+                          {profile.ratingCount === 1
+                            ? t("edumatch.quotes.review")
+                            : t("edumatch.quotes.reviews")}
+                          )
                         </span>
                       </div>
                     )}
@@ -259,7 +264,7 @@ export default function QuotesPage() {
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="rounded-lg bg-[var(--color-surface)] p-3 text-center">
                     <p className="text-xs text-[var(--color-text-muted)] mb-0.5">
-                      Rate / hr
+                      {t("edumatch.quotes.ratePerHour")}
                     </p>
                     <p className="font-bold text-[var(--color-text)]">
                       €{(quote.hourlyRateCents / 100).toFixed(0)}
@@ -267,14 +272,16 @@ export default function QuotesPage() {
                   </div>
                   <div className="rounded-lg bg-[var(--color-surface)] p-3 text-center">
                     <p className="text-xs text-[var(--color-text-muted)] mb-0.5">
-                      Est. Hours
+                      {t("edumatch.quotes.estHours")}
                     </p>
                     <p className="font-bold text-[var(--color-text)]">
                       {quote.estimatedHours}h
                     </p>
                   </div>
                   <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-center">
-                    <p className="text-xs text-green-600 mb-0.5">Total</p>
+                    <p className="text-xs text-green-600 mb-0.5">
+                      {t("edumatch.quotes.total")}
+                    </p>
                     <p className="font-bold text-green-700">
                       €{(quote.totalCents / 100).toFixed(2)}
                     </p>
@@ -286,7 +293,7 @@ export default function QuotesPage() {
                   quote.availabilitySlots.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2">
-                        Available Slots
+                        {t("edumatch.quotes.availableSlots")}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {quote.availabilitySlots.map((slot, i) => (
@@ -309,7 +316,9 @@ export default function QuotesPage() {
                                   : "text-orange-600"
                               }
                             >
-                              {slot.mode === "ONLINE" ? "Online" : "In-Person"}
+                              {slot.mode === "ONLINE"
+                                ? t("edumatch.quotes.online")
+                                : t("edumatch.quotes.inPerson")}
                             </span>
                           </span>
                         ))}
@@ -331,14 +340,18 @@ export default function QuotesPage() {
                       disabled={accepting === quote.id}
                       className="flex-1 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition"
                     >
-                      {accepting === quote.id ? "Booking…" : "Accept & Book"}
+                      {accepting === quote.id
+                        ? t("edumatch.quotes.booking")
+                        : t("edumatch.quotes.accept")}
                     </button>
                     <button
                       onClick={() => decline(quote.id)}
                       disabled={declining === quote.id}
                       className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface)] disabled:opacity-50 transition"
                     >
-                      {declining === quote.id ? "…" : "Decline"}
+                      {declining === quote.id
+                        ? "…"
+                        : t("edumatch.quotes.decline")}
                     </button>
                   </div>
                 )}
@@ -346,7 +359,7 @@ export default function QuotesPage() {
                 {isAccepted && (
                   <div className="pt-2 border-t border-green-200">
                     <p className="text-sm font-medium text-green-700">
-                      ✓ Booking confirmed
+                      {t("edumatch.quotes.bookingConfirmed")}
                     </p>
                   </div>
                 )}
@@ -359,7 +372,7 @@ export default function QuotesPage() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: TranslateFn }) {
   const styles: Record<string, string> = {
     PENDING: "bg-yellow-100 text-yellow-700",
     ACCEPTED: "bg-green-100 text-green-700",
@@ -367,10 +380,10 @@ function StatusBadge({ status }: { status: string }) {
     EXPIRED: "bg-red-100 text-red-600",
   };
   const labels: Record<string, string> = {
-    PENDING: "Pending",
-    ACCEPTED: "Accepted",
-    DECLINED: "Declined",
-    EXPIRED: "Expired",
+    PENDING: t("edumatch.quotes.status.PENDING"),
+    ACCEPTED: t("edumatch.quotes.status.ACCEPTED"),
+    DECLINED: t("edumatch.quotes.status.DECLINED"),
+    EXPIRED: t("edumatch.quotes.status.EXPIRED"),
   };
   return (
     <span

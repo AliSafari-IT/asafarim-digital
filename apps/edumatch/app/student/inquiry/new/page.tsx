@@ -3,10 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 const SUBJECTS_OF_INTEREST = [
-  "Mathematics", "Physics", "Chemistry", "Biology", "English",
-  "History", "Geography", "Computer Science", "Economics", "Other",
+  "Mathematics",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "English",
+  "History",
+  "Geography",
+  "Computer Science",
+  "Economics",
+  "Other",
 ];
 
 const SUBJECTS = [
@@ -25,31 +34,41 @@ const SUBJECTS = [
   "Other",
 ];
 
-const GRADE_LEVELS = [
-  { value: "K12", label: "K–12 (School)" },
-  { value: "UNDERGRAD", label: "Undergraduate" },
-  { value: "GRAD", label: "Graduate / Postgrad" },
-] as const;
-
-const STEPS = ["Subject & Level", "Your Question", "Review"] as const;
 const MAX_CHARS = 4000;
 const MIN_CHARS = 10;
 
 export default function NewInquiry() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [subject, setSubject] = useState("");
-  const [gradeLevel, setGradeLevel] = useState<"K12" | "UNDERGRAD" | "GRAD">("K12");
+  const [gradeLevel, setGradeLevel] = useState<"K12" | "UNDERGRAD" | "GRAD">(
+    "K12",
+  );
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const GRADE_LEVELS: { value: "K12" | "UNDERGRAD" | "GRAD"; label: string }[] =
+    [
+      { value: "K12", label: t("edumatch.inquiry.new.grade.k12") },
+      { value: "UNDERGRAD", label: t("edumatch.inquiry.new.grade.undergrad") },
+      { value: "GRAD", label: t("edumatch.inquiry.new.grade.grad") },
+    ];
+
+  const STEPS = [
+    t("edumatch.inquiry.new.step.subject"),
+    t("edumatch.inquiry.new.step.question"),
+    t("edumatch.inquiry.new.step.review"),
+  ];
 
   const [needsProfile, setNeedsProfile] = useState(false);
   const [profileSubjects, setProfileSubjects] = useState<string[]>([]);
   const [creatingProfile, setCreatingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const gradeLevelLabel = GRADE_LEVELS.find((g) => g.value === gradeLevel)?.label ?? gradeLevel;
+  const gradeLevelLabel =
+    GRADE_LEVELS.find((g) => g.value === gradeLevel)?.label ?? gradeLevel;
   const canProceed0 = subject.length > 0;
   const canProceed1 = description.trim().length >= MIN_CHARS;
 
@@ -57,17 +76,28 @@ export default function NewInquiry() {
     const res = await fetch("/api/inquiries", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject, gradeLevel, description: description.trim(), attachments: [] }),
+      body: JSON.stringify({
+        subject,
+        gradeLevel,
+        description: description.trim(),
+        attachments: [],
+      }),
     });
-    const data = await res.json() as { id?: string; error?: string };
-    if (res.status === 403 && data.error?.toLowerCase().includes("student profile")) {
+    const data = (await res.json()) as { id?: string; error?: string };
+    if (
+      res.status === 403 &&
+      data.error?.toLowerCase().includes("student profile")
+    ) {
       setNeedsProfile(true);
       setProfileSubjects(subject ? [subject] : []);
       setSubmitting(false);
       return;
     }
     if (!res.ok) {
-      setError(data.error ?? "Failed to create inquiry.");
+      setError(
+        (data.error ?? t("edumatch.inquiry.new.createFailed")) ||
+          "Failed to create inquiry.",
+      );
       setSubmitting(false);
       return;
     }
@@ -80,7 +110,7 @@ export default function NewInquiry() {
     try {
       await submitInquiry();
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("edumatch.inquiry.new.networkError"));
       setSubmitting(false);
     }
   }
@@ -92,9 +122,12 @@ export default function NewInquiry() {
       const res = await fetch("/api/student/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gradeLevel, subjectsOfInterest: profileSubjects }),
+        body: JSON.stringify({
+          gradeLevel,
+          subjectsOfInterest: profileSubjects,
+        }),
       });
-      const data = await res.json() as { error?: string };
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setProfileError(data.error ?? "Failed to create profile.");
         setCreatingProfile(false);
@@ -104,7 +137,7 @@ export default function NewInquiry() {
       setSubmitting(true);
       await submitInquiry();
     } catch {
-      setProfileError("Network error. Please try again.");
+      setProfileError(t("edumatch.inquiry.new.networkError"));
       setCreatingProfile(false);
     }
   }
@@ -113,12 +146,17 @@ export default function NewInquiry() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       {/* Back */}
       <div className="mb-6">
-        <Link href="/student" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Back to Dashboard
+        <Link
+          href="/student"
+          className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+        >
+          {t("edumatch.inquiry.new.backToDashboard")}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">Ask a Question</h1>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">
+        {t("edumatch.inquiry.new.title")}
+      </h1>
 
       {/* Stepper */}
       <div className="flex items-center gap-2 mb-8">
@@ -129,21 +167,25 @@ export default function NewInquiry() {
                 i < step
                   ? "bg-green-500 text-white"
                   : i === step
-                  ? "bg-[var(--color-primary)] text-white"
-                  : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]"
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)]"
               }`}
             >
               {i < step ? "✓" : i + 1}
             </div>
             <span
               className={`text-xs font-medium hidden sm:inline ${
-                i === step ? "text-[var(--color-text)]" : "text-[var(--color-text-muted)]"
+                i === step
+                  ? "text-[var(--color-text)]"
+                  : "text-[var(--color-text-muted)]"
               }`}
             >
               {label}
             </span>
             {i < STEPS.length - 1 && (
-              <div className={`h-px w-8 ${i < step ? "bg-green-500" : "bg-[var(--color-border)]"}`} />
+              <div
+                className={`h-px w-8 ${i < step ? "bg-green-500" : "bg-[var(--color-border)]"}`}
+              />
             )}
           </div>
         ))}
@@ -157,9 +199,11 @@ export default function NewInquiry() {
 
       {needsProfile && (
         <div className="mb-6 rounded-xl border border-[var(--color-primary)] bg-[color:color-mix(in_srgb,var(--color-primary)_8%,var(--color-panel))] p-6">
-          <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">One more step — create your student profile</h2>
+          <h2 className="text-base font-semibold text-[var(--color-text)] mb-1">
+            {t("edumatch.inquiry.new.profile.title")}
+          </h2>
           <p className="text-sm text-[var(--color-text-muted)] mb-5">
-            Your grade level is already set from your question. Optionally pick subjects you care about, then we&apos;ll submit your inquiry automatically.
+            {t("edumatch.inquiry.new.profile.desc")}
           </p>
 
           {profileError && (
@@ -169,12 +213,21 @@ export default function NewInquiry() {
           )}
 
           <div className="mb-4">
-            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-1">Grade Level</p>
-            <p className="text-sm font-medium text-[var(--color-text)]">{gradeLevelLabel}</p>
+            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-1">
+              {t("edumatch.inquiry.new.profile.grade")}
+            </p>
+            <p className="text-sm font-medium text-[var(--color-text)]">
+              {gradeLevelLabel}
+            </p>
           </div>
 
           <div className="mb-5">
-            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-2">Subjects of Interest <span className="normal-case font-normal">(optional)</span></p>
+            <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide mb-2">
+              {t("edumatch.inquiry.new.profile.subjects")}{" "}
+              <span className="normal-case font-normal">
+                {t("edumatch.inquiry.new.profile.subjectsOptional")}
+              </span>
+            </p>
             <div className="flex flex-wrap gap-2">
               {SUBJECTS_OF_INTEREST.map((s) => {
                 const active = profileSubjects.includes(s);
@@ -208,33 +261,45 @@ export default function NewInquiry() {
             {creatingProfile ? (
               <>
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Creating profile &amp; submitting…
+                {t("edumatch.inquiry.new.profile.creating")}
               </>
-            ) : "Create Profile & Submit Inquiry"}
+            ) : (
+              t("edumatch.inquiry.new.profile.createBtn")
+            )}
           </button>
         </div>
       )}
 
-      <div className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 ${needsProfile ? "opacity-50 pointer-events-none" : ""}`}>
+      <div
+        className={`rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 ${needsProfile ? "opacity-50 pointer-events-none" : ""}`}
+      >
         {/* Step 0: Subject & Grade */}
         {step === 0 && (
           <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">Subject *</label>
+              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                {t("edumatch.inquiry.new.subject.label")}
+              </label>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               >
-                <option value="">Select a subject…</option>
+                <option value="">
+                  {t("edumatch.inquiry.new.subject.placeholder")}
+                </option>
                 {SUBJECTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">Grade Level *</label>
+              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                {t("edumatch.inquiry.new.grade.label")}
+              </label>
               <div className="grid grid-cols-3 gap-3">
                 {GRADE_LEVELS.map((g) => (
                   <button
@@ -259,7 +324,7 @@ export default function NewInquiry() {
                 disabled={!canProceed0}
                 className="rounded-lg bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                Next →
+                {t("edumatch.inquiry.new.next")}
               </button>
             </div>
           </div>
@@ -270,31 +335,42 @@ export default function NewInquiry() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[var(--color-text-muted)]">Subject</p>
-                <p className="text-sm font-medium text-[var(--color-text)]">{subject} · {gradeLevelLabel}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {t("edumatch.inquiry.new.reviewSubject")}
+                </p>
+                <p className="text-sm font-medium text-[var(--color-text)]">
+                  {subject} · {gradeLevelLabel}
+                </p>
               </div>
-              <button onClick={() => setStep(0)} className="text-xs text-[var(--color-primary)] hover:underline">
-                Change
+              <button
+                onClick={() => setStep(0)}
+                className="text-xs text-[var(--color-primary)] hover:underline"
+              >
+                {t("edumatch.inquiry.new.change")}
               </button>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-                Describe your question *
+                {t("edumatch.inquiry.new.desc.label")}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={8}
                 maxLength={MAX_CHARS}
-                placeholder="Describe the problem or concept you need help with. Be as specific as possible — include formulas, chapter numbers, or any context that helps."
+                placeholder={t("edumatch.inquiry.new.desc.placeholder")}
                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] resize-none"
               />
               <div className="flex justify-between mt-1">
-                <span className={`text-xs ${description.trim().length < MIN_CHARS ? "text-red-400" : "text-[var(--color-text-muted)]"}`}>
+                <span
+                  className={`text-xs ${description.trim().length < MIN_CHARS ? "text-red-400" : "text-[var(--color-text-muted)]"}`}
+                >
                   {description.trim().length < MIN_CHARS
-                    ? `${MIN_CHARS - description.trim().length} more characters needed`
-                    : "Looks good ✓"}
+                    ? t("edumatch.inquiry.new.desc.tooShort", {
+                        n: MIN_CHARS - description.trim().length,
+                      })
+                    : t("edumatch.inquiry.new.desc.ok")}
                 </span>
                 <span className="text-xs text-[var(--color-text-muted)]">
                   {description.length} / {MAX_CHARS}
@@ -307,14 +383,14 @@ export default function NewInquiry() {
                 onClick={() => setStep(0)}
                 className="rounded-lg border border-[var(--color-border-strong)] px-5 py-2.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
               >
-                ← Back
+                {t("edumatch.inquiry.new.back")}
               </button>
               <button
                 onClick={() => setStep(2)}
                 disabled={!canProceed1}
                 className="flex-1 rounded-lg bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                Review →
+                {t("edumatch.inquiry.new.reviewBtn")}
               </button>
             </div>
           </div>
@@ -323,25 +399,39 @@ export default function NewInquiry() {
         {/* Step 2: Review */}
         {step === 2 && (
           <div className="space-y-5">
-            <h2 className="text-base font-semibold text-[var(--color-text)]">Review your inquiry</h2>
+            <h2 className="text-base font-semibold text-[var(--color-text)]">
+              {t("edumatch.inquiry.new.reviewTitle")}
+            </h2>
 
             <div className="rounded-lg bg-[var(--color-surface)] p-4 space-y-3">
               <div>
-                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">Subject</p>
-                <p className="text-sm text-[var(--color-text)] mt-0.5">{subject}</p>
+                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                  {t("edumatch.inquiry.new.reviewSubject")}
+                </p>
+                <p className="text-sm text-[var(--color-text)] mt-0.5">
+                  {subject}
+                </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">Grade Level</p>
-                <p className="text-sm text-[var(--color-text)] mt-0.5">{gradeLevelLabel}</p>
+                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                  {t("edumatch.inquiry.new.reviewGrade")}
+                </p>
+                <p className="text-sm text-[var(--color-text)] mt-0.5">
+                  {gradeLevelLabel}
+                </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">Question</p>
-                <p className="text-sm text-[var(--color-text)] mt-0.5 whitespace-pre-wrap line-clamp-6">{description}</p>
+                <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                  {t("edumatch.inquiry.new.reviewQuestion")}
+                </p>
+                <p className="text-sm text-[var(--color-text)] mt-0.5 whitespace-pre-wrap line-clamp-6">
+                  {description}
+                </p>
               </div>
             </div>
 
             <p className="text-xs text-[var(--color-text-muted)]">
-              After submitting, EduMatch AI will automatically generate an explanation. You can then request tutor quotes.
+              {t("edumatch.inquiry.new.reviewNote")}
             </p>
 
             <div className="flex gap-3">
@@ -349,7 +439,7 @@ export default function NewInquiry() {
                 onClick={() => setStep(1)}
                 className="rounded-lg border border-[var(--color-border-strong)] px-5 py-2.5 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
               >
-                ← Edit
+                {t("edumatch.inquiry.new.editBtn")}
               </button>
               <button
                 onClick={handleSubmit}
@@ -359,9 +449,11 @@ export default function NewInquiry() {
                 {submitting ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Submitting…
+                    {t("edumatch.inquiry.new.submitting")}
                   </>
-                ) : "Submit & Get AI Help"}
+                ) : (
+                  t("edumatch.inquiry.new.submitBtn")
+                )}
               </button>
             </div>
           </div>
