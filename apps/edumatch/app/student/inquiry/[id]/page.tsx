@@ -43,7 +43,10 @@ type StudentProfile = {
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   NEW: { label: "New", cls: "bg-gray-100 text-gray-700" },
   AI_RESPONDED: { label: "AI Responded", cls: "bg-blue-100 text-blue-700" },
-  TUTOR_REQUESTED: { label: "Tutor Requested", cls: "bg-yellow-100 text-yellow-700" },
+  TUTOR_REQUESTED: {
+    label: "Tutor Requested",
+    cls: "bg-yellow-100 text-yellow-700",
+  },
   BOOKED: { label: "Booked", cls: "bg-green-100 text-green-700" },
   CLOSED: { label: "Closed", cls: "bg-gray-100 text-gray-500" },
   REFUSED: { label: "Refused", cls: "bg-red-100 text-red-700" },
@@ -71,18 +74,24 @@ export default function InquiryDetail() {
   const [streamDone, setStreamDone] = useState(false);
   // Tracks moderation outcome for the current stream — set by the SSE
   // 'moderation' event when the prompt is refused.
-  const [moderationOutcome, setModerationOutcome] = useState<
-    null | { outcome: string; category: string }
-  >(null);
+  const [moderationOutcome, setModerationOutcome] = useState<null | {
+    outcome: string;
+    category: string;
+  }>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   // Quote request state
   const [requestingQuotes, setRequestingQuotes] = useState(false);
   const [quoteRequestId, setQuoteRequestId] = useState<string | null>(null);
+  const [quoteSuccess, setQuoteSuccess] = useState<{
+    matchedTutors: number;
+  } | null>(null);
 
   // Student profile state (for location)
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -232,13 +241,15 @@ export default function InquiryDetail() {
     // 2. Try browser geolocation
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       try {
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: false,
-            timeout: 10000,
-            maximumAge: 300000, // 5 minutes cache
-          });
-        });
+        const position = await new Promise<GeolocationPosition>(
+          (resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 300000, // 5 minutes cache
+            });
+          },
+        );
         return {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
@@ -256,7 +267,9 @@ export default function InquiryDetail() {
 
     const location = await getLocation();
     if (!location) {
-      setError("Location required to find nearby tutors. Please set your home location in your student profile or allow browser location access.");
+      setError(
+        "Location required to find nearby tutors. Please set your home location in your student profile or allow browser location access.",
+      );
       return;
     }
 
@@ -270,16 +283,27 @@ export default function InquiryDetail() {
           studentLocation: location,
         }),
       });
-      const data = await res.json() as { quoteRequest?: { id: string }; error?: string };
+      const data = (await res.json()) as {
+        quoteRequest?: { id: string };
+        matchedTutors?: unknown[];
+        totalMatched?: number;
+        error?: string;
+      };
       if (!res.ok) {
         setError(data.error ?? "Failed to request quotes.");
         return;
       }
       const qrId = data.quoteRequest?.id;
+      const matched = data.totalMatched ?? data.matchedTutors?.length ?? 0;
       setQuoteRequestId(qrId ?? null);
-      setInquiry((prev) => prev ? { ...prev, status: "TUTOR_REQUESTED" } : prev);
+      setInquiry((prev) =>
+        prev ? { ...prev, status: "TUTOR_REQUESTED" } : prev,
+      );
+      setQuoteSuccess({ matchedTutors: matched });
       if (qrId) {
-        router.push(`/student/inquiry/${id}/quotes?qr=${qrId}`);
+        setTimeout(() => {
+          router.push(`/student/inquiry/${id}/quotes?qr=${qrId}`);
+        }, 2500);
       }
     } catch {
       setError("Failed to request tutor quotes.");
@@ -301,7 +325,10 @@ export default function InquiryDetail() {
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
-          <Link href="/student" className="text-[var(--color-primary)] hover:underline">
+          <Link
+            href="/student"
+            className="text-[var(--color-primary)] hover:underline"
+          >
             ← Back to Dashboard
           </Link>
         </div>
@@ -320,21 +347,33 @@ export default function InquiryDetail() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/student" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
+        <Link
+          href="/student"
+          className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+        >
           ← Dashboard
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-sm text-[var(--color-text)]">{inquiry.subject}</span>
+        <span className="text-sm text-[var(--color-text)]">
+          {inquiry.subject}
+        </span>
       </div>
 
       {/* Inquiry card */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-[var(--color-text)]">{inquiry.subject}</h1>
-            <p className="text-sm text-[var(--color-text-muted)] mt-0.5">{inquiry.gradeLevel} · {new Date(inquiry.createdAt).toLocaleDateString()}</p>
+            <h1 className="text-xl font-bold text-[var(--color-text)]">
+              {inquiry.subject}
+            </h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
+              {inquiry.gradeLevel} ·{" "}
+              {new Date(inquiry.createdAt).toLocaleDateString()}
+            </p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusInfo.cls}`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${statusInfo.cls}`}
+          >
             {statusInfo.label}
           </span>
         </div>
@@ -362,17 +401,40 @@ export default function InquiryDetail() {
       </div>
 
       {/* Error banner */}
+      {quoteSuccess && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-300 px-4 py-4 text-sm text-green-800">
+          <p className="font-semibold mb-1">✅ Request sent to tutors!</p>
+          {quoteSuccess.matchedTutors > 0 ? (
+            <p>
+              <strong>{quoteSuccess.matchedTutors}</strong> tutor
+              {quoteSuccess.matchedTutors === 1 ? " has" : "s have"} been
+              notified and can now submit a quote. You&apos;ll be taken to the
+              quotes page in a moment…
+            </p>
+          ) : (
+            <p>
+              No tutors are available nearby right now, but your request has
+              been saved. You&apos;ll be taken to the quotes page in a moment…
+            </p>
+          )}
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">dismiss</button>
+          <button onClick={() => setError(null)} className="ml-2 underline">
+            dismiss
+          </button>
         </div>
       )}
 
       {/* AI Response section */}
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">AI Explanation</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+            AI Explanation
+          </h2>
           {canAskAI && (
             <button
               onClick={startAiStream}
@@ -384,7 +446,11 @@ export default function InquiryDetail() {
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Thinking…
                 </>
-              ) : streamDone ? "Ask Again" : "Ask AI"}
+              ) : streamDone ? (
+                "Ask Again"
+              ) : (
+                "Ask AI"
+              )}
             </button>
           )}
         </div>
@@ -423,7 +489,9 @@ export default function InquiryDetail() {
           </div>
         ) : (
           <div className="rounded-lg bg-[var(--color-surface)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-            {streaming ? "Generating AI response…" : 'Click "Ask AI" to get an explanation from EduMatch AI.'}
+            {streaming
+              ? "Generating AI response…"
+              : 'Click "Ask AI" to get an explanation from EduMatch AI.'}
           </div>
         )}
       </div>
