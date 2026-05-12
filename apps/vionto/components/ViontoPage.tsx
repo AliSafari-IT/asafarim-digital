@@ -182,6 +182,10 @@ export function ViontoPage() {
     orderIndex: number;
   }>>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const dragAssetId = useRef<string | null>(null);
+  const dragOverAssetId = useRef<string | null>(null);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const ACCEPTED = [".jpg", ".jpeg", ".png", ".heic", ".webp", ".zip"];
   const acceptedMime = "image/jpeg,image/png,image/heic,image/webp,application/zip,.heic,.zip";
@@ -238,6 +242,20 @@ export function ViontoPage() {
       console.error("Failed to load projects", error);
     } finally {
       setIsLoadingProjects(false);
+    }
+  }
+
+  async function reorderAssets(newOrder: typeof projectAssets) {
+    if (!selectedProjectId) return;
+    setProjectAssets(newOrder);
+    try {
+      await fetch(`/api/projects/${selectedProjectId}/assets`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds: newOrder.map((a) => a.id) }),
+      });
+    } catch (error) {
+      console.error("Failed to persist asset order", error);
     }
   }
 
@@ -1154,9 +1172,45 @@ export function ViontoPage() {
                 <div className="mt-3">
                   <p className="text-xs font-medium text-[var(--color-text-muted)]">Project assets ({projectAssets.length})</p>
                   <ul className="mt-1 grid grid-cols-4 gap-2">
-                    {projectAssets.slice(0, 8).map((a) => (
-                      <li key={a.id} className="aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] overflow-hidden relative group">
-                        <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="w-full h-full object-cover" />
+                    {projectAssets.map((a, idx) => (
+                      <li
+                        key={a.id}
+                        draggable
+                        onDragStart={() => {
+                          dragAssetId.current = a.id;
+                          setDragActiveId(a.id);
+                        }}
+                        onDragEnter={() => {
+                          dragOverAssetId.current = a.id;
+                          setDragOverId(a.id);
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDragEnd={() => {
+                          const fromId = dragAssetId.current;
+                          const toId = dragOverAssetId.current;
+                          dragAssetId.current = null;
+                          dragOverAssetId.current = null;
+                          setDragActiveId(null);
+                          setDragOverId(null);
+                          if (!fromId || !toId || fromId === toId) return;
+                          const from = projectAssets.findIndex((x) => x.id === fromId);
+                          const to = projectAssets.findIndex((x) => x.id === toId);
+                          if (from === -1 || to === -1) return;
+                          const next = [...projectAssets];
+                          const [moved] = next.splice(from, 1);
+                          next.splice(to, 0, moved);
+                          reorderAssets(next.map((x, i) => ({ ...x, orderIndex: i })));
+                        }}
+                        className={`aspect-square rounded-lg bg-[var(--color-surface-soft)] border overflow-hidden relative group cursor-grab active:cursor-grabbing transition-all ${
+                          dragActiveId === a.id
+                            ? "opacity-40 scale-95 border-[var(--color-accent)]"
+                            : dragOverId === a.id
+                            ? "border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/50 scale-105"
+                            : "border-[var(--line)]"
+                        }`}
+                      >
+                        <span className="absolute top-1 right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">{idx + 1}</span>
+                        <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="w-full h-full object-cover pointer-events-none" />
                         <button
                           type="button"
                           onClick={() => deleteAsset(a.id)}
@@ -1167,7 +1221,7 @@ export function ViontoPage() {
                         </button>
                       </li>
                     ))}
-                    {projectAssets.length > 8 && (
+                    {false && projectAssets.length > 8 && (
                       <li className="flex items-center justify-center aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] text-xs text-[var(--muted)]">
                         +{projectAssets.length - 8} more
                       </li>

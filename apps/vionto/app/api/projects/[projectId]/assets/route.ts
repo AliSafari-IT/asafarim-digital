@@ -166,6 +166,45 @@ export async function POST(
   }
 }
 
+/** PATCH /api/projects/[projectId]/assets — reorder assets */
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const user = await getAuthedUser();
+    if (!user) return unauthorized();
+
+    const { projectId } = await params;
+    const project = await getProject(projectId, user.id);
+    if (!project) return badRequest("Project not found.");
+
+    const body = (await req.json().catch(() => null)) as unknown;
+    if (
+      !body ||
+      typeof body !== "object" ||
+      !Array.isArray((body as { orderedIds?: unknown }).orderedIds)
+    ) {
+      return badRequest("orderedIds array is required");
+    }
+
+    const { orderedIds } = body as { orderedIds: string[] };
+
+    await prisma.$transaction(
+      orderedIds.map((id, idx) =>
+        prisma.viontoAsset.updateMany({
+          where: { id, projectId, userId: user.id },
+          data: { orderIndex: idx },
+        })
+      )
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return serverError("projects/[projectId]/assets PATCH", error);
+  }
+}
+
 /** DELETE /api/projects/[projectId]/assets — delete a specific asset */
 export async function DELETE(
   req: Request,
