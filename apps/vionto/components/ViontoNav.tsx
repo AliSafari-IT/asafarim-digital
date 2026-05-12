@@ -73,7 +73,9 @@ function ThemeToggle() {
 function UserMenu() {
   const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -84,6 +86,22 @@ function UserMenu() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  function openMenu() {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const dropW = 280;
+      const left = Math.max(8, Math.min(r.right - dropW, window.innerWidth - dropW - 8));
+      setDropdownStyle({
+        position: "fixed",
+        top: r.bottom + 10,
+        left,
+        width: dropW,
+        zIndex: 9999,
+      });
+    }
+    setOpen((o) => !o);
+  }
 
   if (status === "loading") {
     return <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />;
@@ -115,8 +133,9 @@ function UserMenu() {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={openMenu}
         aria-haspopup="true"
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-2 text-sm font-medium transition hover:border-[var(--color-primary)]"
@@ -147,7 +166,7 @@ function UserMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 min-w-[260px] rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-2 shadow-lg">
+        <div className="rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-2 shadow-lg" style={dropdownStyle}>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
             <p className="text-sm font-semibold">{session.user.name ?? "User"}</p>
             <p className="mt-1 text-xs text-[var(--color-text-muted)]">{session.user.email}</p>

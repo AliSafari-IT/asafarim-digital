@@ -102,6 +102,7 @@ type LibraryExport = {
 export function ViontoPage() {
   const { t, locale } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const applyCollapsed = () => {
@@ -117,7 +118,12 @@ export function ViontoPage() {
 
     applyCollapsed();
     window.addEventListener("resize", applyCollapsed);
-    return () => window.removeEventListener("resize", applyCollapsed);
+    const closeMobileMenu = () => { if (window.innerWidth >= 768) setMobileMenuOpen(false); };
+    window.addEventListener("resize", closeMobileMenu);
+    return () => {
+      window.removeEventListener("resize", applyCollapsed);
+      window.removeEventListener("resize", closeMobileMenu);
+    };
   }, []);
 
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
@@ -860,7 +866,7 @@ export function ViontoPage() {
           className={`sticky top-0 h-screen flex-shrink-0 flex flex-col border-r border-[var(--line)] backdrop-blur-[18px] transition-all duration-200 ${
             collapsed ? "w-[72px]" : "w-64"
           }`}
-          style={{ background: "rgba(18,20,22,0.92)" }}
+          style={{ background: "rgba(18,20,22,0.92)", zIndex: 20 }}
         >
           {/* Logo + collapse toggle */}
           <div className={`flex h-14 items-center border-b border-[var(--line)] ${
@@ -948,13 +954,49 @@ export function ViontoPage() {
               <span className="hidden text-[var(--muted)] md:inline">/</span>
               <span className="truncate font-medium text-[var(--text)]">Create</span>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Desktop controls — hidden below portrait tablet */}
+            <div className="hidden md:flex items-center gap-2">
               <ViontoTopbarControls />
               <a className="portal-link" href={process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3000"}>
                 ASafariM Portal <ArrowRight size={16} />
               </a>
             </div>
+            {/* Hamburger — visible below portrait tablet */}
+            <button
+              type="button"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] transition hover:bg-white/[0.06]"
+              style={{ color: "var(--text)" }}
+            >
+              {mobileMenuOpen ? (
+                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
           </header>
+          {/* Mobile dropdown menu */}
+          {mobileMenuOpen && (
+            <div
+              className="md:hidden flex flex-col gap-3 border-b border-[var(--line)] px-4 py-3"
+              style={{ background: "rgba(18,20,22,0.97)" }}
+            >
+              <ViontoTopbarControls />
+              <a
+                className="portal-link inline-flex w-full justify-center"
+                href={process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3000"}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ASafariM Portal <ArrowRight size={16} />
+              </a>
+            </div>
+          )}
 
           <div className="px-5 pt-5 pb-1">
             <p className="eyebrow">Photo-to-story video MVP</p>

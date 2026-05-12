@@ -73,6 +73,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
+  z-index: 20;
   border-right: 1px solid var(--line);
   background: rgba(18, 20, 22, 0.92);
   padding: 0;
@@ -185,13 +186,14 @@ button {
   min-width: 0;
   flex: 1;
   padding: 0;
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 40;
+  overflow: visible;
   display: flex;
   min-height: 3.5rem;
   align-items: center;
