@@ -63,8 +63,10 @@ button {
 }
 
 .workspace-shell {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -183,6 +185,7 @@ button {
   min-width: 0;
   flex: 1;
   padding: 0;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -460,53 +463,69 @@ h3 {
   color: var(--muted);
 }
 
-@media (max-width: 980px) {
-  .workspace-shell {
+/* ── Tablet: auto-collapse sidebar to icon rail (1024px and below) ── */
+@media (max-width: 1024px) {
+  .creator-grid,
+  .status-grid {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
-    position: static;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+  .pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── Mobile: sidebar stays on left as icon-only rail ── */
+@media (max-width: 640px) {
+  /* Keep sidebar as left column, force icon-only width */
+  .workspace-shell > aside {
+    width: 56px !important;
+    min-width: 56px !important;
+    flex-shrink: 0 !important;
   }
 
-  .nav-list {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* Hide brand text, collapse toggle, and MVP panel */
+  .workspace-shell > aside .brand-text,
+  .workspace-shell > aside .collapse-toggle,
+  .workspace-shell > aside > div:last-child {
+    display: none !important;
   }
 
-  .nav-item {
-    justify-content: center;
+  /* Centre the logo mark */
+  .workspace-shell > aside > div:first-child {
+    justify-content: center !important;
+    padding: 0 !important;
   }
 
-  .nav-item svg {
-    display: none;
+  /* Icon-only nav items — centred, no label */
+  .workspace-shell > aside nav ul li a {
+    justify-content: center !important;
+    padding: 10px 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Hide nav labels */
+  .workspace-shell > aside nav ul li a span {
+    display: none !important;
   }
 
   .creator-grid,
   .status-grid,
   .pipeline {
     grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .main-panel,
-  .sidebar {
-    padding: 18px;
+    margin-left: 12px;
+    margin-right: 12px;
   }
 
   .topbar {
-    display: grid;
+    padding: 0 12px;
   }
 
-  .nav-list,
   .mode-row {
     grid-template-columns: 1fr;
   }
 
-  .portal-link {
-    justify-content: center;
+  .portal-link span {
+    display: none;
   }
 }

@@ -5,6 +5,8 @@ import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
   Captions,
+  ChevronLeft,
+  ChevronRight,
   Clapperboard,
   CloudUpload,
   Download,
@@ -15,6 +17,7 @@ import {
   Play,
   Plus,
   RefreshCw,
+  Search,
   Sparkles,
   Trash2,
   Wand2,
@@ -101,16 +104,21 @@ export function ViontoPage() {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.localStorage.getItem("vionto:sidebar") === "collapsed") {
-      setCollapsed(true);
-    }
-  }, []);
+    const applyCollapsed = () => {
+      const w = window.innerWidth;
+      if (w < 1024) {
+        // Always collapse on tablet/mobile — user toggle only applies on desktop
+        setCollapsed(true);
+      } else {
+        const saved = window.localStorage.getItem("vionto:sidebar");
+        setCollapsed(saved === "collapsed");
+      }
+    };
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("vionto:sidebar", collapsed ? "collapsed" : "expanded");
-    }
-  }, [collapsed]);
+    applyCollapsed();
+    window.addEventListener("resize", applyCollapsed);
+    return () => window.removeEventListener("resize", applyCollapsed);
+  }, []);
 
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -133,6 +141,11 @@ export function ViontoPage() {
   const [libraryModeFilter, setLibraryModeFilter] = useState<"" | UiMode>("");
   const [libraryCreatedFrom, setLibraryCreatedFrom] = useState("");
   const [libraryCreatedTo, setLibraryCreatedTo] = useState("");
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryPage, setLibraryPage] = useState(1);
+  const [libraryCursors, setLibraryCursors] = useState<(string | null)[]>([null]);
+  const [libraryHasNext, setLibraryHasNext] = useState(false);
+  const LIBRARY_PAGE_SIZE = 6;
 
   // Project state
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -203,8 +216,10 @@ export function ViontoPage() {
   }, [selectedProjectId, locale, projects]);
 
   useEffect(() => {
-    loadExportLibrary({ projectId: selectedProjectId });
-  }, [libraryModeFilter, libraryCreatedFrom, libraryCreatedTo]);
+    setLibraryPage(1);
+    setLibraryCursors([null]);
+    loadExportLibrary({ projectId: selectedProjectId, cursor: null });
+  }, [libraryModeFilter, libraryCreatedFrom, libraryCreatedTo, librarySearch]);
 
   async function loadProjects() {
     setIsLoadingProjects(true);
@@ -286,7 +301,19 @@ export function ViontoPage() {
     }
   }
 
-  async function loadExportLibrary(overrides: { projectId?: string | null } = {}) {
+  async function removeLibraryExport(exportId: string) {
+    if (!confirm("Remove this video from the library?")) return;
+    try {
+      const res = await fetch(`/api/exports/${exportId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setLibraryExports((prev) => prev.filter((e) => e.id !== exportId));
+      if (exportId === latestExport?.id) setLatestExport(null);
+    } catch (error) {
+      console.error("Failed to remove export", error);
+    }
+  }
+
+  async function loadExportLibrary(overrides: { projectId?: string | null; cursor?: string | null } = {}) {
     setIsLoadingLibrary(true);
     try {
       const params = new URLSearchParams();
@@ -295,12 +322,16 @@ export function ViontoPage() {
       if (libraryModeFilter) params.set("mode", libraryModeFilter);
       if (libraryCreatedFrom) params.set("createdFrom", libraryCreatedFrom);
       if (libraryCreatedTo) params.set("createdTo", libraryCreatedTo);
-      params.set("limit", "12");
+      if (librarySearch.trim()) params.set("search", librarySearch.trim());
+      const cursor = overrides.cursor !== undefined ? overrides.cursor : null;
+      if (cursor) params.set("cursor", cursor);
+      params.set("limit", String(LIBRARY_PAGE_SIZE));
       const res = await fetch(`/api/exports/library?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json();
       const items = (data.data || []) as LibraryExport[];
       setLibraryExports(items);
+      setLibraryHasNext(!!data.nextCursor);
       if (items[0]) setLatestExport(items[0]);
       else if (!projectId) setLatestExport(null);
     } catch (error) {
@@ -838,7 +869,7 @@ export function ViontoPage() {
             <a href="/" className="flex items-center gap-2.5 overflow-hidden" aria-label="Vionto home">
               <ViontoMark className="h-8 w-8 shrink-0" />
               {!collapsed && (
-                <div className="flex flex-col leading-tight">
+                <div className="brand-text flex flex-col leading-tight max-sm:hidden">
                   <span className="text-sm font-bold tracking-tight" style={{ color: "var(--text)" }}>Vionto</span>
                   <span className="text-[10px]" style={{ color: "var(--muted)" }}>Vision + Canto</span>
                 </div>
@@ -847,10 +878,10 @@ export function ViontoPage() {
             {!collapsed && (
               <button
                 type="button"
-                onClick={() => setCollapsed(true)}
+                onClick={() => { window.localStorage.setItem("vionto:sidebar", "collapsed"); setCollapsed(true); }}
                 title="Collapse sidebar"
                 aria-label="Collapse sidebar"
-                className="h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                className="collapse-toggle h-7 w-7 flex items-center justify-center rounded-md transition-colors max-sm:hidden"
                 style={{ color: "var(--muted)" }}
               >
                 <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
@@ -861,10 +892,10 @@ export function ViontoPage() {
             {collapsed && (
               <button
                 type="button"
-                onClick={() => setCollapsed(false)}
+                onClick={() => { window.localStorage.setItem("vionto:sidebar", "expanded"); setCollapsed(false); }}
                 title="Expand sidebar"
                 aria-label="Expand sidebar"
-                className="mt-1 h-7 w-7 flex items-center justify-center rounded-md transition-colors"
+                className="collapse-toggle mt-1 h-7 w-7 flex items-center justify-center rounded-md transition-colors max-sm:hidden"
                 style={{ color: "var(--muted)" }}
               >
                 <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
@@ -881,7 +912,7 @@ export function ViontoPage() {
                 <li key={href}>
                   <a
                     href={href}
-                    title={collapsed ? t(labelKey) : undefined}
+                    title={t(labelKey)}
                     className={`group flex items-center gap-3 rounded-lg py-2 text-sm transition-colors ${
                       collapsed ? "justify-center px-2" : "px-3"
                     } ${
@@ -1399,8 +1430,19 @@ export function ViontoPage() {
                   aria-label="Filter videos created to"
                 />
               </div>
+              <div className="relative mt-2">
+                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <input
+                  type="search"
+                  placeholder="Search videos by title or keyword…"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] py-2 pl-9 pr-3 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]"
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  aria-label="Search videos"
+                />
+              </div>
 
-              <div className="mt-3 grid gap-3">
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {isLoadingLibrary ? (
                   <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
                     <RefreshCw size={16} className="animate-spin" />
@@ -1409,58 +1451,108 @@ export function ViontoPage() {
                 ) : libraryExports.length === 0 ? (
                   <p className="text-sm text-[var(--color-text-muted)]">No completed videos match these filters yet.</p>
                 ) : (
-                  libraryExports.map((item) => (
+                  libraryExports.map((item, _idx) => (
                     <article
                       key={item.id}
-                      className="grid gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3 md:grid-cols-[180px_1fr]"
+                      className="flex flex-col overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)]"
                     >
                       <video
                         src={item.previewUrl}
                         controls
                         playsInline
                         preload="metadata"
-                        className="aspect-video w-full rounded-md bg-black object-cover"
+                        className="aspect-video w-full bg-black object-cover"
                       />
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-1 flex-col gap-1 p-3 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <h3 className="truncate text-sm font-semibold text-[var(--color-text)]">
                             {item.previewTitle ?? item.projectTitle}
                           </h3>
                           {item.mode && (
-                            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+                            <span className="shrink-0 rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
                               {item.mode}
                             </span>
                           )}
                           {item.aspectLabel && (
-                            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
+                            <span className="shrink-0 rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
                               {item.aspectLabel}
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 truncate text-xs text-[var(--color-text-muted)]">{item.filename ?? "Untitled export"}</p>
-                        <p className="mt-2 text-sm text-[var(--color-text-muted)]">{item.previewSubtitle}</p>
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--color-text-muted)]">
-                          <span>{new Date(item.createdAt).toLocaleString()}</span>
+                        <p className="truncate text-[11px] text-[var(--color-text-muted)]">{item.filename ?? "Untitled export"}</p>
+                        {item.previewSubtitle && (
+                          <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{item.previewSubtitle}</p>
+                        )}
+                        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2 text-[11px] text-[var(--color-text-muted)]">
+                          <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                           {item.durationSeconds != null && <span>{item.durationSeconds}s</span>}
                           {item.fileSizeBytes != null && <span>{(item.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setLatestExport(item);
-                            setExportId(item.id);
-                            setDownloadUrl(null);
-                          }}
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
-                        >
-                          <Play size={16} />
-                          Show in preview
-                        </button>
+                        <div className="mt-2 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLatestExport(item);
+                              setExportId(item.id);
+                              setDownloadUrl(null);
+                            }}
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-1.5 text-xs font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                          >
+                            <Play size={13} />
+                            Preview
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeLibraryExport(item.id)}
+                            className="inline-flex items-center justify-center rounded-md border border-red-300 p-1.5 text-red-500 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                            aria-label="Remove video"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </article>
                   ))
                 )}
               </div>
+
+              {/* Pagination */}
+              {(libraryPage > 1 || libraryHasNext) && (
+                <div className="mt-4 flex items-center justify-between">
+                  <button
+                    type="button"
+                    disabled={libraryPage <= 1 || isLoadingLibrary}
+                    onClick={() => {
+                      const prevPage = libraryPage - 1;
+                      const prevCursor = libraryCursors[prevPage - 1] ?? null;
+                      setLibraryPage(prevPage);
+                      loadExportLibrary({ cursor: prevCursor });
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </button>
+                  <span className="text-sm text-[var(--color-text-muted)]">Page {libraryPage}</span>
+                  <button
+                    type="button"
+                    disabled={!libraryHasNext || isLoadingLibrary}
+                    onClick={() => {
+                      const lastItem = libraryExports[libraryExports.length - 1];
+                      if (!lastItem) return;
+                      const nextCursors = [...libraryCursors];
+                      nextCursors[libraryPage] = lastItem.id;
+                      setLibraryCursors(nextCursors);
+                      setLibraryPage(libraryPage + 1);
+                      loadExportLibrary({ cursor: lastItem.id });
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         </section>

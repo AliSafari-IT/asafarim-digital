@@ -26,6 +26,7 @@ export async function GET(req: Request) {
     const projectId = searchParams.get("projectId");
     const createdFrom = parseDate(searchParams.get("createdFrom"));
     const createdTo = parseDate(searchParams.get("createdTo"));
+    const search = searchParams.get("search")?.trim() ?? "";
     const limit = Math.min(Math.max(Number(searchParams.get("limit") ?? 20) || 20, 1), 50);
     const cursor = searchParams.get("cursor");
 
@@ -40,6 +41,15 @@ export async function GET(req: Request) {
               ...(createdFrom ? { gte: createdFrom } : {}),
               ...(createdTo ? { lte: createdTo } : {}),
             },
+          }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { previewTitle: { contains: search, mode: "insensitive" as const } },
+              { filename: { contains: search, mode: "insensitive" as const } },
+              { storyKeywords: { array_contains: [search] } },
+            ],
           }
         : {}),
       renderJob: { is: { state: "completed" } },
