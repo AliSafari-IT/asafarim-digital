@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Position = 0)]
     [string]$Command = "help",
 
@@ -13,38 +13,59 @@ $ErrorActionPreference = "Stop"
 # =============================================================================
 
 $SCRIPT_DIR = $PSScriptRoot
-$SERVER_IP = "46.225.189.19"
-$API_DOMAIN = "api.immostory.be"
-$WEB_DOMAIN = "immostory.be"
 
-if ($env:BACKEND_PORT) { $BACKEND_PORT = $env:BACKEND_PORT } else { $BACKEND_PORT = "3234" }
-if ($env:WEB_PORT)     { $WEB_PORT = $env:WEB_PORT }         else { $WEB_PORT = "3233" }
+# Docker services required by vionto (and any app that needs them)
+$DOCKER_SERVICES = @(
+    @{ Name = "redis-local"; Image = "redis:7-alpine"; Ports = "-p 6379:6379" }
+)
+
+# App ports (must match each app's package.json "dev" script)
+$APP_PORTS = @{
+    "portal"              = 3000
+    "content-generator"   = 3001
+    "ops-hub"             = 3003
+    "marketing-content"   = 3004
+    "edumatch"            = 3005
+    "vionto"              = 3006
+}
+
+# Only packages that have a "build" script in their package.json, in dependency order.
+# Packages without a build script (config, types, shared-i18n, country-language-selector,
+# navigation, vionto-schemas) are source-only and are handled by transpilePackages in
+# each app's next.config.ts - no separate build step needed.
+$PACKAGES_BUILD_ORDER = @(
+    "packages\db",       # prisma generate
+    "packages\auth",     # tsc
+    "packages\payments", # tsup
+    "packages\ui",       # tsup
+    "packages\location"  # tsc --noEmit (type-check only, no output)
+)
 
 # =============================================================================
 # Logging
 # =============================================================================
 
-function Log-Info  { param([string]$Msg) Write-Host "[INFO] $Msg" -ForegroundColor Green }
-function Log-Warn  { param([string]$Msg) Write-Host "[WARN] $Msg" -ForegroundColor Yellow }
+function Log-Info  { param([string]$Msg) Write-Host "[INFO]  $Msg" -ForegroundColor Green }
+function Log-Warn  { param([string]$Msg) Write-Host "[WARN]  $Msg" -ForegroundColor Yellow }
 function Log-Error { param([string]$Msg) Write-Host "[ERROR] $Msg" -ForegroundColor Red }
-function Log-Step  { param([string]$Msg) Write-Host "[STEP] $Msg" -ForegroundColor Blue }
-function Log-App   { param([string]$Msg) Write-Host "[APP]  $Msg" -ForegroundColor Cyan }
+function Log-Step  { param([string]$Msg) Write-Host "`n[STEP]  $Msg" -ForegroundColor Cyan }
+function Log-App   { param([string]$Msg) Write-Host "[APP]   $Msg" -ForegroundColor Magenta }
 
 function Show-Banner {
     Write-Host ""
-    Write-Host "+=================================================================+" -ForegroundColor Cyan
-    Write-Host "|  ImmoStory - Belgian Real Estate Automation Platform            |" -ForegroundColor Green
-    Write-Host "|  AI-Powered Video Generation & Social Media Publishing          |" -ForegroundColor Cyan
-    Write-Host "+=================================================================+" -ForegroundColor Cyan
+    Write-Host "+================================================================+" -ForegroundColor Cyan
+    Write-Host "|  ASafariM Digital - Monorepo Dev Launcher                      |" -ForegroundColor Green
+    Write-Host "+================================================================+" -ForegroundColor Cyan
     Write-Host ""
-    Log-Info "Server: $SERVER_IP"
-    Log-Info "API: $API_DOMAIN"
-    Log-Info "Web: $WEB_DOMAIN"
+    Write-Host "  Apps:" -ForegroundColor DarkGray
+    foreach ($kv in $APP_PORTS.GetEnumerator() | Sort-Object Key) {
+        Write-Host ("    {0,-22} -> http://localhost:{1}" -f $kv.Key, $kv.Value) -ForegroundColor DarkGray
+    }
     Write-Host ""
 }
 
 # =============================================================================
-# Helper Functions
+# Helpers
 # =============================================================================
 
 function Test-CommandExists {
@@ -54,177 +75,121 @@ function Test-CommandExists {
 
 function Assert-Dependencies {
     Log-Step "Checking dependencies..."
-    $hasMissing = $false
-
-    if (-not (Test-CommandExists "node")) {
-        Log-Error "Node.js is not installed"
-        $hasMissing = $true
-    }
-    if (-not (Test-CommandExists "pnpm")) {
-        Log-Error "pnpm is not installed"
-        $hasMissing = $true
-    }
-
-    if ($hasMissing) { exit 1 }
-    Log-Info "All dependencies are available"
-}
-
-# -----------------------------------------------------------------------------
-# Pointer-file <-> Junction helpers
-#
-# The repo ships plain-text files (e.g. apps/backend/packages/database) that
-# contain a relative path like "../../../packages/database".
-# pnpm needs real directories, so we swap them for NTFS junctions while the
-# script runs, then restore the originals when we are done.
-# -----------------------------------------------------------------------------
-
-# Known pointer files and their expected content
-$script:POINTER_MAP = @{
-    (Join-Path $SCRIPT_DIR "apps\backend\packages\database") = "../../../packages/database"
-    (Join-Path $SCRIPT_DIR "apps\backend\packages\shared")   = "../../../packages/shared"
-    (Join-Path $SCRIPT_DIR "apps\web\packages\database")      = "../../../packages/database"
-    (Join-Path $SCRIPT_DIR "apps\web\packages\shared")        = "../../../packages/shared"
-}
-
-function Set-AllJunctions {
-    foreach ($kvp in $script:POINTER_MAP.GetEnumerator()) {
-        $pointerPath = $kvp.Key
-        $relPath     = $kvp.Value
-        $pkgDir      = Split-Path $pointerPath -Parent
-        $target      = [System.IO.Path]::GetFullPath((Join-Path $pkgDir $relPath))
-        $name        = Split-Path $pointerPath -Leaf
-
-        # Already a junction – nothing to do
-        if ((Test-Path $pointerPath) -and
-            (Get-Item $pointerPath).Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-            continue
-        }
-
-        if (-not (Test-Path $target -PathType Container)) {
-            Log-Warn "Junction target missing: $target (pointer: $pointerPath)"
-            continue
-        }
-
-        if (Test-Path $pointerPath) { Remove-Item $pointerPath -Force }
-        cmd /c "mklink /J `"$pointerPath`" `"$target`"" | Out-Null
-        Log-Info "Junction: $name -> $target"
-    }
-}
-
-function Restore-AllPointers {
-    # Works purely from filesystem – no in-memory state needed.
-    # Safe to call any time, even after an unclean exit.
-    # Returns nothing; sets $script:lastRestoreDidWork instead.
-    $script:lastRestoreDidWork = $false
-    foreach ($kvp in $script:POINTER_MAP.GetEnumerator()) {
-        $pointerPath = $kvp.Key
-        $content     = $kvp.Value
-
-        if (-not (Test-Path $pointerPath)) {
-            # Missing entirely – recreate the pointer file
-            [System.IO.File]::WriteAllText($pointerPath, $content)
-            $script:lastRestoreDidWork = $true
-            continue
-        }
-
-        $item = Get-Item $pointerPath -Force
-        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-            cmd /c "rmdir /q `"$pointerPath`"" 2>&1 | Out-Null
-            [System.IO.File]::WriteAllText($pointerPath, $content)
-            $script:lastRestoreDidWork = $true
+    $missing = $false
+    foreach ($tool in @("node", "pnpm")) {
+        if (-not (Test-CommandExists $tool)) {
+            Log-Error "$tool is not installed or not in PATH"
+            $missing = $true
+        } else {
+            $ver = & $tool --version 2>&1
+            Log-Info "$tool $ver"
         }
     }
+    if ($missing) { exit 1 }
+    Log-Info "All dependencies present"
 }
 
 function Stop-ProcessOnPort {
     param([int]$Port)
-    Log-Step "Killing processes on port $Port..."
+    $pids = netstat -ano 2>$null |
+        Select-String ":$Port\s" |
+        ForEach-Object { ($_ -split '\s+')[-1] } |
+        Where-Object { $_ -match '^\d+$' } |
+        Sort-Object -Unique
 
-    $connections = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
-                   Where-Object { $_.State -eq 'Listen' }
-
-    if ($connections) {
-        $procIds = $connections | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($procId in $procIds) {
-            try {
-                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
-                Log-Info "Killed PID $procId on port $Port"
-            }
-            catch {
-                Log-Warn "Could not kill PID $procId on port $Port"
-            }
-        }
-        Start-Sleep -Seconds 1
-    }
-    else {
-        Log-Info "No process found on port $Port"
+    foreach ($p in $pids) {
+        try {
+            Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue
+            Log-Info "Stopped process $p on port $Port"
+        } catch {}
     }
 }
 
 function Test-PortListening {
     param([int]$Port)
-    $conn = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
-            Where-Object { $_.State -eq 'Listen' }
-    return ($null -ne $conn)
+    $result = netstat -ano 2>$null | Select-String ":$Port\s.*LISTENING"
+    return ($null -ne $result)
 }
 
 function Test-HttpHealth {
-    param(
-        [string]$Url,
-        [string]$Label,
-        [string[]]$AcceptedCodes = @("200")
-    )
+    param([string]$Url, [string]$Label, [string[]]$AcceptedCodes = @("200"))
     try {
-        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
-        $code = $response.StatusCode.ToString()
-        if ($AcceptedCodes -contains $code) {
-            Log-Info "OK $Label responded with HTTP $code"
+        $resp = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+        if ($AcceptedCodes -contains [string]$resp.StatusCode) {
+            Log-Info "OK $Label ($($resp.StatusCode))"
             return $true
         }
-        Log-Error "$Label responded with unexpected HTTP $code"
-        return $false
-    }
-    catch {
-        Log-Error "$Label is not reachable"
-        return $false
-    }
+    } catch {}
+    Log-Warn "$Label not responding at $Url"
+    return $false
 }
 
-function Invoke-PnpmInstall {
-    param([string]$Dir, [string]$Label)
-    Log-App "Installing dependencies: $Label ..."
+function Invoke-PnpmCommand {
+    param([string]$Dir, [string]$Label, [string]$PnpmArgs)
+    if (-not (Test-Path $Dir)) {
+        Log-Warn "Skipping $Label - directory not found: $Dir"
+        return
+    }
+    Log-Info ">>> $Label"
     Push-Location $Dir
     try {
-        $result = cmd /c "pnpm install 2>&1" 2>&1
-        $result | ForEach-Object { Write-Host $_ }
-        if ($LASTEXITCODE -ne 0) { throw "pnpm install failed in $Dir" }
-        Log-Info "OK $Label dependencies installed"
-    }
-    catch {
-        throw
-    }
-    finally {
+        $cmd = "pnpm $PnpmArgs"
+        Invoke-Expression $cmd
+        if ($LASTEXITCODE -ne 0) { throw "Command failed in $Label" }
+    } finally {
         Pop-Location
     }
 }
 
-function Invoke-PnpmBuild {
-    param([string]$Dir, [string]$Label)
-    Log-App "Building: $Label ..."
-    Push-Location $Dir
-    try {
-        $result = cmd /c "pnpm run build 2>&1" 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            $result | ForEach-Object { Write-Host $_ }
-            throw "pnpm build failed in $Dir (exit code $LASTEXITCODE)"
+function Start-DockerServices {
+    if (-not (Test-CommandExists "docker")) {
+        Log-Warn "docker not found — skipping Docker service startup"
+        return
+    }
+    Log-Step "Starting Docker services (Redis)..."
+    foreach ($svc in $DOCKER_SERVICES) {
+        $name  = $svc.Name
+        $image = $svc.Image
+        $ports = $svc.Ports
+
+        Log-Info "Pulling latest image: $image"
+        docker pull $image | Out-Null
+
+        $existing = docker ps -a --filter "name=^${name}$" --format "{{.Names}}" 2>$null
+        if ($existing) {
+            Log-Info "Removing existing container: $name"
+            docker rm -f $name | Out-Null
         }
-        Log-Info "OK $Label built successfully"
+
+        Log-Info "Starting container: $name on $ports"
+        $runCmd = "docker run -d --name $name $ports --restart unless-stopped $image"
+        Invoke-Expression $runCmd | Out-Null
+
+        # Wait up to 10s for the port to be ready
+        $port = ($ports -replace '.*-p (\d+):.*','$1')
+        $ready = $false
+        for ($i = 0; $i -lt 10; $i++) {
+            if (Test-PortListening -Port ([int]$port)) { $ready = $true; break }
+            Start-Sleep -Seconds 1
+        }
+        if ($ready) {
+            Log-Info "OK $name is ready on port $port"
+        } else {
+            Log-Warn "$name may not be ready yet on port $port"
+        }
     }
-    catch {
-        throw
-    }
-    finally {
-        Pop-Location
+}
+
+function Stop-DockerServices {
+    if (-not (Test-CommandExists "docker")) { return }
+    Log-Step "Stopping Docker services..."
+    foreach ($svc in $DOCKER_SERVICES) {
+        $name = $svc.Name
+        $existing = docker ps -a --filter "name=^${name}$" --format "{{.Names}}" 2>$null
+        if ($existing) {
+            docker rm -f $name | Out-Null
+            Log-Info "Removed container: $name"
+        }
     }
 }
 
@@ -233,435 +198,187 @@ function Invoke-PnpmBuild {
 # =============================================================================
 
 function Cmd-Install {
-    Log-Step "Installing all dependencies..."
-
-    Invoke-PnpmInstall -Dir $SCRIPT_DIR -Label "Root monorepo"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "packages\database") -Label "packages/database"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "packages\shared")   -Label "packages/shared"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "packages\video-composition") -Label "packages/video-composition"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "apps\web")            -Label "apps/web"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "apps\backend")        -Label "apps/backend"
-    Invoke-PnpmInstall -Dir (Join-Path $SCRIPT_DIR "apps\render-service") -Label "apps/render-service"
-
+    Log-Step "Installing all dependencies (pnpm install from root)..."
+    Push-Location $SCRIPT_DIR
+    try {
+        pnpm install
+        if ($LASTEXITCODE -ne 0) { throw "pnpm install failed" }
+    } finally {
+        Pop-Location
+    }
     Log-Info "OK All dependencies installed"
 }
 
 function Cmd-Build {
-    Log-Step "Building all packages and apps..."
-
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\database") -Label "packages/database"
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\shared")   -Label "packages/shared"
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\video-composition") -Label "packages/video-composition"
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "apps\backend")        -Label "apps/backend"
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "apps\web")            -Label "apps/web"
-    Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "apps\render-service") -Label "apps/render-service"
-
-    Log-Info "OK All packages and apps built successfully"
+    Log-Step "Building packages in dependency order..."
+    foreach ($pkg in $PACKAGES_BUILD_ORDER) {
+        $dir = Join-Path $SCRIPT_DIR $pkg
+        if (Test-Path $dir) {
+            Invoke-PnpmCommand -Dir $dir -Label $pkg -PnpmArgs "build"
+        }
+    }
+    Log-Info "OK All packages built"
 }
 
 function Cmd-Dev {
-    Log-Step "Starting development mode - backend + web ..."
+    param([string[]]$Apps)
 
-    Log-Info "Backend will be on port $BACKEND_PORT"
-    Log-Info "Web will be on port $WEB_PORT"
-    Write-Host ""
+    # Decide which apps to start
+    if ($Apps -and $Apps.Count -gt 0) {
+        $toStart = @{}
+        foreach ($a in $Apps) {
+            if ($APP_PORTS.ContainsKey($a)) {
+                $toStart[$a] = $APP_PORTS[$a]
+            } else {
+                Log-Warn "Unknown app '$a'. Known apps: $($APP_PORTS.Keys -join ', ')"
+            }
+        }
+    } else {
+        $toStart = $APP_PORTS
+    }
 
-    Stop-ProcessOnPort $BACKEND_PORT
-    Stop-ProcessOnPort $WEB_PORT
+    if ($toStart.Count -eq 0) { Log-Error "No valid apps to start"; exit 1 }
+
+    Start-DockerServices
+
+    Log-Step "Starting dev servers..."
+    foreach ($kv in $toStart.GetEnumerator()) {
+        Stop-ProcessOnPort $kv.Value
+    }
 
     $currentPath = $env:PATH
+    $jobs = @{}
 
-    Log-App "Starting Backend on port $BACKEND_PORT ..."
-    $backendDir = Join-Path $SCRIPT_DIR "apps\backend"
-    $script:backendJob = Start-Job -ScriptBlock {
-        param($dir, $port, $pathVar)
-        $env:PATH = $pathVar
-        Set-Location $dir
-        $env:PORT = $port
-        # Replicate dev-wrapper.mjs env setup (local-safe mode)
-        if (-not $env:REDIS_ENABLED)    { $env:REDIS_ENABLED = "false" }
-        if (-not $env:RABBITMQ_ENABLED) { $env:RABBITMQ_ENABLED = "false" }
-        cmd /c "pnpm exec nest start --watch 2>&1"
-    } -ArgumentList $backendDir, $BACKEND_PORT, $currentPath
+    foreach ($kv in $toStart.GetEnumerator()) {
+        $appName = $kv.Key
+        $port    = $kv.Value
+        $appDir  = Join-Path $SCRIPT_DIR "apps\$appName"
 
-    Log-App "Starting Web on port $WEB_PORT ..."
-    $webDir = Join-Path $SCRIPT_DIR "apps\web"
-    $script:webJob = Start-Job -ScriptBlock {
-        param($dir, $port, $pathVar)
-        $env:PATH = $pathVar
-        Set-Location $dir
-        $env:PORT = $port
-        cmd /c "pnpm run dev 2>&1"
-    } -ArgumentList $webDir, $WEB_PORT, $currentPath
+        if (-not (Test-Path $appDir)) {
+            Log-Warn "Skipping $appName - directory not found: $appDir"
+            continue
+        }
+
+        Log-App "Starting $appName on port $port..."
+        $job = Start-Job -ScriptBlock {
+            param($dir, $pathVar)
+            $env:PATH = $pathVar
+            Set-Location $dir
+            cmd /c "pnpm run dev 2>&1"
+        } -ArgumentList $appDir, $currentPath
+
+        $jobs[$appName] = $job
+    }
 
     Write-Host ""
-    Log-Info "OK Both services started as background jobs"
-    Log-Info "Backend Job ID: $($script:backendJob.Id)"
-    Log-Info "Web Job ID: $($script:webJob.Id)"
+    Log-Info "Dev servers running:"
+    foreach ($kv in $jobs.GetEnumerator()) {
+        $port = $toStart[$kv.Key]
+        Log-Info "  $($kv.Key) [Job $($kv.Value.Id)] -> http://localhost:$port"
+    }
     Write-Host ""
-    Log-Info "API URL: http://localhost:${BACKEND_PORT}/api"
-    Log-Info "Web URL: http://localhost:${WEB_PORT}"
-    Write-Host ""
-    Log-Info "Press Ctrl+C to stop both services"
+    Log-Info "Press Ctrl+C to stop all."
     Write-Host ""
 
     try {
         while ($true) {
-            $bo = Receive-Job -Job $script:backendJob -ErrorAction SilentlyContinue
-            if ($bo) { foreach ($l in $bo) { Write-Host "[BACKEND] $l" } }
-
-            $wo = Receive-Job -Job $script:webJob -ErrorAction SilentlyContinue
-            if ($wo) { foreach ($l in $wo) { Write-Host "[WEB]     $l" } }
-
-            if ($script:backendJob.State -eq 'Completed' -or $script:backendJob.State -eq 'Failed') {
-                Log-Warn "Backend process exited with state: $($script:backendJob.State)"
-                break
+            foreach ($kv in $jobs.GetEnumerator()) {
+                $out = Receive-Job -Job $kv.Value -ErrorAction SilentlyContinue
+                if ($out) { foreach ($l in $out) { Write-Host "[$($kv.Key)] $l" } }
+                if ($kv.Value.State -in @('Completed','Failed')) {
+                    Log-Warn "$($kv.Key) exited with state: $($kv.Value.State)"
+                }
             }
-            if ($script:webJob.State -eq 'Completed' -or $script:webJob.State -eq 'Failed') {
-                Log-Warn "Web process exited with state: $($script:webJob.State)"
-                break
-            }
-
-            Start-Sleep -Milliseconds 500
+            Start-Sleep -Milliseconds 400
         }
-    }
-    finally {
-        Log-Info "Stopping services..."
-        Stop-Job -Job $script:backendJob -ErrorAction SilentlyContinue
-        Stop-Job -Job $script:webJob -ErrorAction SilentlyContinue
-        Remove-Job -Job $script:backendJob -Force -ErrorAction SilentlyContinue
-        Remove-Job -Job $script:webJob -Force -ErrorAction SilentlyContinue
-        Stop-ProcessOnPort $BACKEND_PORT
-        Stop-ProcessOnPort $WEB_PORT
-        Log-Info "OK Services stopped"
+    } finally {
+        Log-Info "Stopping all dev servers..."
+        foreach ($kv in $jobs.GetEnumerator()) {
+            Stop-Job   -Job $kv.Value -ErrorAction SilentlyContinue
+            Remove-Job -Job $kv.Value -Force -ErrorAction SilentlyContinue
+            Stop-ProcessOnPort $toStart[$kv.Key]
+        }
+        Log-Info "OK All dev servers stopped"
     }
 }
 
 function Cmd-Start {
-    Log-Step "Full start: install then build then dev..."
+    Log-Step "Full pipeline: install, build packages, then dev..."
     Show-Banner
     Assert-Dependencies
-
     Cmd-Install
     Cmd-Build
-    Cmd-Dev
-}
-
-function Cmd-Prod {
-    Log-Step "Starting production mode..."
-
-    $backendDist = Join-Path $SCRIPT_DIR "apps\backend\dist"
-    $webNext     = Join-Path $SCRIPT_DIR "apps\web\.next"
-
-    if (-not (Test-Path $backendDist)) {
-        Log-Warn "Backend build not found - building..."
-        Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\database") -Label "packages/database"
-        Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\shared")   -Label "packages/shared"
-        Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "apps\backend")      -Label "apps/backend"
-    }
-    if (-not (Test-Path $webNext)) {
-        Log-Warn "Web build not found - building..."
-        Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "packages\video-composition") -Label "packages/video-composition"
-        Invoke-PnpmBuild -Dir (Join-Path $SCRIPT_DIR "apps\web") -Label "apps/web"
-    }
-
-    Stop-ProcessOnPort $BACKEND_PORT
-    Stop-ProcessOnPort $WEB_PORT
-
-    $currentPath = $env:PATH
-
-    Log-App "Starting Backend on port $BACKEND_PORT in production mode..."
-    $backendDir = Join-Path $SCRIPT_DIR "apps\backend"
-    $script:backendJob = Start-Job -ScriptBlock {
-        param($dir, $port, $pathVar)
-        $env:PATH = $pathVar
-        Set-Location $dir
-        $env:NODE_ENV = "production"
-        $env:PORT = $port
-        cmd /c "pnpm run start:prod 2>&1"
-    } -ArgumentList $backendDir, $BACKEND_PORT, $currentPath
-
-    Start-Sleep -Seconds 3
-
-    Log-App "Starting Web on port $WEB_PORT in production mode..."
-    $webDir = Join-Path $SCRIPT_DIR "apps\web"
-    $script:webJob = Start-Job -ScriptBlock {
-        param($dir, $port, $pathVar)
-        $env:PATH = $pathVar
-        Set-Location $dir
-        $env:NODE_ENV = "production"
-        $env:PORT = $port
-        cmd /c "pnpm run start 2>&1"
-    } -ArgumentList $webDir, $WEB_PORT, $currentPath
-
-    Write-Host ""
-    Log-Info "OK Production services started"
-    Log-Info "Backend Job ID: $($script:backendJob.Id) - port $BACKEND_PORT"
-    Log-Info "Web Job ID: $($script:webJob.Id) - port $WEB_PORT"
-    Write-Host ""
-    Log-Info "API URL: http://localhost:${BACKEND_PORT}/api"
-    Log-Info "Web URL: http://localhost:${WEB_PORT}"
-    Write-Host ""
-    Log-Info "Press Ctrl+C to stop both services"
-
-    try {
-        while ($true) {
-            $bo = Receive-Job -Job $script:backendJob -ErrorAction SilentlyContinue
-            if ($bo) { foreach ($l in $bo) { Write-Host "[BACKEND] $l" } }
-            $wo = Receive-Job -Job $script:webJob -ErrorAction SilentlyContinue
-            if ($wo) { foreach ($l in $wo) { Write-Host "[WEB]     $l" } }
-            if ($script:backendJob.State -in @('Completed','Failed')) {
-                Log-Warn "Backend process exited with state: $($script:backendJob.State)"; break
-            }
-            if ($script:webJob.State -in @('Completed','Failed')) {
-                Log-Warn "Web process exited with state: $($script:webJob.State)"; break
-            }
-            Start-Sleep -Milliseconds 500
-        }
-    }
-    finally {
-        Log-Info "Stopping production services..."
-        Stop-Job -Job $script:backendJob -ErrorAction SilentlyContinue
-        Stop-Job -Job $script:webJob -ErrorAction SilentlyContinue
-        Remove-Job -Job $script:backendJob -Force -ErrorAction SilentlyContinue
-        Remove-Job -Job $script:webJob -Force -ErrorAction SilentlyContinue
-        Stop-ProcessOnPort $BACKEND_PORT
-        Stop-ProcessOnPort $WEB_PORT
-        Log-Info "OK Production services stopped"
-    }
+    Cmd-Dev -Apps $ExtraArgs
 }
 
 function Cmd-Status {
-    Log-Step "Checking system status..."
+    Log-Step "Checking service health..."
     Show-Banner
-
-    Write-Host ""
-    Write-Host "=== Backend Server - Port $BACKEND_PORT ==="
-    $backendOk = Test-HttpHealth -Url "http://localhost:${BACKEND_PORT}/api/v1/health" -Label "Backend health"
-    if (-not $backendOk) {
-        if (Test-PortListening -Port $BACKEND_PORT) {
-            Log-Warn "Backend port is listening but health check failed"
-        }
-        else {
-            Log-Error "Backend is not reachable"
-        }
-    }
-
-    Write-Host ""
-    Write-Host "=== Web Server - Port $WEB_PORT ==="
-    $webOk = Test-HttpHealth -Url "http://localhost:${WEB_PORT}" -Label "Web app" -AcceptedCodes @("200","301","302","307","308")
-    if (-not $webOk) {
-        if (Test-PortListening -Port $WEB_PORT) {
-            Log-Warn "Web port is listening but health check failed"
-        }
-        else {
-            Log-Error "Web is not reachable"
-        }
-    }
-
-    Write-Host ""
-    Write-Host "=== Render Service - Port 4000 ==="
-    $renderOk = Test-HttpHealth -Url "http://localhost:4000/health" -Label "Render-service health"
-    if (-not $renderOk) {
-        if (Test-PortListening -Port 4000) {
-            Log-Warn "Render-service port is listening but health check failed"
-        }
-        else {
-            Log-Error "Render-service is not reachable"
-        }
+    foreach ($kv in $APP_PORTS.GetEnumerator() | Sort-Object Key) {
+        $url  = "http://localhost:$($kv.Value)"
+        $name = $kv.Key
+        Test-HttpHealth -Url $url -Label $name -AcceptedCodes @("200","301","302","307","308") | Out-Null
     }
 }
 
 function Cmd-Stop {
     Log-Step "Stopping all services..."
-
-    Stop-ProcessOnPort $BACKEND_PORT
-    Stop-ProcessOnPort $WEB_PORT
-    Stop-ProcessOnPort 4000
-
+    foreach ($kv in $APP_PORTS.GetEnumerator()) {
+        Stop-ProcessOnPort $kv.Value
+    }
     Get-Job | Where-Object { $_.State -eq 'Running' } | Stop-Job -ErrorAction SilentlyContinue
     Get-Job | Remove-Job -Force -ErrorAction SilentlyContinue
-
-    # Restore any lingering junctions back to pointer files
-    Restore-AllPointers
-    if ($script:lastRestoreDidWork) {
-        Log-Info "Pointer files restored - git is clean"
-    }
-
+    Stop-DockerServices
     Log-Info "OK All services stopped"
 }
 
 function Cmd-Cleanup {
-    Log-Step "Cleaning up build artifacts..."
-
-    $dirs = @(
-        (Join-Path $SCRIPT_DIR "apps\backend\dist"),
-        (Join-Path $SCRIPT_DIR "apps\web\.next"),
-        (Join-Path $SCRIPT_DIR "apps\render-service\dist"),
-        (Join-Path $SCRIPT_DIR "packages\database\dist"),
-        (Join-Path $SCRIPT_DIR "packages\shared\dist"),
-        (Join-Path $SCRIPT_DIR "packages\video-composition\dist")
-    )
-
-    foreach ($d in $dirs) {
-        if (Test-Path $d) {
-            Remove-Item -Recurse -Force $d
-            Log-Info "Removed $d"
+    Log-Step "Removing build artifacts..."
+    $patterns = @(".next", "dist", ".turbo")
+    Get-ChildItem -Path $SCRIPT_DIR -Recurse -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -in $patterns -and $_.FullName -notmatch '\\node_modules\\' } |
+        ForEach-Object {
+            Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            Log-Info "Removed $($_.FullName)"
         }
-    }
-
-    Log-Info "OK Cleanup completed"
-}
-
-function Cmd-QaBackend {
-    Log-Step "Starting QA backend locally via pnpm dev..."
-    Show-Banner
-    Assert-Dependencies
-
-    $envQa = Join-Path $SCRIPT_DIR "apps\backend\.env.qa"
-    if (Test-Path $envQa) {
-        Log-Info "Loading apps/backend/.env.qa"
-        Get-Content $envQa | ForEach-Object {
-            if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
-                [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), "Process")
-            }
-        }
-    }
-    else {
-        Log-Warn "apps/backend/.env.qa not found - running with existing environment"
-    }
-
-    if (-not $env:NODE_ENV) { $env:NODE_ENV = "development" }
-    if (-not $env:PORT)     { $env:PORT = $BACKEND_PORT }
-
-    Stop-ProcessOnPort $BACKEND_PORT
-
-    Log-Info "Starting backend on port $env:PORT ..."
-    Push-Location (Join-Path $SCRIPT_DIR "apps\backend")
-    try {
-        & pnpm run dev
-    }
-    catch {
-        throw
-    }
-    finally {
-        Pop-Location
-    }
-}
-
-function Cmd-QaWeb {
-    Log-Step "Starting QA web locally via pnpm dev with remote QA API..."
-    Show-Banner
-    Assert-Dependencies
-
-    if (-not $env:NODE_ENV)            { $env:NODE_ENV = "development" }
-    if (-not $env:PORT)                { $env:PORT = "4233" }
-    if (-not $env:NEXT_PUBLIC_API_URL) { $env:NEXT_PUBLIC_API_URL = "https://apiqa.immostory.be/api/v1" }
-    if (-not $env:NEXT_PUBLIC_APP_URL) { $env:NEXT_PUBLIC_APP_URL = "http://localhost:4233" }
-
-    Stop-ProcessOnPort 4233
-
-    Log-Info "Starting QA web on port $env:PORT - API: $env:NEXT_PUBLIC_API_URL ..."
-    Push-Location (Join-Path $SCRIPT_DIR "apps\web")
-    try {
-        & pnpm run dev
-    }
-    catch {
-        throw
-    }
-    finally {
-        Pop-Location
-    }
+    Log-Info "OK Cleanup done"
 }
 
 function Show-Help {
     Show-Banner
-    Write-Host "Usage: .\start.ps1 [command]"
+    Write-Host "Usage: .\start.ps1 [command] [app...]" -ForegroundColor White
     Write-Host ""
-    Write-Host "Commands:"
-    Write-Host "  start              Full pipeline: install + build + dev"
-    Write-Host "  install            Install pnpm dependencies for all packages"
-    Write-Host "  build              Build all packages and apps"
-    Write-Host "  dev                Start backend + web in dev mode"
-    Write-Host "  prod               Start backend + web in production mode"
-    Write-Host "  status             Check health of backend / web / render-service"
-    Write-Host "  stop               Stop all services"
-    Write-Host "  cleanup            Remove build artifacts"
-    Write-Host "  qa-backend         Start QA backend locally with .env.qa"
-    Write-Host "  qa-web             Start QA web locally with remote QA API"
-    Write-Host "  help               Show this help message"
+    Write-Host "Commands:" -ForegroundColor White
+    Write-Host "  start               Install + build packages + start all dev servers"
+    Write-Host "  install             pnpm install from the root (installs everything)"
+    Write-Host "  build               Build all packages in dependency order"
+    Write-Host "  dev [app ...]       Start one or more (or all) apps in dev mode (auto-starts Redis)"
+    Write-Host "  status              HTTP health-check all apps"
+    Write-Host "  stop                Stop all running dev servers and Docker services"
+    Write-Host "  cleanup             Delete .next / dist / .turbo build artefacts"
+    Write-Host "  help                Show this help"
     Write-Host ""
-    Write-Host "Configuration:"
-    Write-Host "  Server IP:     $SERVER_IP"
-    Write-Host "  API Domain:    $API_DOMAIN"
-    Write-Host "  Web Domain:    $WEB_DOMAIN"
-    Write-Host "  Backend Port:  $BACKEND_PORT"
-    Write-Host "  Web Port:      $WEB_PORT"
+    Write-Host "Examples:" -ForegroundColor White
+    Write-Host "  .\start.ps1 start"
+    Write-Host "  .\start.ps1 dev"
+    Write-Host "  .\start.ps1 dev edumatch"
+    Write-Host "  .\start.ps1 dev portal edumatch"
+    Write-Host "  .\start.ps1 build"
+    Write-Host "  .\start.ps1 status"
+    Write-Host "  .\start.ps1 stop"
     Write-Host ""
-    Write-Host "Examples:"
-    Write-Host "  .\start.ps1 start         # First run: install + build + dev"
-    Write-Host "  .\start.ps1 dev           # Quick start without install/build"
-    Write-Host "  .\start.ps1 install       # Only install dependencies"
-    Write-Host "  .\start.ps1 build         # Only build packages and apps"
-    Write-Host "  .\start.ps1 status        # Check running services"
-    Write-Host "  .\start.ps1 stop          # Stop everything"
 }
 
 # =============================================================================
-# Main Entry Point
-#
-# Every invocation first checks for leftover junctions from a previous unclean
-# exit (e.g. terminal closed, Ctrl+C that killed PowerShell).  This guarantees
-# the repo self-heals automatically on the next run.
-#
-# Commands that need junctions (install, build, dev, start, prod, qa-*)
-# are wrapped: Set-AllJunctions runs before, Restore-AllPointers after.
+# Entry point
 # =============================================================================
 
-# --- Auto-heal stale junctions from previous unclean exit ---
-Restore-AllPointers
-if ($script:lastRestoreDidWork) {
-    Log-Warn "Repaired stale junctions left from a previous unclean exit"
-}
-
-$needsJunctions = $Command.ToLower() -in @(
-    "start", "install", "build", "dev", "prod", "qa-backend", "qa-web", "qaweb", "web"
-)
-
-if ($needsJunctions) {
-    Log-Step "Setting up package junctions..."
-    Set-AllJunctions
-}
-
-try {
-    switch ($Command.ToLower()) {
-        "start"       { Cmd-Start }
-        "install"     { Cmd-Install }
-        "build"       { Cmd-Build }
-        "dev"         { Cmd-Dev }
-        "prod"        { Cmd-Prod }
-        "status"      { Cmd-Status }
-        "stop"        { Cmd-Stop }
-        "cleanup"     { Cmd-Cleanup }
-        "qa-backend"  { Cmd-QaBackend }
-        "qa-web"      { Cmd-QaWeb }
-        "qaweb"       { Cmd-QaWeb }
-        "web"         { Cmd-QaWeb }
-        "help"        { Show-Help }
-        "--help"      { Show-Help }
-        "-h"          { Show-Help }
-        ""            { Show-Help }
-        default {
-            Log-Error "Unknown command: $Command"
-            Show-Help
-            exit 1
-        }
-    }
-}
-finally {
-    if ($needsJunctions) {
-        Log-Step "Restoring package pointers..."
-        Restore-AllPointers
-        Log-Info "OK Pointer files restored - git is clean"
-    }
-}
+$cmd = $Command.ToLower()
+if     ($cmd -eq 'start')   { Show-Banner; Assert-Dependencies; Cmd-Start }
+elseif ($cmd -eq 'install') { Show-Banner; Assert-Dependencies; Cmd-Install }
+elseif ($cmd -eq 'build')   { Show-Banner; Assert-Dependencies; Cmd-Build }
+elseif ($cmd -eq 'dev')     { Show-Banner; Cmd-Dev -Apps $ExtraArgs }
+elseif ($cmd -eq 'status')  { Cmd-Status }
+elseif ($cmd -eq 'stop')    { Cmd-Stop }
+elseif ($cmd -eq 'cleanup') { Cmd-Cleanup }
+else                        { Show-Help }

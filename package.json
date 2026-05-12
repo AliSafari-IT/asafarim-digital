@@ -24,6 +24,7 @@
     "db:reset": "pnpm --filter @asafarim/db prisma db reset",
     "rs": "pnpm onVPS:dockerRestart",
     "tc": "pnpm typecheck",
+    "db": "docker compose up -d postgres",
     "onVPS:dockerDown": "docker compose down",
     "seed": "turbo seed"
   },
