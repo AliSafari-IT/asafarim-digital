@@ -1,6 +1,6 @@
 {
   "name": "@asafarim/navigation",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Reusable, framework-agnostic React navigation components (navbar, sidebar, drawer, dropdown) for ASafariM apps and beyond.",
   "type": "module",
   "main": "./dist/index.cjs",

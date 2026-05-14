@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@asafarim/auth": "workspace:*",
-    "@asafarim/navigation": "^0.2.1",
+    "@asafarim/navigation": "^0.2.2",
     "@asafarim/country-language-selector": "workspace:*",
     "@asafarim/db": "workspace:*",
     "@asafarim/location": "workspace:*",

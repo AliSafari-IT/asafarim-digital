@@ -15,7 +15,7 @@
     "@asafarim/country-language-selector": "workspace:*",
     "@asafarim/db": "workspace:*",
     "@asafarim/location": "workspace:*",
-    "@asafarim/navigation": "^0.2.1",
+    "@asafarim/navigation": "^0.2.2",
     "@asafarim/shared-i18n": "workspace:*",
     "@asafarim/ui": "workspace:*",
     "next": "^16.2.3",
