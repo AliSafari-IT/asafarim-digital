@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Logo } from "./Logo";
 import { AppSwitcher } from "@asafarim/ui";
 import { CommandPalette } from "./CommandPalette";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationsBell } from "./NotificationsBell";
 import { UserMenu } from "./UserMenu";
-import { useOutsideClick } from "@/lib/use-outside-click";
 import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
+import { AppNavbar } from "@asafarim/navigation";                                       
 
 const nav = [
   { href: "/#generator", label: "Generator", labelKey: "cg.nav.generator", icon: <GeneratorIcon /> },
@@ -184,74 +184,97 @@ export function Shell({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </aside>
-
+          
       {/* Main content */}
       <div className="min-w-0 flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 px-3 backdrop-blur lg:px-5">
-          {/* Left: mobile hamburger + breadcrumb */}
-          <div className="flex min-w-0 items-center gap-3">
+        {/* Header — powered by @asafarim/navigation */}
+        <AppNavbar
+          sticky
+          bordered
+          fullWidth
+          responsiveMode="always-expanded"
+          currentPath={pathname}
+          renderLink={({ item, children }) =>
+            item.href ? (
+              <Link href={item.href} className="asaf-nav-link">
+                {children}
+              </Link>
+            ) : (
+              <>{children}</>
+            )
+          }
+          renderLogo={() => (
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Open sidebar"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] lg:hidden"
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                <span className="hidden text-[var(--color-text-secondary)] sm:inline">ASafariM</span>
+                <span className="hidden text-[var(--color-text-secondary)] sm:inline">/</span>
+                <span className="hidden text-[var(--color-text-secondary)] md:inline">Content Generator</span>
+                <span className="hidden text-[var(--color-text-secondary)] md:inline">/</span>
+                <span className="truncate font-medium text-[var(--color-text)]">
+                  {nav.find((n) => isActive(n.href))?.label ?? "Generator"}
+                </span>
+              </div>
+            </div>
+          )}
+          navItems={[]}
+          center={
             <button
               type="button"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open sidebar"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text)] lg:hidden"
+              onClick={() => {
+                // CommandPalette listens on `document` for Cmd/Ctrl+K.
+                // We need to dispatch on the same target (window events don't reach it).
+                const evt = new KeyboardEvent("keydown", {
+                  key: "k",
+                  metaKey: true,
+                  ctrlKey: true,
+                  bubbles: true,
+                });
+                document.dispatchEvent(evt);
+              }}
+              className="hidden h-8 min-w-[260px] max-w-[420px] items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 text-xs text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)] md:flex"
+              aria-label="Search — open command palette"
             >
-              <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
-                <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+                <path d="M14 14l-3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
               </svg>
+              <span className="flex-1 text-left">Jump to page or app…</span>
+              <kbd className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
             </button>
-            <div className="flex min-w-0 items-center gap-2 text-sm">
-              <span className="hidden text-[var(--color-text-secondary)] sm:inline">ASafariM</span>
-              <span className="hidden text-[var(--color-text-secondary)] sm:inline">/</span>
-              <span className="hidden text-[var(--color-text-secondary)] md:inline">Content Generator</span>
-              <span className="hidden text-[var(--color-text-secondary)] md:inline">/</span>
-              <span className="truncate font-medium text-[var(--color-text)]">
-                {nav.find((n) => isActive(n.href))?.label ?? "Generator"}
+          }
+          countryLangSelector={<CountryLanguageSelector />}
+          themeToggler={<ThemeToggle />}
+          actions={
+            <div className="flex items-center gap-2">
+              <span className="hidden items-center gap-1.5 rounded-full bg-[var(--color-surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-primary)] xl:inline-flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
+                {t("cg.header.aiEngine")}
               </span>
+              {session?.user && <NotificationsBell />}
+              <AppSwitcher current="content-generator" />
+              {session?.user ? (
+                <UserMenu />
+              ) : (
+                <a
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(contentGeneratorUrl + "/")}`}
+                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Sign in
+                </a>
+              )}
             </div>
-          </div>
-
-          {/* Center: command palette trigger */}
-          <button
-            type="button"
-            onClick={() => {
-              const evt = new KeyboardEvent("keydown", { key: "k", metaKey: true });
-              window.dispatchEvent(evt);
-            }}
-            className="hidden h-8 min-w-[260px] max-w-[360px] flex-1 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 text-xs text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)] md:flex"
-            aria-label="Search"
-          >
-            <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
-              <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
-              <path d="M14 14l-3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-            <span className="flex-1 text-left">Jump to page or app…</span>
-            <kbd className="rounded bg-[var(--color-surface)] px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
-          </button>
-
-          {/* Right controls */}
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-full bg-[var(--color-surface-elevated)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-primary)] xl:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
-              {t("cg.header.aiEngine")}
-            </span>
-            {session?.user && <NotificationsBell />}
-            <CountryLanguageSelector />
-            <ThemeToggle />
-            <AppSwitcher current="content-generator" />
-            {session?.user ? (
-              <UserMenu />
-            ) : (
-              <a
-                href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(contentGeneratorUrl + "/")}`}
-                className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Sign in
-              </a>
-            )}
-          </div>
-        </header>
+          }
+        />
 
         {/* Main content area */}
         <main className="flex-1 p-5 lg:p-8">{children}</main>

@@ -21,6 +21,12 @@ export class ForbiddenError extends Error {
   }
 }
 
+export function hasOpsAccess(roles: string[] | undefined | null, capability: OpsCapability = "read") {
+  const currentRoles = roles ?? [];
+  const readRoles = capability === "write" ? OPS_WRITE_ROLES : OPS_ROLES;
+  return currentRoles.some((role) => (readRoles as readonly string[]).includes(role));
+}
+
 export async function requireOps(capability: OpsCapability = "read"): Promise<OpsSession> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -28,11 +34,10 @@ export async function requireOps(capability: OpsCapability = "read"): Promise<Op
     redirect("/");
   }
   const roles = session.user.roles ?? [];
-  const hasRead = roles.some((r) => (OPS_ROLES as readonly string[]).includes(r));
-  if (!hasRead) {
+  if (!hasOpsAccess(roles, "read")) {
     throw new ForbiddenError("Your account does not have access to the SaaS Operations Hub.");
   }
-  const canWrite = roles.some((r) => (OPS_WRITE_ROLES as readonly string[]).includes(r));
+  const canWrite = hasOpsAccess(roles, "write");
   if (capability === "write" && !canWrite) {
     throw new ForbiddenError("Write access requires the ops_admin role.");
   }

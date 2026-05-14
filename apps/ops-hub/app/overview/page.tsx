@@ -7,6 +7,7 @@ import { getSystemHealth } from "@/lib/system-health";
 import { requireOps, ForbiddenError } from "@/lib/rbac";
 import Link from "next/link";
 import LiveTimeDisplay from "./LiveTimeDisplay";
+import { AccessDenied } from "@/components/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function OverviewPage() {
     await requireOps("read");
   } catch (e) {
     if (e instanceof ForbiddenError) {
-      throw e;
+      return <AccessDenied message={e.message} />;
     }
     throw e;
   }

@@ -2,6 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
   - "services/*"
+  # Exclude package-local demos; they manage their own deps and lockfiles.
+  - "!packages/navigation/demo"
 allowBuilds:
   '@prisma/client': false
   '@prisma/engines': false

@@ -1,29 +1,91 @@
 {
   "name": "@asafarim/navigation",
-  "version": "0.1.0",
-  "description": "Shared navigation resolver and utilities for ASafariM apps",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "version": "0.2.1",
+  "description": "Reusable, framework-agnostic React navigation components (navbar, sidebar, drawer, dropdown) for ASafariM apps and beyond.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./resolver": "./src/resolver.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./resolver": {
+      "types": "./dist/resolver.d.ts",
+      "import": "./dist/resolver.js",
+      "require": "./dist/resolver.cjs"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build && pnpm run test"
   },
-  "dependencies": {
-    "@asafarim/types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "jsdom": "^25.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   },
-  "peerDependencies": {},
-  "keywords": ["navigation", "navbar", "sidebar", "asafarim"],
-  "author": "ASafariM",
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "keywords": [
+    "navigation",
+    "navbar",
+    "sidebar",
+    "drawer",
+    "dropdown",
+    "menu",
+    "react",
+    "react-component",
+    "responsive",
+    "accessible",
+    "a11y",
+    "typescript",
+    "asafarim"
+  ],
+  "author": "ASafariM <ali@asafarim.com>",
   "license": "MIT",
-  "private": true
+  "homepage": "https://alisafari-it.github.io/navigation",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alisafari-it/navigation.git",
+    "directory": "packages/navigation"
+  },
+  "bugs": {
+    "url": "https://github.com/alisafari-it/navigation/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

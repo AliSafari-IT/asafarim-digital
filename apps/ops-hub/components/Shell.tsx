@@ -27,6 +27,8 @@ const SECTIONS = ["Console", "Revenue", "Platform", "Compliance"] as const;
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator.asafarim.com";
 const opsHubUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL || "https://ops-hub.asafarim.com";
+const opsHubBaseUrl = opsHubUrl.replace(/\/$/, "");
+const opsHubOverviewUrl = `${opsHubBaseUrl}/overview`;
 const marketingContentUrl = process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL || "https://marketing-content.asafarim.com";
 
 function resolveSharedAvatarSrc(src?: string | null) {
@@ -47,6 +49,7 @@ function resolveSharedAvatarSrc(src?: string | null) {
 export function Shell({ children, user }: { children: React.ReactNode; user: { name: string | null; email: string; roles: string[] } }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isPublicHome = pathname === "/";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentYear, setCurrentYear] = useState(2026);
@@ -69,6 +72,58 @@ export function Shell({ children, user }: { children: React.ReactNode; user: { n
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  if (isPublicHome) {
+    const signInUrl = `${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubOverviewUrl)}`;
+
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+        <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-bg)]/92 backdrop-blur">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
+            <a href="/" className="flex items-center overflow-hidden" aria-label="Ops Hub home">
+              <OpsHubLogo />
+            </a>
+
+            <nav className="hidden items-center gap-6 text-sm font-medium text-[var(--color-text-muted)] md:flex">
+              <a href="#features" className="hover:text-[var(--color-text)]">Features</a>
+              <a href="#workflow" className="hover:text-[var(--color-text)]">Workflow</a>
+              <a href="#access" className="hover:text-[var(--color-text)]">Access</a>
+            </nav>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <ThemeToggle />
+              <AppSwitcher current="ops-hub" />
+              <form action="/api/access-requests" method="post" className="hidden sm:block">
+                <button
+                  type="submit"
+                  className="rounded-full border border-[var(--color-border-strong)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-accent)]"
+                >
+                  Request access
+                </button>
+              </form>
+              {user.email ? (
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: signInUrl })}
+                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Switch account
+                </button>
+              ) : (
+                <a
+                  href={signInUrl}
+                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  Sign in
+                </a>
+              )}
+            </div>
+          </div>
+        </header>
+        <main>{children}</main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -261,7 +316,7 @@ export function Shell({ children, user }: { children: React.ReactNode; user: { n
                 <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
               ) : (
                 <a
-                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubUrl + "/")}`}
+                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubOverviewUrl)}`}
                   className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                 >
                   Sign in

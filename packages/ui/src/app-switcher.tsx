@@ -17,6 +17,112 @@ export interface AppVisibility {
   public?: boolean; // If true, visible to all authenticated users
 }
 
+// Inline SVG logo components for each app
+const AppLogos: Record<AppKey, React.ReactNode> = {
+  portal: (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <defs>
+        <linearGradient id="portal-fe" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#4c7dff" />
+          <stop offset="100%" stopColor="#6aa3ff" />
+        </linearGradient>
+        <linearGradient id="portal-be" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#5de4c7" />
+          <stop offset="100%" stopColor="#36c6a8" />
+        </linearGradient>
+        <linearGradient id="portal-ai" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c084fc" />
+          <stop offset="100%" stopColor="#f472b6" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#111d3a" />
+      <circle cx="32" cy="16" r="6" fill="url(#portal-ai)" />
+      <circle cx="20" cy="44" r="6" fill="url(#portal-fe)" />
+      <circle cx="44" cy="44" r="6" fill="url(#portal-be)" />
+      <circle cx="32" cy="16" r="1.8" fill="#ffffff" />
+      <circle cx="20" cy="44" r="1.8" fill="#ffffff" />
+      <circle cx="44" cy="44" r="1.8" fill="#ffffff" />
+    </svg>
+  ),
+  "content-generator": (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <defs>
+        <linearGradient id="cg-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#0d0d0f" />
+          <stop offset="100%" stopColor="#1a1f2c" />
+        </linearGradient>
+        <linearGradient id="cg-ring" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3a7bff" />
+          <stop offset="100%" stopColor="#4ff2c9" />
+        </linearGradient>
+        <linearGradient id="cg-spark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#c084fc" />
+          <stop offset="100%" stopColor="#f472b6" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#cg-bg)" />
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="none" stroke="url(#cg-ring)" strokeWidth="1.5" opacity="0.6" />
+      <circle cx="32" cy="32" r="14" fill="url(#cg-ring)" opacity="0.3" />
+      <g stroke="url(#cg-ring)" strokeWidth="2" fill="none" strokeLinecap="round">
+        <path d="M16 32 Q32 16 48 32" />
+        <path d="M16 32 Q32 48 48 32" />
+      </g>
+      <circle cx="16" cy="32" r="2.5" fill="url(#cg-spark)" />
+      <circle cx="48" cy="32" r="2.5" fill="url(#cg-spark)" />
+    </svg>
+  ),
+  "ops-hub": (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <defs>
+        <linearGradient id="ops-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#6366f1" />
+          <stop offset="100%" stopColor="#06b6d4" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#0f172a" />
+      <rect x="12" y="20" width="40" height="24" rx="4" fill="url(#ops-grad)" opacity="0.9" />
+      <circle cx="22" cy="32" r="3" fill="#0f172a" />
+      <circle cx="32" cy="32" r="3" fill="#0f172a" />
+      <circle cx="42" cy="32" r="3" fill="#0f172a" />
+      <rect x="36" y="12" width="16" height="8" rx="2" fill="#06b6d4" />
+    </svg>
+  ),
+  "marketing-content": (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <defs>
+        <linearGradient id="mkt-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ec4899" />
+          <stop offset="100%" stopColor="#f97316" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#1a0a0f" />
+      <path d="M12 48 L24 24 L36 36 L48 16 L52 20 L36 48 L24 36 L16 48 Z" fill="url(#mkt-grad)" />
+      <circle cx="48" cy="16" r="4" fill="#fbbf24" />
+    </svg>
+  ),
+  edumatch: (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <defs>
+        <linearGradient id="edu-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#22c55e" />
+          <stop offset="100%" stopColor="#10b981" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#0a1f0f" />
+      <polygon points="32,12 48,20 32,28 16,20" fill="url(#edu-grad)" />
+      <path d="M18 24 L18 40 Q32 48 46 40 L46 24" stroke="url(#edu-grad)" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="44" cy="34" r="2.5" fill="#34d399" />
+    </svg>
+  ),
+  vionto: (
+    <svg viewBox="0 0 64 64" className="h-5 w-5">
+      <rect x="4" y="4" width="56" height="56" rx="12" fill="#101112" />
+      <path d="M18 20h8l6 20 6-20h8L38 48H26L18 20Z" fill="#f36f56" />
+      <circle cx="46" cy="20" r="3" fill="#e8b45d" />
+    </svg>
+  ),
+};
+
 const apps: Array<{
   key: AppKey;
   name: string;
@@ -24,7 +130,7 @@ const apps: Array<{
   tag: string;
   urlEnv: string;
   fallback: string;
-  mark: string;
+  logo: React.ReactNode;
   gradient: string;
   ring: string;
   visibility: AppVisibility;
@@ -37,10 +143,10 @@ const apps: Array<{
     urlEnv: "NEXT_PUBLIC_PORTAL_URL",
     fallback:
       process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com",
-    mark: "A",
+    logo: AppLogos.portal,
     gradient: "from-blue-500 to-indigo-600",
     ring: "ring-blue-500/30",
-    visibility: { key: "portal", public: true }, // All authenticated users can see
+    visibility: { key: "portal", public: true },
   },
   {
     key: "content-generator",
@@ -51,7 +157,7 @@ const apps: Array<{
     fallback:
       process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL ||
       "https://content-generator.asafarim.com",
-    mark: "C",
+    logo: AppLogos["content-generator"],
     gradient: "from-violet-500 to-fuchsia-600",
     ring: "ring-fuchsia-500/30",
     visibility: { key: "content-generator", public: true },
@@ -64,10 +170,10 @@ const apps: Array<{
     urlEnv: "NEXT_PUBLIC_OPS_HUB_URL",
     fallback:
       process.env.NEXT_PUBLIC_OPS_HUB_URL || "https://ops-hub.asafarim.com",
-    mark: "O",
+    logo: AppLogos["ops-hub"],
     gradient: "from-indigo-500 to-cyan-500",
     ring: "ring-cyan-500/30",
-    visibility: { key: "ops-hub", requiredRoles: ["admin", "ops"] },
+    visibility: { key: "ops-hub", requiredRoles: ["ops_admin", "ops_viewer", "superadmin"] },
   },
   {
     key: "marketing-content",
@@ -78,13 +184,10 @@ const apps: Array<{
     fallback:
       process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ||
       "https://marketing-content.asafarim.com",
-    mark: "M",
+    logo: AppLogos["marketing-content"],
     gradient: "from-rose-500 to-amber-500",
     ring: "ring-rose-500/30",
-    visibility: {
-      key: "marketing-content",
-      requiredRoles: ["admin", "marketing"],
-    },
+    visibility: { key: "marketing-content", public: true },
   },
   {
     key: "edumatch",
@@ -94,10 +197,10 @@ const apps: Array<{
     urlEnv: "NEXT_PUBLIC_EDUMATCH_URL",
     fallback:
       process.env.NEXT_PUBLIC_EDUMATCH_URL || "https://edumatch.asafarim.com",
-    mark: "E",
+    logo: AppLogos.edumatch,
     gradient: "from-green-500 to-emerald-500",
     ring: "ring-green-500/30",
-    visibility: { key: "edumatch", public: true }, // Visible to all, role-based features inside
+    visibility: { key: "edumatch", public: true },
   },
   {
     key: "vionto",
@@ -107,10 +210,10 @@ const apps: Array<{
     urlEnv: "NEXT_PUBLIC_VIONTO_URL",
     fallback:
       process.env.NEXT_PUBLIC_VIONTO_URL || "https://vionto.asafarim.com",
-    mark: "V",
+    logo: AppLogos.vionto,
     gradient: "from-orange-500 to-pink-500",
     ring: "ring-orange-500/30",
-    visibility: { key: "vionto", public: true }, // Visible to all authenticated users
+    visibility: { key: "vionto", public: true },
   },
 ];
 
@@ -186,24 +289,8 @@ export function AppSwitcher({
   variant?: "default" | "compact";
 }) {
   const [open, setOpen] = useState(false);
-  const [dropPos, setDropPos] = useState<{ top: number; left: number }>({
-    top: 0,
-    left: 0,
-  });
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
-
-  // Calculate viewport-clamped position from the button's bounding rect.
-  const calcPos = () => {
-    if (!btnRef.current) return;
-    const r = btnRef.current.getBoundingClientRect();
-    const dropW = Math.min(320, window.innerWidth - 16);
-    const margin = 8;
-    // Prefer right-aligned to button, but clamp within viewport.
-    let left = r.right - dropW;
-    left = Math.max(margin, Math.min(left, window.innerWidth - dropW - margin));
-    setDropPos({ top: r.bottom + margin, left });
-  };
 
   // Close when clicking outside both the button and the dropdown panel.
   useEffect(() => {
@@ -232,22 +319,19 @@ export function AppSwitcher({
       <button
         ref={btnRef}
         type="button"
-        onClick={() => {
-          calcPos();
-          setOpen((v) => !v);
-        }}
+        onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
         aria-label="Switch app"
         title="Switch app"
         className={
-          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
+          "inline-flex h-8 min-h-8 w-8 min-w-8 shrink-0 aspect-square items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition hover:border-[var(--color-accent)] hover:text-[var(--color-text)]"
         }
       >
         <svg
           viewBox="0 0 16 16"
           fill="currentColor"
-          className={isCompact ? "h-3.5 w-3.5" : "h-4 w-4"}
+          className={isCompact ? "block h-3.5 w-3.5 shrink-0" : "block h-4 w-4 shrink-0"}
           aria-hidden="true"
         >
           <rect x="1" y="1" width="4" height="4" rx="1" />
@@ -266,16 +350,7 @@ export function AppSwitcher({
         <div
           ref={dropRef}
           role="dialog"
-          style={{
-            position: "fixed",
-            top: dropPos.top,
-            left: dropPos.left,
-            width: Math.min(320, window.innerWidth - 16),
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border-strong)",
-            zIndex: 9999,
-          }}
-          className="rounded-xl p-3 shadow-[var(--shadow-card)]"
+          className="absolute right-0 top-[calc(100%+0.5rem)] z-[9999] w-[min(21.25rem,calc(100vw-1rem))] max-h-[min(520px,calc(100vh-96px))] overflow-y-auto rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-card)]"
         >
           <div className="mb-2 flex items-center justify-between px-2">
             <p
@@ -292,7 +367,7 @@ export function AppSwitcher({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
+              gridTemplateColumns: "1fr",
               gap: "8px",
               width: "100%",
             }}
@@ -306,10 +381,10 @@ export function AppSwitcher({
                   href={href}
                   style={{
                     display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    padding: "10px 8px",
-                    paddingRight: "45px",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "10px",
+                    paddingRight: "78px",
                     borderRadius: "10px",
                     border: "1px solid var(--color-border)",
                     background: isCurrent
@@ -319,14 +394,15 @@ export function AppSwitcher({
                     textDecoration: "none",
                     position: "relative",
                     minWidth: 0,
-                    overflow: "hidden",
                   }}
                 >
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "8px",
+                      gap: "10px",
+                      minWidth: 0,
+                      flex: 1,
                     }}
                   >
                     <div
@@ -334,45 +410,44 @@ export function AppSwitcher({
                         width: "32px",
                         height: "32px",
                         flexShrink: 0,
-                        background: getGradientStyle(a.key),
                         boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
                       }}
-                      className="flex items-center justify-center rounded-lg text-sm font-bold text-white ring-1 ring-inset ring-white/10"
+                      className="flex items-center justify-center"
                     >
-                      {a.mark}
+                      {a.logo}
                     </div>
-                    <p
-                      style={{
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        color: "var(--color-text)",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        margin: 0,
-                        paddingRight: "5px",
-                      }}
-                    >
-                      {a.name}
-                    </p>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: "var(--color-text)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          margin: 0,
+                        }}
+                      >
+                        {a.name}
+                      </p>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--color-text-muted)",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          margin: "3px 0 0",
+                        }}
+                      >
+                        {a.tagline}
+                      </p>
+                    </div>
                   </div>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--color-text-muted)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      margin: 0,
-                      paddingLeft: "40px",
-                    }}
-                  >
-                    {a.tagline}
-                  </p>
                   <span
                     style={{
                       position: "absolute",
-                      right: "8px",
+                      right: "10px",
                       top: "50%",
                       transform: "translateY(-50%)",
                       fontSize: "8px",

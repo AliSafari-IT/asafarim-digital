@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "next-auth/react";
 import { cookies } from "next/headers";
+import Script from "next/script";
 import { auth } from "@asafarim/auth";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { Shell } from "@/components/Shell";
@@ -57,14 +58,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
-      <head>
-        <script
+      <body>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}
         />
-      </head>
-      <body>
         <SessionProvider>
           <Shell user={user}>{children}</Shell>
         </SessionProvider>

@@ -2,11 +2,21 @@ import type {
   AppCode,
   NavAppScope,
   NavItemDto,
-  NavPlacement,
   ResolveNavigationInput,
   ResolveNavigationOutput,
   ResolvedNavItem,
-} from "@asafarim/types";
+} from "./resolver-types";
+
+export type {
+  AppCode,
+  NavAppScope,
+  NavItemDto,
+  NavPlacement,
+  NavVisibility,
+  ResolveNavigationInput,
+  ResolveNavigationOutput,
+  ResolvedNavItem,
+} from "./resolver-types";
 
 /**
  * Resolves navigation items for a specific app context.

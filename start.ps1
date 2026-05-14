@@ -31,14 +31,15 @@ $APP_PORTS = @{
 
 # Only packages that have a "build" script in their package.json, in dependency order.
 # Packages without a build script (config, types, shared-i18n, country-language-selector,
-# navigation, vionto-schemas) are source-only and are handled by transpilePackages in
-# each app's next.config.ts - no separate build step needed.
+# vionto-schemas) are source-only and are handled by transpilePackages in each app's
+# next.config.ts - no separate build step needed.
 $PACKAGES_BUILD_ORDER = @(
-    "packages\db",       # prisma generate
-    "packages\auth",     # tsc
-    "packages\payments", # tsup
-    "packages\ui",       # tsup
-    "packages\location"  # tsc --noEmit (type-check only, no output)
+    "packages\db",         # prisma generate
+    "packages\auth",       # tsc
+    "packages\payments",   # tsup
+    "packages\ui",         # tsup
+    "packages\navigation", # tsup (publishable to npm)
+    "packages\location"    # tsc --noEmit (type-check only, no output)
 )
 
 # =============================================================================
@@ -90,19 +91,54 @@ function Assert-Dependencies {
 }
 
 function Stop-ProcessOnPort {
-    param([int]$Port)
+    param([int]$Port, [int]$WaitSeconds = 3)
+    $startTime = Get-Date
+
+    # Get all PIDs on this port
     $pids = netstat -ano 2>$null |
         Select-String ":$Port\s" |
         ForEach-Object { ($_ -split '\s+')[-1] } |
         Where-Object { $_ -match '^\d+$' } |
         Sort-Object -Unique
 
+    if (-not $pids) { return $true }
+
+    # First attempt: taskkill /T /F kills entire process tree (faster than Stop-Process)
     foreach ($p in $pids) {
         try {
-            Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue
-            Log-Info "Stopped process $p on port $Port"
+            $proc = Get-Process -Id ([int]$p) -ErrorAction SilentlyContinue
+            if ($proc) {
+                # Use taskkill to kill process tree (children included)
+                $null = cmd /c "taskkill /PID $p /T /F 2>nul"
+                Log-Info "Stopped process tree $p on port $Port"
+            }
         } catch {}
     }
+
+    # Verify port is freed with timeout
+    $elapsed = ((Get-Date) - $startTime).TotalSeconds
+    while ($elapsed -lt $WaitSeconds) {
+        $stillListening = netstat -ano 2>$null | Select-String ":$Port\s.*LISTENING"
+        if (-not $stillListening) { return $true }
+        Start-Sleep -Milliseconds 200
+        $elapsed = ((Get-Date) - $startTime).TotalSeconds
+    }
+
+    # Final cleanup attempt for any remaining
+    $remaining = netstat -ano 2>$null |
+        Select-String ":$Port\s" |
+        ForEach-Object { ($_ -split '\s+')[-1] } |
+        Where-Object { $_ -match '^\d+$' } |
+        Sort-Object -Unique
+
+    foreach ($p in $remaining) {
+        try {
+            Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue
+            Log-Info "Force-stopped remaining process $p on port $Port"
+        } catch {}
+    }
+
+    return $true
 }
 
 function Test-PortListening {
@@ -152,25 +188,36 @@ function Start-DockerServices {
         $image = $svc.Image
         $ports = $svc.Ports
 
-        Log-Info "Pulling latest image: $image"
-        docker pull $image | Out-Null
+        # Single `docker ps` call returning state instead of two separate calls.
+        $state = docker ps -a --filter "name=^${name}$" --format "{{.State}}" 2>$null
 
-        $existing = docker ps -a --filter "name=^${name}$" --format "{{.Names}}" 2>$null
-        if ($existing) {
-            Log-Info "Removing existing container: $name"
-            docker rm -f $name | Out-Null
+        if ($state -eq "running") {
+            Log-Info "OK $name already running — reusing"
+            continue
         }
 
-        Log-Info "Starting container: $name on $ports"
-        $runCmd = "docker run -d --name $name $ports --restart unless-stopped $image"
-        Invoke-Expression $runCmd | Out-Null
+        if ($state) {
+            # Container exists but is stopped → just start it (very fast, ~0.5s)
+            Log-Info "Starting existing container: $name"
+            docker start $name | Out-Null
+        } else {
+            # First-time creation. Only pull if the image isn't already local.
+            $hasImage = docker image inspect $image 2>$null
+            if (-not $hasImage) {
+                Log-Info "Pulling image: $image"
+                docker pull $image | Out-Null
+            }
+            Log-Info "Creating container: $name on $ports"
+            $runCmd = "docker run -d --name $name $ports --restart unless-stopped $image"
+            Invoke-Expression $runCmd | Out-Null
+        }
 
         # Wait up to 10s for the port to be ready
         $port = ($ports -replace '.*-p (\d+):.*','$1')
         $ready = $false
         for ($i = 0; $i -lt 10; $i++) {
             if (Test-PortListening -Port ([int]$port)) { $ready = $true; break }
-            Start-Sleep -Seconds 1
+            Start-Sleep -Milliseconds 300
         }
         if ($ready) {
             Log-Info "OK $name is ready on port $port"
@@ -183,14 +230,25 @@ function Start-DockerServices {
 function Stop-DockerServices {
     if (-not (Test-CommandExists "docker")) { return }
     Log-Step "Stopping Docker services..."
-    foreach ($svc in $DOCKER_SERVICES) {
-        $name = $svc.Name
-        $existing = docker ps -a --filter "name=^${name}$" --format "{{.Names}}" 2>$null
-        if ($existing) {
-            docker rm -f $name | Out-Null
-            Log-Info "Removed container: $name"
-        }
+    # Stop all services in parallel. Use `docker stop -t 1` so the daemon waits
+    # at most 1s before SIGKILL; we don't need graceful shutdown for dev Redis.
+    # We do NOT `rm -f` — keeping the container around lets `start` reuse it
+    # instantly instead of recreating (~3-5s saved per service on Windows).
+    $names = $DOCKER_SERVICES | ForEach-Object { $_.Name }
+    if (-not $names) { return }
+
+    $stopJobs = @()
+    foreach ($name in $names) {
+        $sj = Start-Job -ScriptBlock {
+            param($n)
+            # `docker stop` is a no-op if the container is already stopped or missing.
+            docker stop -t 1 $n 2>$null | Out-Null
+        } -ArgumentList $name
+        $stopJobs += $sj
     }
+    $stopJobs | Wait-Job -Timeout 5 | Out-Null
+    $stopJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+    Log-Info "OK Docker services stopped (containers preserved for fast restart)"
 }
 
 # =============================================================================
@@ -293,12 +351,38 @@ function Cmd-Dev {
         }
     } finally {
         Log-Info "Stopping all dev servers..."
+        $stopStart = Get-Date
+
+        # Stop PowerShell jobs first
         foreach ($kv in $jobs.GetEnumerator()) {
-            Stop-Job   -Job $kv.Value -ErrorAction SilentlyContinue
+            Stop-Job -Job $kv.Value -ErrorAction SilentlyContinue
             Remove-Job -Job $kv.Value -Force -ErrorAction SilentlyContinue
-            Stop-ProcessOnPort $toStart[$kv.Key]
         }
-        Log-Info "OK All dev servers stopped"
+
+        # Kill ports in parallel using jobs for faster cleanup
+        $stopJobs = @()
+        foreach ($kv in $jobs.GetEnumerator()) {
+            $port = $toStart[$kv.Key]
+            $sj = Start-Job -ScriptBlock {
+                param($p)
+                # Quick taskkill for this specific port
+                $pids = netstat -ano 2>$null | Select-String ":$p\s" | ForEach-Object { ($_ -split '\s+')[-1] } | Where-Object { $_ -match '^\d+$' }
+                foreach ($id in $pids) { cmd /c "taskkill /PID $id /T /F 2>nul" | Out-Null }
+            } -ArgumentList $port
+            $stopJobs += $sj
+        }
+
+        # Wait for all stop jobs with 2 second timeout
+        $stopJobs | Wait-Job -Timeout 2 | Out-Null
+        $stopJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+
+        # Final verification - kill any remaining quickly
+        foreach ($kv in $jobs.GetEnumerator()) {
+            Stop-ProcessOnPort -Port $toStart[$kv.Key] -WaitSeconds 1 | Out-Null
+        }
+
+        $stopDuration = ((Get-Date) - $stopStart).TotalSeconds
+        Log-Info "OK All dev servers stopped in $([math]::Round($stopDuration,1))s"
     }
 }
 
@@ -323,13 +407,32 @@ function Cmd-Status {
 
 function Cmd-Stop {
     Log-Step "Stopping all services..."
+    $stopStart = Get-Date
+
+    # Kill all app ports in parallel
+    $stopJobs = @()
     foreach ($kv in $APP_PORTS.GetEnumerator()) {
-        Stop-ProcessOnPort $kv.Value
+        $port = $kv.Value
+        $sj = Start-Job -ScriptBlock {
+            param($p)
+            $pids = netstat -ano 2>$null | Select-String ":$p\s" | ForEach-Object { ($_ -split '\s+')[-1] } | Where-Object { $_ -match '^\d+$' }
+            foreach ($id in $pids) { cmd /c "taskkill /PID $id /T /F 2>nul" | Out-Null }
+        } -ArgumentList $port
+        $stopJobs += $sj
     }
-    Get-Job | Where-Object { $_.State -eq 'Running' } | Stop-Job -ErrorAction SilentlyContinue
+
+    # Wait for parallel kills with 2 second timeout
+    $stopJobs | Wait-Job -Timeout 2 | Out-Null
+    $stopJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+
+    # Clean up any PowerShell jobs
+    Get-Job | Stop-Job -ErrorAction SilentlyContinue
     Get-Job | Remove-Job -Force -ErrorAction SilentlyContinue
+
     Stop-DockerServices
-    Log-Info "OK All services stopped"
+
+    $stopDuration = ((Get-Date) - $stopStart).TotalSeconds
+    Log-Info "OK All services stopped in $([math]::Round($stopDuration,1))s"
 }
 
 function Cmd-Cleanup {

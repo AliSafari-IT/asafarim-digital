@@ -9,6 +9,7 @@ import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { contentGeneratorDictionaries } from "@/lib/i18n-dictionaries";
 import { StructuredData, absoluteUrl, appDescription, appName, softwareApplicationSchema } from "@/lib/seo";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(absoluteUrl("/")),
