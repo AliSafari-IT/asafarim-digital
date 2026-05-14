@@ -21,7 +21,7 @@ import type { AppCode, ResolvedNavItem } from "@asafarim/types";
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "https://vionto.asafarim.com";
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
@@ -251,6 +251,7 @@ function ViontoLogo() {
 export function ViontoTopbarControls() {
   return (
     <div className="flex items-center gap-2">
+      <ThemeToggle />
       <AppSwitcher current="vionto" variant="default" />
       <UserMenu />
     </div>

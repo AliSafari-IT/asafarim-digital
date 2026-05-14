@@ -884,7 +884,7 @@ export function ViontoPage() {
           className={`sticky top-0 h-screen flex-shrink-0 flex flex-col border-r border-[var(--line)] backdrop-blur-[18px] transition-all duration-200 ${
             collapsed ? "w-[72px]" : "w-64"
           }`}
-          style={{ background: "rgba(18,20,22,0.92)", zIndex: 20 }}
+          style={{ background: "var(--color-panel-strong)", zIndex: 20 }}
         >
           {/* Logo + collapse toggle */}
           <div className={`flex h-14 items-center border-b border-[var(--line)] ${
@@ -942,7 +942,7 @@ export function ViontoPage() {
                     } ${
                       idx === 0
                         ? "bg-[var(--color-primary-soft)] text-[var(--text)]"
-                        : "text-[var(--muted)] hover:bg-white/[0.04] hover:text-[var(--text)]"
+                        : "text-[var(--muted)] hover:bg-[var(--color-primary-soft)] hover:text-[var(--text)]"
                     }`}
                   >
                     <Icon size={16} className="shrink-0" />
@@ -955,7 +955,7 @@ export function ViontoPage() {
 
           {/* Footer MVP panel */}
           {!collapsed && (
-            <div className="mx-3 mb-3 rounded-2xl border border-[var(--line)] p-3" style={{ background: "rgba(16,17,18,0.56)" }}>
+            <div className="mx-3 mb-3 rounded-2xl border border-[var(--line)] p-3" style={{ background: "var(--color-panel)" }}>
               <p className="panel-label">MVP target</p>
               <strong className="text-xs" style={{ color: "var(--text)" }}>First MP4 in 10 minutes</strong>
               <span className="text-xs" style={{ color: "var(--muted)", lineHeight: 1.5, display: "block", marginTop: 2 }}>30–60 images → narrated story + subtitles.</span>
@@ -1003,7 +1003,7 @@ export function ViontoPage() {
           {mobileMenuOpen && (
             <div
               className="md:hidden flex flex-col gap-3 border-b border-[var(--line)] px-4 py-3"
-              style={{ background: "rgba(18,20,22,0.97)" }}
+              style={{ background: "var(--color-panel-strong)" }}
             >
               <ViontoTopbarControls />
               <a
