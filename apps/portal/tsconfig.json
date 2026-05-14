@@ -28,12 +28,6 @@
       ],
       "@asafarim/types": [
         "../../packages/types/src/index.ts"
-      ],
-      "@asafarim/navigation": [
-        "../../packages/navigation/src/index.ts"
-      ],
-      "@asafarim/navigation/*": [
-        "../../packages/navigation/src/*"
       ]
     }
   },

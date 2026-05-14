@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  transpilePackages: ["@asafarim/auth", "@asafarim/db", "@asafarim/navigation", "@asafarim/types"],
+  transpilePackages: ["@asafarim/auth", "@asafarim/db", "@asafarim/types"],
   outputFileTracingIncludes: {
     "**/*": [
       "../../node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/*.node",

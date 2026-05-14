@@ -16,7 +16,6 @@ COPY apps/vionto ./apps/vionto
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db
 COPY packages/types ./packages/types
-COPY packages/navigation ./packages/navigation
 COPY packages/ui ./packages/ui
 COPY packages/country-language-selector ./packages/country-language-selector
 COPY packages/shared-i18n ./packages/shared-i18n
