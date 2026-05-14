@@ -8,12 +8,14 @@ const portalUrl =
 export const middleware = createAuthMiddleware({
   publicRoutes: [
     "/",
+    "/create",
     "/api/health",
     "/api/navigation",
     "/api/projects",
     "/api/render",
     "/api/exports",
     "/api/audio",
+    "/api/auth",
   ],
   signInUrl: `${portalUrl}/sign-in`,
 });
