@@ -1234,11 +1234,11 @@ export function ViontoPage() {
                 {modes.map((mode) => (
                   <button
                     key={mode}
-                    className={mode === activeMode ? "mode active" : "mode"}
+                    className={`mode mode-${mode}${mode === activeMode ? " active" : ""}`}
                     type="button"
                     onClick={() => setActiveMode(mode)}
                   >
-                    {t(`vionto.mode.${mode}`)}
+                    <span>{t(`vionto.mode.${mode}`)}</span>
                   </button>
                 ))}
               </div>

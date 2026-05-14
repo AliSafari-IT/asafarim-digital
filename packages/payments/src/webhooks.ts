@@ -3,6 +3,11 @@ import { stripe } from './stripe-client';
 import { prisma } from '@asafarim/db';
 import type { WebhookEvent } from './types';
 
+type CheckoutSession = {
+  metadata?: Record<string, string> | null;
+  payment_intent?: string | Stripe.PaymentIntent | null;
+};
+
 /**
  * Verify and construct a Stripe webhook event
  */
@@ -21,7 +26,7 @@ export function constructWebhookEvent(
 export async function handleWebhookEvent(event: Stripe.Event): Promise<boolean> {
   switch (event.type) {
     case 'checkout.session.completed':
-      return handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+      return handleCheckoutSessionCompleted(event.data.object as CheckoutSession);
 
     case 'payment_intent.succeeded':
       return handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
@@ -45,7 +50,7 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<boolean> 
  * Handle checkout.session.completed
  */
 async function handleCheckoutSessionCompleted(
-  session: Stripe.Checkout.Session
+  session: CheckoutSession
 ): Promise<boolean> {
   const cartId = session.metadata?.cartId;
   const userId = session.metadata?.userId;
