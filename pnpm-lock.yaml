@@ -94,8 +94,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/location
       '@asafarim/navigation':
-        specifier: workspace:*
-        version: link:../../packages/navigation
+        specifier: ^0.2.1
+        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@asafarim/shared-i18n':
         specifier: workspace:*
         version: link:../../packages/shared-i18n
@@ -193,9 +193,18 @@ importers:
       '@asafarim/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@asafarim/country-language-selector':
+        specifier: workspace:*
+        version: link:../../packages/country-language-selector
       '@asafarim/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@asafarim/navigation':
+        specifier: ^0.2.1
+        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@asafarim/shared-i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared-i18n
       '@asafarim/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -248,9 +257,18 @@ importers:
       '@asafarim/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@asafarim/country-language-selector':
+        specifier: workspace:*
+        version: link:../../packages/country-language-selector
       '@asafarim/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@asafarim/navigation':
+        specifier: ^0.2.1
+        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@asafarim/shared-i18n':
+        specifier: workspace:*
+        version: link:../../packages/shared-i18n
       '@asafarim/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -313,8 +331,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/location
       '@asafarim/navigation':
-        specifier: workspace:*
-        version: link:../../packages/navigation
+        specifier: ^0.2.1
+        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@asafarim/shared-i18n':
         specifier: workspace:*
         version: link:../../packages/shared-i18n
@@ -380,8 +398,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/db
       '@asafarim/navigation':
-        specifier: workspace:*
-        version: link:../../packages/navigation
+        specifier: ^0.2.1
+        version: 0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@asafarim/shared-i18n':
         specifier: workspace:*
         version: link:../../packages/shared-i18n
@@ -648,12 +666,18 @@ importers:
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
       next:
         specifier: ^16.2.3
         version: 16.2.3(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       react:
         specifier: ^19.0.0
         version: 19.2.5
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.5(react@19.2.5)
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@5.9.3)

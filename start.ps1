@@ -318,11 +318,19 @@ function Cmd-Dev {
         }
 
         Log-App "Starting $appName on port $port..."
+        # NOTE: We use `pnpm.cmd` (not `pnpm` which is the PowerShell wrapper) and
+        # invoke it as an external process inside the job. The previous `cmd /c
+        # "pnpm run dev 2>&1"` form exited prematurely on Next.js 16 because
+        # cmd.exe couldn't keep its parent handle alive in a PS background job
+        # — Next.js itself kept running but the job reported "Completed" and the
+        # supervisor lost output. Calling `pnpm.cmd` directly keeps the job
+        # tethered to the real dev process.
         $job = Start-Job -ScriptBlock {
             param($dir, $pathVar)
             $env:PATH = $pathVar
+            $env:FORCE_COLOR = "0"
             Set-Location $dir
-            cmd /c "pnpm run dev 2>&1"
+            & pnpm.cmd run dev 2>&1
         } -ArgumentList $appDir, $currentPath
 
         $jobs[$appName] = $job
@@ -339,12 +347,14 @@ function Cmd-Dev {
     Write-Host ""
 
     try {
+        $reported = @{}
         while ($true) {
             foreach ($kv in $jobs.GetEnumerator()) {
                 $out = Receive-Job -Job $kv.Value -ErrorAction SilentlyContinue
                 if ($out) { foreach ($l in $out) { Write-Host "[$($kv.Key)] $l" } }
-                if ($kv.Value.State -in @('Completed','Failed')) {
+                if (-not $reported[$kv.Key] -and $kv.Value.State -in @('Completed','Failed')) {
                     Log-Warn "$($kv.Key) exited with state: $($kv.Value.State)"
+                    $reported[$kv.Key] = $true
                 }
             }
             Start-Sleep -Milliseconds 400

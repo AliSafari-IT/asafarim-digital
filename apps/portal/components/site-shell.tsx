@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { initializeTheme, persistTheme, applyTheme, subscribeThemeChanges, type Theme } from "@asafarim/ui";
 import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppSwitcher } from "@asafarim/ui";
+import { AppNavbar, type NavItem as AsafNavItem, type RenderLink } from "@asafarim/navigation";
 
 type NavItem = {
   href: string;
@@ -247,6 +248,40 @@ function UserMenu() {
   );
 }
 
+/** Portal logo (also used as the AppNavbar `logo` slot). */
+function PortalLogo() {
+  return (
+    <Link href="/" className="flex items-center gap-3" aria-label="Back to home">
+      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0b1324,#111d3a)] shadow-[var(--shadow-glow)] ring-1 ring-white/10">
+        <img src="/brand/logo-mark.svg" alt="" aria-hidden="true" width="28" height="28" className="h-7 w-7" />
+      </span>
+      <span className="hidden sm:block">
+        <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+          ASafariM Digital
+        </span>
+        <span className="block text-[15px] font-semibold tracking-[-0.01em]">Frontend · Backend · AI</span>
+      </span>
+    </Link>
+  );
+}
+
+/** Next.js Link adapter for AppNavbar. */
+const renderLink: RenderLink = ({ item, children }) => {
+  if (!item.href) return <>{children}</>;
+  if (item.external || /^https?:\/\//.test(item.href)) {
+    return (
+      <a href={item.href} className="asaf-nav-link" target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} className="asaf-nav-link">
+      {children}
+    </Link>
+  );
+};
+
 export function SiteHeader({
   navItems = defaultNavItems,
 }: {
@@ -254,116 +289,43 @@ export function SiteHeader({
 }) {
   const { data: session } = useSession();
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  // Inject the Admin link only for admins / superadmins.
   const resolvedNavItems = canAccessAdmin(session?.user?.roles)
     ? [...navItems, { href: "/admin", label: "Admin", labelKey: "portal.nav.admin" }]
     : navItems;
-  const renderLabel = (item: NavItem) => (item.labelKey ? t(item.labelKey) : item.label);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile menu when viewport grows to lg
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const handler = (e: MediaQueryListEvent) => {
-      if (e.matches) setMobileOpen(false);
-    };
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [mobileOpen]);
-
-  // Lock body scroll when menu open
-  useEffect(() => {
-    if (mobileOpen) {
-      const previous = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = previous;
-      };
-    }
-  }, [mobileOpen]);
+  // Translate labels + adapt to AppNavbar's NavItem shape.
+  const asafNavItems = useMemo<AsafNavItem[]>(
+    () =>
+      resolvedNavItems.map((item) => ({
+        id: item.href,
+        label: item.labelKey ? t(item.labelKey) : item.label,
+        href: item.href,
+      })),
+    [resolvedNavItems, t]
+  );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-surface)_82%,transparent)] backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:gap-6 sm:px-6">
-        <Link
-          href="/"
-          className="flex items-center gap-3"
-          aria-label="Back to home"
-          onClick={() => setMobileOpen(false)}
-        >
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0b1324,#111d3a)] shadow-[var(--shadow-glow)] ring-1 ring-white/10">
-            <img src="/brand/logo-mark.svg" alt="" aria-hidden="true" width="28" height="28" className="h-7 w-7" />
-          </span>
-          <span className="hidden sm:block">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-              ASafariM Digital
-            </span>
-            <span className="block text-[15px] font-semibold tracking-[-0.01em]">Frontend · Backend · AI</span>
-          </span>
-        </Link>
-
-        <nav aria-label="Primary" className="hidden items-center gap-6 text-sm text-[var(--color-text-muted)] lg:flex">
-          {resolvedNavItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition hover:text-[var(--color-text)]">
-              {renderLabel(item)}
-            </Link>
-          ))}
-        </nav>
-
+    <AppNavbar
+      sticky
+      bordered
+      fullWidth
+      currentPath={pathname}
+      renderLink={renderLink}
+      logo={<PortalLogo />}
+      navItems={asafNavItems}
+      countryLangSelector={<CountryLanguageSelector />}
+      themeToggler={<ThemeToggle />}
+      actions={
         <div className="flex items-center gap-2">
-          <CountryLanguageSelector />
-          <ThemeToggle />
           <AppSwitcher current="portal" />
           <UserMenu />
-          <button
-            type="button"
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-nav"
-            onClick={() => setMobileOpen((current) => !current)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-strong)] bg-[var(--color-panel)] text-[var(--color-text)] transition hover:border-[var(--color-primary)] lg:hidden"
-          >
-            {mobileOpen ? (
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            )}
-          </button>
         </div>
-      </div>
-
-      {mobileOpen && (
-        <>
-          <div
-            aria-hidden="true"
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 top-[72px] z-20 bg-[color:color-mix(in_srgb,var(--color-surface)_70%,transparent)] backdrop-blur-sm lg:hidden"
-          />
-          <nav
-            id="mobile-nav"
-            aria-label="Mobile"
-            className="relative z-30 border-t border-[var(--color-border)] bg-[var(--color-panel-strong)] lg:hidden"
-          >
-            <div className="mx-auto grid w-full max-w-7xl gap-1 px-4 py-4 sm:px-6">
-              {resolvedNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-2xl px-4 py-3 text-base font-medium text-[var(--color-text)] transition hover:bg-[var(--color-panel)]"
-                >
-                  {renderLabel(item)}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        </>
-      )}
-    </header>
+      }
+      className="bg-[color:color-mix(in_srgb,var(--color-surface)_82%,transparent)] backdrop-blur-xl"
+    />
   );
 }
 

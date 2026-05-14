@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import { SessionProvider } from "@/components/SessionProvider";
 import { EduNav } from "@/components/EduNav";
@@ -9,6 +10,7 @@ import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { readThemeFromCookie, themeInitScript } from "@asafarim/ui";
 import { edumatchDictionaries } from "@/lib/i18n-dictionaries";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 const appName = "EduMatch";
 const appDescription =
@@ -54,7 +56,9 @@ export default async function RootLayout({
       data-theme={initialTheme}
     >
       <head>
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { auth } from "@asafarim/auth";
-import { resolveNavigation } from "@asafarim/navigation";
+import { resolveNavigation } from "@asafarim/navigation/resolver";
 import { APP_CODES, type AppCode, type NavPlacement, type NavItemDto } from "@asafarim/types";
 
 export async function GET(req: NextRequest) {

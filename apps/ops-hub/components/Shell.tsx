@@ -9,6 +9,7 @@ import { AppSwitcher } from "@asafarim/ui";
 import { CommandPalette } from "./CommandPalette";
 import { ThemeToggle } from "./ThemeToggle";
 import { useOutsideClick } from "../lib/use-outside-click";
+import { AppNavbar, type RenderLink } from "@asafarim/navigation";
 
 const nav = [
   { href: "/overview",      label: "Overview",      icon: <OverviewIcon />,    section: "Console" },
@@ -23,6 +24,23 @@ const nav = [
 ];
 
 const SECTIONS = ["Console", "Revenue", "Platform", "Compliance"] as const;
+
+/** Next.js Link adapter for AppNavbar. */
+const renderLinkAdapter: RenderLink = ({ item, children }) => {
+  if (!item.href) return <>{children}</>;
+  if (item.external || /^https?:\/\//.test(item.href)) {
+    return (
+      <a href={item.href} className="asaf-nav-link" target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} className="asaf-nav-link">
+      {children}
+    </Link>
+  );
+};
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const contentGeneratorUrl = process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "https://content-generator.asafarim.com";
@@ -253,77 +271,95 @@ export function Shell({ children, user }: { children: React.ReactNode; user: { n
         </aside>
 
         <div className="min-w-0 flex-1 flex flex-col">
-          <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 px-3 backdrop-blur lg:px-5">
-            <div className="flex min-w-0 items-center gap-3">
+          {/* Top bar — powered by @asafarim/navigation */}
+          <AppNavbar
+            sticky
+            bordered
+            fullWidth
+            responsiveMode="always-expanded"
+            currentPath={pathname}
+            renderLink={renderLinkAdapter}
+            renderLogo={() => (
+              <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(true)}
+                  aria-label="Open sidebar"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)] lg:hidden"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+                    <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </button>
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <span className="hidden text-[var(--color-text-subtle)] sm:inline">ASafariM</span>
+                  <span className="hidden text-[var(--color-text-subtle)] sm:inline">/</span>
+                  <span className="hidden text-[var(--color-text-subtle)] md:inline">Ops Hub</span>
+                  <span className="hidden text-[var(--color-text-subtle)] md:inline">/</span>
+                  <span className="truncate font-medium text-[var(--color-text)]">
+                    {nav.find((n) => isActive(n.href))?.label ?? "Overview"}
+                  </span>
+                </div>
+              </div>
+            )}
+            navItems={[]}
+            center={
               <button
                 type="button"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Open sidebar"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)] lg:hidden"
+                onClick={() => {
+                  // CommandPalette listens on `document` for Cmd/Ctrl+K.
+                  const evt = new KeyboardEvent("keydown", {
+                    key: "k",
+                    metaKey: true,
+                    ctrlKey: true,
+                    bubbles: true,
+                  });
+                  document.dispatchEvent(evt);
+                }}
+                className="hidden h-8 min-w-[260px] max-w-[420px] items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 text-xs text-[var(--color-text-subtle)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-muted)] md:flex"
+                aria-label="Search — open command palette"
               >
-                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
-                  <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+                  <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M14 14l-3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                 </svg>
+                <span className="flex-1 text-left">Jump to page or app…</span>
+                <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
               </button>
-              <div className="flex min-w-0 items-center gap-2 text-sm">
-                <span className="hidden text-[var(--color-text-subtle)] sm:inline">ASafariM</span>
-                <span className="hidden text-[var(--color-text-subtle)] sm:inline">/</span>
-                <span className="hidden text-[var(--color-text-subtle)] md:inline">Ops Hub</span>
-                <span className="hidden text-[var(--color-text-subtle)] md:inline">/</span>
-                <span className="truncate font-medium text-[var(--color-text)]">
-                  {nav.find((n) => isActive(n.href))?.label ?? "Overview"}
-                </span>
+            }
+            themeToggler={<ThemeToggle />}
+            actions={
+              <div className="flex items-center gap-2">
+                {user.email && (
+                  <div className="hidden items-center gap-1 xl:flex">
+                    {user.roles
+                      .filter((r) => r.startsWith("ops_") || r === "superadmin")
+                      .slice(0, 2)
+                      .map((r) => (
+                        <span
+                          key={r}
+                          className="rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]"
+                        >
+                          {r.replace(/_/g, " ")}
+                        </span>
+                      ))}
+                  </div>
+                )}
+                {user.email && <NotificationsBell />}
+                <AppSwitcher current="ops-hub" variant="default" />
+                {user.email ? (
+                  <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
+                ) : (
+                  <a
+                    href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubOverviewUrl)}`}
+                    className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    Sign in
+                  </a>
+                )}
               </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                const evt = new KeyboardEvent("keydown", { key: "k", metaKey: true });
-                window.dispatchEvent(evt);
-              }}
-              className="hidden h-8 min-w-[260px] max-w-[360px] flex-1 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 text-xs text-[var(--color-text-subtle)] transition hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-muted)] md:flex"
-              aria-label="Search"
-            >
-              <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
-                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.4" />
-                <path d="M14 14l-3-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              </svg>
-              <span className="flex-1 text-left">Jump to page or app…</span>
-              <kbd className="rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
-            </button>
-
-            <div className="flex shrink-0 items-center gap-2">
-              {user.email && (
-                <div className="hidden items-center gap-1 xl:flex">
-                  {user.roles
-                    .filter((r) => r.startsWith("ops_") || r === "superadmin")
-                    .slice(0, 2)
-                    .map((r) => (
-                      <span
-                        key={r}
-                        className="rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]"
-                      >
-                        {r.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                </div>
-              )}
-              {user.email && <NotificationsBell />}
-              <ThemeToggle />
-              <AppSwitcher current="ops-hub" variant="default"/>
-              {user.email ? (
-                <UserMenu user={user as { name: string | null; email: string; roles: string[] }} />
-              ) : (
-                <a
-                  href={`${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(opsHubOverviewUrl)}`}
-                  className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                >
-                  Sign in
-                </a>
-              )}
-            </div>
-          </header>
+            }
+          />
 
           <main className="flex-1 p-5 lg:p-8">{children}</main>
 

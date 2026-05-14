@@ -11,7 +11,10 @@
   },
   "dependencies": {
     "@asafarim/auth": "workspace:*",
+    "@asafarim/country-language-selector": "workspace:*",
     "@asafarim/db": "workspace:*",
+    "@asafarim/navigation": "^0.2.1",
+    "@asafarim/shared-i18n": "workspace:*",
     "@asafarim/ui": "workspace:*",
     "lucide-react": "^0.462.0",
     "next": "^16.2.3",

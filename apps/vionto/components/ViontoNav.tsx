@@ -1,10 +1,10 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  CommonNavbar,
   useNavigation,
   initializeTheme,
   persistTheme,
@@ -12,9 +12,11 @@ import {
   subscribeThemeChanges,
   type Theme,
   AppSwitcher,
+  getNavIcon,
 } from "@asafarim/ui";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
-import type { AppCode } from "@asafarim/types";
+import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
+import type { AppCode, ResolvedNavItem } from "@asafarim/types";
 
 const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "https://vionto.asafarim.com";
@@ -249,29 +251,73 @@ function ViontoLogo() {
 export function ViontoTopbarControls() {
   return (
     <div className="flex items-center gap-2">
-      <CountryLanguageSelector />
-      <ThemeToggle />
       <AppSwitcher current="vionto" variant="default" />
       <UserMenu />
     </div>
   );
 }
 
+/** Map API-resolved nav items into AppNavbar's NavItem shape. */
+function toNavItems(items: ResolvedNavItem[]): NavItem[] {
+  return items.map((r) => {
+    const href = r.resolvedHref || r.href;
+    const Icon = r.icon ? getNavIcon(r.icon) : null;
+    return {
+      id: r.id,
+      label: r.label,
+      href,
+      icon: Icon ? <Icon /> : undefined,
+      external: r.target === "_blank" || /^https?:\/\//.test(href),
+      children: r.children ? toNavItems(r.children) : undefined,
+    } satisfies NavItem;
+  });
+}
+
+/** Next.js-aware link renderer. */
+const renderLink: RenderLink = ({ item, children }) => {
+  if (!item.href) return <>{children}</>;
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        className="asaf-nav-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} className="asaf-nav-link">
+      {children}
+    </Link>
+  );
+};
+
 export function ViontoNav() {
+  const pathname = usePathname();
   const { items, error } = useNavigation("vionto" as AppCode, "header");
 
   if (error) {
     console.error("Vionto navigation fetch error:", error);
   }
 
+  const navItems = useMemo(() => toNavItems(items), [items]);
+
   return (
-    <CommonNavbar
-      items={items}
-      app="vionto"
-      logo={<ViontoLogo />}
-      rightContent={<ViontoTopbarControls />}
-      className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl"
+    <AppNavbar
       sticky
+      bordered
+      fullWidth
+      currentPath={pathname}
+      renderLink={renderLink}
+      logo={<ViontoLogo />}
+      navItems={navItems}
+      countryLangSelector={<CountryLanguageSelector />}
+      themeToggler={<ThemeToggle />}
+      actions={<ViontoTopbarControls />}
+      className="bg-[var(--color-surface)]/80 backdrop-blur-xl"
     />
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import { SessionProvider } from "@/components/SessionProvider";
 import { I18nProvider } from "@asafarim/shared-i18n";
@@ -7,6 +8,7 @@ import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { viontoDictionaries } from "@/lib/i18n-dictionaries";
 import { readThemeFromCookie, themeInitScript } from "@asafarim/ui";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 const appUrl = process.env.NEXT_PUBLIC_VIONTO_URL ?? "https://vionto.asafarim.com";
 const appName = "Vionto";
@@ -55,7 +57,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang={initialLocale} data-theme={theme} style={{ colorScheme: theme }} suppressHydrationWarning>
       <head>
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

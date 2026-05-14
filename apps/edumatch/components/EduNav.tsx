@@ -1,10 +1,10 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  CommonNavbar,
   useNavigation,
   initializeTheme,
   persistTheme,
@@ -12,9 +12,11 @@ import {
   subscribeThemeChanges,
   type Theme,
   AppSwitcher,
+  getNavIcon,
 } from "@asafarim/ui";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
-import type { AppCode } from "@asafarim/types";
+import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
+import type { AppCode, ResolvedNavItem } from "@asafarim/types";
 
 const portalUrl =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
@@ -360,23 +362,73 @@ function DrawerContent() {
   );
 }
 
-// EduMatch-specific wrapper around CommonNavbar
+/**
+ * Convert API-resolved nav items into the shape AppNavbar expects.
+ * - `icon` becomes a ReactNode (rendered via the shared icon map)
+ * - `resolvedHref` (if present) wins over the raw href
+ * - children are recursively mapped
+ */
+function toNavItems(items: ResolvedNavItem[]): NavItem[] {
+  return items.map((r) => {
+    const href = r.resolvedHref || r.href;
+    const Icon = r.icon ? getNavIcon(r.icon) : null;
+    return {
+      id: r.id,
+      label: r.label,
+      href,
+      icon: Icon ? <Icon /> : undefined,
+      external: r.target === "_blank" || /^https?:\/\//.test(href),
+      children: r.children ? toNavItems(r.children) : undefined,
+    } satisfies NavItem;
+  });
+}
+
+/** Next.js-aware link renderer. */
+const renderLink: RenderLink = ({ item, children }) => {
+  if (!item.href) return <>{children}</>;
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        className="asaf-nav-link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} className="asaf-nav-link">
+      {children}
+    </Link>
+  );
+};
+
+// EduMatch-specific wrapper around AppNavbar
 export function EduNav() {
+  const pathname = usePathname();
   const { items, error } = useNavigation("edumatch" as AppCode, "header");
 
   if (error) {
     console.error("Navigation fetch error:", error);
   }
 
+  const navItems = useMemo(() => toNavItems(items), [items]);
+
   return (
-    <CommonNavbar
-      items={items}
-      app="edumatch"
+    <AppNavbar
+      sticky
+      bordered
+      fullWidth
+      currentPath={pathname}
+      renderLink={renderLink}
       logo={<EduLogo />}
-      compactControls={<CompactControls />}
-      rightContent={<DrawerContent />}
-      className="border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl"
-      sticky={true}
+      navItems={navItems}
+      countryLangSelector={<CompactControls />}
+      themeToggler={<ThemeToggle />}
+      actions={<DrawerContent />}
+      className="bg-[var(--color-surface)]/80 backdrop-blur-xl"
     />
   );
 }

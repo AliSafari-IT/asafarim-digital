@@ -6,6 +6,7 @@ import { auth } from "@asafarim/auth";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 const appUrl = process.env.NEXT_PUBLIC_OPS_HUB_URL ?? process.env.OPS_HUB_URL ?? "https://ops-hub.asafarim.com";
 const appTitle = "SaaS Operations Hub";

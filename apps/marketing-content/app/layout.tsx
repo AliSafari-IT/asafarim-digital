@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { SessionProvider } from "next-auth/react";
 import { cookies } from "next/headers";
 import { auth } from "@asafarim/auth";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { Shell } from "@/components/Shell";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 const appUrl = process.env.NEXT_PUBLIC_MARKETING_CONTENT_URL ?? process.env.MARKETING_CONTENT_URL ?? "https://marketing-content.asafarim.com";
 const appTitle = "Marketing + Content Engine";
@@ -57,7 +59,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
       <head>
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import { readThemeFromCookie, themeInitScript } from "../../../packages/ui/src/theme";
 import { SessionProvider } from "@/components/SessionProvider";
@@ -77,7 +78,9 @@ export default async function RootLayout({
   return (
     <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme}>
       <head>
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

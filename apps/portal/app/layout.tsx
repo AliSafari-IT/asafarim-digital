@@ -10,6 +10,7 @@ import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
 import { portalDictionaries } from "../lib/i18n-dictionaries";
 import { StructuredData, absoluteUrl, organizationSchema, siteDescription, siteName, websiteSchema } from "@/lib/seo";
 import "./globals.css";
+import "@asafarim/navigation/styles.css";
 
 const manrope = Manrope({
   subsets: ["latin"],

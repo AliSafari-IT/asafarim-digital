@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type AppKey =
   | "portal"
@@ -289,8 +290,40 @@ export function AppSwitcher({
   variant?: "default" | "compact";
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Recompute dropdown position whenever it opens, on resize, or on scroll.
+  // The dropdown is portaled to <body> with `position: fixed` so it never gets
+  // clipped or mis-positioned by any ancestor (flex, transform, overflow, etc).
+  useLayoutEffect(() => {
+    if (!open) return;
+    const compute = () => {
+      const btn = btnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const dropW = Math.min(340, window.innerWidth - 16);
+      const margin = 8;
+      // Right-align to the button by default; clamp into viewport.
+      let left = rect.right - dropW;
+      left = Math.max(margin, Math.min(left, window.innerWidth - dropW - margin));
+      const top = rect.bottom + margin;
+      setPos({ top, left });
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    window.addEventListener("scroll", compute, true);
+    return () => {
+      window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", compute, true);
+    };
+  }, [open]);
 
   // Close when clicking outside both the button and the dropdown panel.
   useEffect(() => {
@@ -346,11 +379,19 @@ export function AppSwitcher({
         </svg>
       </button>
 
-      {open && (
+      {open && mounted && createPortal(
         <div
           ref={dropRef}
           role="dialog"
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-[9999] w-[min(21.25rem,calc(100vw-1rem))] max-h-[min(520px,calc(100vh-96px))] overflow-y-auto rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-card)]"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            width: "min(21.25rem, calc(100vw - 1rem))",
+            maxHeight: "min(520px, calc(100vh - 96px))",
+            zIndex: 99999,
+          }}
+          className="overflow-y-auto rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-card)]"
         >
           <div className="mb-2 flex items-center justify-between px-2">
             <p
@@ -475,7 +516,8 @@ export function AppSwitcher({
               Unified SSO · one account
             </span>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
