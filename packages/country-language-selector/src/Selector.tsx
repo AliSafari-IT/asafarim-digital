@@ -28,6 +28,7 @@ export function CountryLanguageSelector({
   const [country, setCountry] = useState<CountryCode>(() =>
     lockCountry ?? countryForLocale(locale) ?? "NL"
   );
+  const [dropdownStyle, setDropdownStyle] = useState<Record<string, number | string>>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
   const manualRef = useRef(false);
 
@@ -56,6 +57,34 @@ export function CountryLanguageSelector({
     return () => {
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function positionDropdown() {
+      if (!rootRef.current) return;
+      const rect = rootRef.current.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const width = Math.min(224, viewportWidth - 16);
+      const left = Math.max(8, Math.min(rect.right - width, viewportWidth - width - 8));
+
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left,
+        width,
+      });
+    }
+
+    positionDropdown();
+    window.addEventListener("resize", positionDropdown);
+    window.addEventListener("scroll", positionDropdown, true);
+
+    return () => {
+      window.removeEventListener("resize", positionDropdown);
+      window.removeEventListener("scroll", positionDropdown, true);
     };
   }, [open]);
 
@@ -110,7 +139,8 @@ export function CountryLanguageSelector({
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/20"
+          className="z-[9999] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/20"
+          style={dropdownStyle}
         >
           {/* Countries */}
           {!lockCountry && (
