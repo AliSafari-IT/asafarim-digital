@@ -1,6 +1,6 @@
 {
   "name": "@asafarim/navigation-demo",
-  "version": "0.0.0",
+  "version": "0.2.3",
   "private": true,
   "type": "module",
   "description": "Showcase / playground for @asafarim/navigation. Lives inside the package folder but is excluded from the monorepo workspace.",
@@ -22,5 +22,8 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.0",
     "vite": "^6.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
   }
 }
