@@ -68,9 +68,9 @@ const API_MODE_TO_UI_MODE: Record<string, "cinematic" | "slideshow" | "social"> 
 };
 
 const ASPECT_OPTIONS = [
-  { label: "Landscape", value: "16:9", key: "landscape" },
-  { label: "Portrait", value: "9:16", key: "portrait" },
-  { label: "1by1", value: "1:1", key: "1by1" },
+  { labelKey: "vionto.aspect.landscape", value: "16:9", key: "landscape" },
+  { labelKey: "vionto.aspect.portrait", value: "9:16", key: "portrait" },
+  { labelKey: "vionto.aspect.square", value: "1:1", key: "1by1" },
 ] as const;
 
 type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
@@ -593,7 +593,7 @@ export function ViontoPage() {
   function copyToClipboard() {
     if (!downloadUrl) return;
     navigator.clipboard.writeText(downloadUrl);
-    alert("Download link copied to clipboard");
+    alert(t("vionto.downloadDialog.copied"));
   }
 
   async function createProject() {
@@ -981,7 +981,7 @@ export function ViontoPage() {
               <span className="hidden text-[var(--muted)] sm:inline">/</span>
               <span className="hidden text-[var(--muted)] md:inline">Vionto</span>
               <span className="hidden text-[var(--muted)] md:inline">/</span>
-              <span className="truncate font-medium text-[var(--text)]">Create</span>
+              <span className="truncate font-medium text-[var(--text)]">{t("vionto.nav.create")}</span>
             </div>
             {/* Desktop controls — hidden below portrait tablet */}
             <div className="hidden md:flex items-center gap-2">
@@ -1043,7 +1043,7 @@ export function ViontoPage() {
 
               {/* Project picker */}
               <div className="mt-3">
-                <label className="text-xs font-medium text-[var(--color-text-muted)]">Project</label>
+                <label className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.project.label")}</label>
                 <div className="mt-1 flex gap-2">
                   <select
                     className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
@@ -1051,7 +1051,7 @@ export function ViontoPage() {
                     onChange={(e) => setSelectedProjectId(e.target.value || null)}
                     disabled={isLoadingProjects || isUploading}
                   >
-                    <option value="">Select a project...</option>
+                    <option value="">{t("vionto.project.selectPlaceholder")}</option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>{p.title}</option>
                     ))}
@@ -1062,7 +1062,7 @@ export function ViontoPage() {
                     disabled={isUploading}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                   >
-                    <Plus size={16} /> New
+                    <Plus size={16} /> {t("vionto.project.new")}
                   </button>
                 </div>
 
@@ -1072,7 +1072,7 @@ export function ViontoPage() {
                     <input
                       type="text"
                       className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
-                      placeholder="Project title"
+                      placeholder={t("vionto.project.titlePlaceholder")}
                       value={newProjectTitle}
                       onChange={(e) => setNewProjectTitle(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && createProject()}
@@ -1084,7 +1084,7 @@ export function ViontoPage() {
                         onClick={() => { setIsCreatingProject(false); setNewProjectTitle(""); }}
                         className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button
                         type="button"
@@ -1092,7 +1092,7 @@ export function ViontoPage() {
                         disabled={!newProjectTitle.trim() || isCreatingProject}
                         className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                       >
-                        {isCreatingProject ? <RefreshCw size={14} className="animate-spin" /> : "Create"}
+                        {isCreatingProject ? <RefreshCw size={14} className="animate-spin" /> : t("vionto.project.create")}
                       </button>
                     </div>
                   </div>
@@ -1182,7 +1182,9 @@ export function ViontoPage() {
               {/* Show persisted assets */}
               {selectedProjectId && projectAssets.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-medium text-[var(--color-text-muted)]">Project assets ({projectAssets.length})</p>
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">
+                    {t("vionto.project.assets")} ({projectAssets.length})
+                  </p>
                   <ul className="mt-1 grid grid-cols-4 gap-2">
                     {projectAssets.map((a, idx) => (
                       <li
@@ -1255,8 +1257,8 @@ export function ViontoPage() {
                 ))}
               </div>
 
-              <div className="mt-3" aria-label="Aspect ratio">
-                <p className="text-xs font-medium text-[var(--color-text-muted)]">Format</p>
+              <div className="mt-3" aria-label={t("vionto.aspect.aria")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.aspect.label")}</p>
                 <div className="mt-1 grid grid-cols-3 gap-2">
                   {ASPECT_OPTIONS.map((option) => (
                     <label
@@ -1275,7 +1277,7 @@ export function ViontoPage() {
                         checked={activeAspectRatio === option.value}
                         onChange={() => setActiveAspectRatio(option.value)}
                       />
-                      {option.label}
+                      {t(option.labelKey)}
                     </label>
                   ))}
                 </div>
@@ -1283,14 +1285,14 @@ export function ViontoPage() {
 
               <div className="mt-3">
                 <label htmlFor="user-notes" className="text-xs font-medium text-[var(--color-text-muted)]">
-                  Notes for the narrator
+                  {t("vionto.notes.label")}
                 </label>
                 <textarea
                   id="user-notes"
                   className="mt-1 min-h-[60px] w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                   value={userNotes}
                   onChange={(e) => setUserNotes(e.target.value)}
-                  placeholder="e.g. Focus on the sunset and family moments. Keep it nostalgic."
+                  placeholder={t("vionto.notes.placeholder")}
                   maxLength={2000}
                 />
               </div>
@@ -1320,15 +1322,15 @@ export function ViontoPage() {
                       <div className="horizon" />
                     </>
                   )}
-                  <p>{latestExport?.previewSubtitle ?? "Your latest completed Vionto render will appear here."}</p>
+                  <p>{latestExport?.previewSubtitle ?? t("vionto.preview.empty")}</p>
                 </div>
               </div>
               <div className="preview-copy">
-                <p className="eyebrow">Preview</p>
-                <h2 id="preview-title">{latestExport?.previewTitle ?? `${activeMode[0].toUpperCase()}${activeMode.slice(1)} draft`}</h2>
+                <p className="eyebrow">{t("vionto.preview.eyebrow")}</p>
+                <h2 id="preview-title">{latestExport?.previewTitle ?? t("vionto.preview.draft", { mode: t(`vionto.mode.${activeMode}`) })}</h2>
                 <p>
                   {latestExport?.filename ??
-                    `${activeAspectRatio} MP4, H.264 video, AAC audio, subtitles burned in or exported as SRT.`}
+                    t("vionto.preview.formatSummary", { aspect: activeAspectRatio })}
                 </p>
                 <button
                   type="button"
@@ -1337,7 +1339,7 @@ export function ViontoPage() {
                   className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                 >
                   <Clapperboard size={16} />
-                  {renderState === "queued" || renderState === "running" ? "Creating video..." : "Create video"}
+                  {renderState === "queued" || renderState === "running" ? t("vionto.render.creating") : t("vionto.render.createVideo")}
                 </button>
               </div>
             </section>
@@ -1472,7 +1474,7 @@ export function ViontoPage() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-50"
                   >
                     <Clapperboard size={16} />
-                    Create another video
+                    {t("vionto.render.createAnother")}
                   </button>
                   {downloadUrl && (
                     <a
@@ -1509,16 +1511,16 @@ export function ViontoPage() {
             <div className="job-card md:col-span-2" id="library">
               <div className="section-heading">
                 <Clapperboard size={20} />
-                <h2>Video library</h2>
+                <h2>{t("vionto.library.title")}</h2>
               </div>
               <div className="grid gap-2 md:grid-cols-3">
                 <select
                   className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                   value={libraryModeFilter}
                   onChange={(e) => setLibraryModeFilter(e.target.value as "" | UiMode)}
-                  aria-label="Filter videos by mode"
+                  aria-label={t("vionto.library.filterMode")}
                 >
-                  <option value="">All modes</option>
+                  <option value="">{t("vionto.library.allModes")}</option>
                   {modes.map((mode) => (
                     <option key={mode} value={mode}>{t(`vionto.mode.${mode}`)}</option>
                   ))}
@@ -1528,25 +1530,25 @@ export function ViontoPage() {
                   className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                   value={libraryCreatedFrom}
                   onChange={(e) => setLibraryCreatedFrom(e.target.value)}
-                  aria-label="Filter videos created from"
+                  aria-label={t("vionto.library.createdFrom")}
                 />
                 <input
                   type="date"
                   className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                   value={libraryCreatedTo}
                   onChange={(e) => setLibraryCreatedTo(e.target.value)}
-                  aria-label="Filter videos created to"
+                  aria-label={t("vionto.library.createdTo")}
                 />
               </div>
               <div className="relative mt-2">
                 <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
                 <input
                   type="search"
-                  placeholder="Search videos by title or keyword…"
                   className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] py-2 pl-9 pr-3 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]"
+                  {...{ placeholder: t("vionto.library.searchPlaceholder") }}
                   value={librarySearch}
                   onChange={(e) => setLibrarySearch(e.target.value)}
-                  aria-label="Search videos"
+                  aria-label={t("vionto.library.search")}
                 />
               </div>
 
@@ -1554,10 +1556,10 @@ export function ViontoPage() {
                 {isLoadingLibrary ? (
                   <div className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
                     <RefreshCw size={16} className="animate-spin" />
-                    Loading videos...
+                    {t("vionto.library.loading")}
                   </div>
                 ) : libraryExports.length === 0 ? (
-                  <p className="text-sm text-[var(--color-text-muted)]">No completed videos match these filters yet.</p>
+                  <p className="text-sm text-[var(--color-text-muted)]">{t("vionto.library.empty")}</p>
                 ) : (
                   libraryExports.map((item, _idx) => (
                     <article
@@ -1587,7 +1589,9 @@ export function ViontoPage() {
                             </span>
                           )}
                         </div>
-                        <p className="truncate text-[11px] text-[var(--color-text-muted)]">{item.filename ?? "Untitled export"}</p>
+                        <p className="truncate text-[11px] text-[var(--color-text-muted)]">
+                          {item.filename ?? t("vionto.library.untitled")}
+                        </p>
                         {item.previewSubtitle && (
                           <p className="line-clamp-2 text-xs text-[var(--color-text-muted)]">{item.previewSubtitle}</p>
                         )}
@@ -1607,13 +1611,13 @@ export function ViontoPage() {
                             className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-1.5 text-xs font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                           >
                             <Play size={13} />
-                            Preview
+                            {t("vionto.library.preview")}
                           </button>
                           <button
                             type="button"
                             onClick={() => removeLibraryExport(item.id)}
                             className="inline-flex items-center justify-center rounded-md border border-red-300 p-1.5 text-red-500 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
-                            aria-label="Remove video"
+                            aria-label={t("vionto.library.remove")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1639,9 +1643,11 @@ export function ViontoPage() {
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft size={16} />
-                    Previous
+                    {t("vionto.pagination.previous")}
                   </button>
-                  <span className="text-sm text-[var(--color-text-muted)]">Page {libraryPage}</span>
+                  <span className="text-sm text-[var(--color-text-muted)]">
+                    {t("vionto.pagination.page", { page: libraryPage })}
+                  </span>
                   <button
                     type="button"
                     disabled={!libraryHasNext || isLoadingLibrary}
@@ -1656,7 +1662,7 @@ export function ViontoPage() {
                     }}
                     className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Next
+                    {t("vionto.pagination.next")}
                     <ChevronRight size={16} />
                   </button>
                 </div>
@@ -1671,7 +1677,7 @@ export function ViontoPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Download Link</h3>
+              <h3 className="text-lg font-semibold">{t("vionto.downloadDialog.title")}</h3>
               <button
                 type="button"
                 onClick={() => setShowDownloadDialog(false)}
@@ -1681,7 +1687,7 @@ export function ViontoPage() {
               </button>
             </div>
             <p className="mb-4 text-sm text-[var(--color-text-muted)]">
-              Your video is ready. You can copy the download link below to share it, or download it directly.
+              {t("vionto.downloadDialog.description")}
             </p>
             <div className="mb-4 flex gap-2">
               <input
@@ -1696,7 +1702,7 @@ export function ViontoPage() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
               >
                 <Copy size={16} />
-                Copy
+                {t("vionto.downloadDialog.copy")}
               </button>
             </div>
             <div className="flex gap-2">
@@ -1706,14 +1712,14 @@ export function ViontoPage() {
                 className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90"
               >
                 <Download size={16} />
-                Download MP4
+                {t("vionto.export.downloadMp4")}
               </a>
               <button
                 type="button"
                 onClick={() => setShowDownloadDialog(false)}
                 className="inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
               >
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>
