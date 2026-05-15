@@ -58,7 +58,7 @@ export default async function RootLayout({
       <body className="flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
         <Script
           id="theme-init"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

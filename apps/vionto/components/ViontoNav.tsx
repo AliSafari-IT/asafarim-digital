@@ -300,12 +300,31 @@ const renderLink: RenderLink = ({ item, children }) => {
 export function ViontoNav() {
   const pathname = usePathname();
   const { items, error } = useNavigation("vionto" as AppCode, "header");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (error) {
     console.error("Vionto navigation fetch error:", error);
   }
 
   const navItems = useMemo(() => toNavItems(items), [items]);
+
+  // Prevent hydration mismatch by only rendering AppNavbar after mount
+  if (!mounted) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-xl">
+        <div className="flex h-16 items-center justify-between px-4">
+          <ViontoLogo />
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <AppNavbar

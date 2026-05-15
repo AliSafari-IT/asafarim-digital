@@ -107,7 +107,7 @@ export default async function RootLayout({
       <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <Script
           id="theme-init"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}

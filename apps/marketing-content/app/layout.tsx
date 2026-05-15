@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <Script
           id="theme-init"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: themeInitScript,
           }}
