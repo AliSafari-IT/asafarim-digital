@@ -1600,22 +1600,14 @@ export function ViontoPage() {
                           {item.durationSeconds != null && <span>{item.durationSeconds}s</span>}
                           {item.fileSizeBytes != null && <span>{(item.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>}
                         </div>
-                        <div className="mt-2 flex items-center gap-1.5">
+                        <div className="mt-2 flex items-center justify-end">
                           <button
                             type="button"
                             onClick={() => {
-                              setLatestExport(item);
-                              setExportId(item.id);
-                              setDownloadUrl(null);
+                              if (window.confirm(t("vionto.library.removeConfirm"))) {
+                                removeLibraryExport(item.id);
+                              }
                             }}
-                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-1.5 text-xs font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
-                          >
-                            <Play size={13} />
-                            {t("vionto.library.preview")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeLibraryExport(item.id)}
                             className="inline-flex items-center justify-center rounded-md border border-red-300 p-1.5 text-red-500 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
                             aria-label={t("vionto.library.remove")}
                           >
