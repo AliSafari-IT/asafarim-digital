@@ -6,7 +6,8 @@ export type CountryDefinition = {
   code: CountryCode;
   name: string; // English name
   nativeName: string; // common native label
-  flag: string; // emoji flag
+  flag: string; // emoji flag (fallback)
+  flagUrl: string; // flag image URL
   /** Languages offered in this country, ordered by preference. */
   languages: Locale[];
 };
@@ -18,6 +19,7 @@ export const BENELUX_COUNTRIES: Record<CountryCode, CountryDefinition> = {
     name: "Netherlands",
     nativeName: "Nederland",
     flag: "🇳🇱",
+    flagUrl: "https://flagcdn.com/w40/nl.png",
     languages: ["nl-NL", "en"],
   },
   BE: {
@@ -25,6 +27,7 @@ export const BENELUX_COUNTRIES: Record<CountryCode, CountryDefinition> = {
     name: "Belgium",
     nativeName: "België / Belgique / Belgien",
     flag: "🇧🇪",
+    flagUrl: "https://flagcdn.com/w40/be.png",
     languages: ["nl-BE", "fr-BE", "de-BE", "en"],
   },
   LU: {
@@ -32,6 +35,7 @@ export const BENELUX_COUNTRIES: Record<CountryCode, CountryDefinition> = {
     name: "Luxembourg",
     nativeName: "Luxembourg / Luxemburg",
     flag: "🇱🇺",
+    flagUrl: "https://flagcdn.com/w40/lu.png",
     languages: ["fr-LU", "de-LU", "en"],
   },
 };

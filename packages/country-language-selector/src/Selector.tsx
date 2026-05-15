@@ -122,7 +122,12 @@ export function CountryLanguageSelector({
                 }`}
                 aria-pressed={active}
               >
-                <span className="text-base leading-none">{c.flag}</span>
+                <img
+                  src={c.flagUrl}
+                  alt={c.name}
+                  className="h-5 w-5 object-cover rounded-sm"
+                  loading="lazy"
+                />
                 <span className="font-medium">{c.code}</span>
                 {active && (
                   <span className="ml-0.5 h-1 w-1 rounded-full bg-[var(--color-accent)]" />
@@ -204,7 +209,12 @@ export function CountryLanguageSelector({
         className="group inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-surface)]/60 px-2.5 py-1.5 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text)]"
         title={`${t("common.country")} · ${t("common.language")}`}
       >
-        <span className="text-base leading-none">{activeCountry.flag}</span>
+        <img
+          src={activeCountry.flagUrl}
+          alt={activeCountry.name}
+          className="h-5 w-5 object-cover rounded-sm"
+          loading="lazy"
+        />
         {!compact && (
           <span className="hidden font-mono text-[11px] sm:inline">
             {activeLabel.short}

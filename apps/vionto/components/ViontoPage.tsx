@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
+import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 
 function ViontoMark({ className = "" }: { className?: string }) {
   return (
@@ -984,6 +985,9 @@ export function ViontoPage() {
             </div>
             {/* Desktop controls — hidden below portrait tablet */}
             <div className="hidden md:flex items-center gap-2">
+              <CountryLanguageSelector key={"language-selector"}
+                
+              />
               <ViontoTopbarControls />
               <a className="portal-link" href={process.env.NEXT_PUBLIC_PORTAL_URL ?? "http://localhost:3000"}>
                 ASafariM Portal <ArrowRight size={16} />
