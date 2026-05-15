@@ -73,6 +73,15 @@ const ASPECT_OPTIONS = [
   { labelKey: "vionto.aspect.square", value: "1:1", key: "1by1" },
 ] as const;
 
+const STORY_MODE_OPTIONS = [
+  { labelKey: "vionto.storyMode.memory_film", descriptionKey: "vionto.storyMode.memory_film.description", value: "memory_film" },
+  { labelKey: "vionto.storyMode.travel_recap", descriptionKey: "vionto.storyMode.travel_recap.description", value: "travel_recap" },
+  { labelKey: "vionto.storyMode.family_archive", descriptionKey: "vionto.storyMode.family_archive.description", value: "family_archive" },
+  { labelKey: "vionto.storyMode.event_recap", descriptionKey: "vionto.storyMode.event_recap.description", value: "event_recap" },
+  { labelKey: "vionto.storyMode.social_reel", descriptionKey: "vionto.storyMode.social_reel.description", value: "social_reel" },
+  { labelKey: "vionto.storyMode.documentary", descriptionKey: "vionto.storyMode.documentary.description", value: "documentary" },
+] as const;
+
 type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
 type UiMode = "cinematic" | "slideshow" | "social";
 
@@ -91,6 +100,7 @@ type LibraryExport = {
   projectTitle: string;
   filename: string | null;
   mode: UiMode | null;
+  storyMode: string | null;
   aspectRatio: string | null;
   aspectLabel: string | null;
   keywords: string[];
@@ -132,6 +142,7 @@ export function ViontoPage() {
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
+  const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -606,6 +617,7 @@ export function ViontoPage() {
         body: JSON.stringify({
           title: newProjectTitle.trim(),
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
+          storyMode: selectedStoryMode,
           aspectRatio: activeAspectRatio,
           locale: locale.split("-")[0] ?? "en",
         }),
@@ -1257,6 +1269,35 @@ export function ViontoPage() {
                 ))}
               </div>
 
+              <div className="mt-3" aria-label={t("vionto.storyMode.label")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.storyMode.label")}</p>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {STORY_MODE_OPTIONS.map((option) => (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-start rounded-lg border p-2.5 transition ${
+                        selectedStoryMode === option.value
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-text)]"
+                          : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="vionto-story-mode"
+                        className="sr-only"
+                        value={option.value}
+                        checked={selectedStoryMode === option.value}
+                        onChange={() => setSelectedStoryMode(option.value)}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-medium">{t(option.labelKey)}</span>
+                        <span className="text-xs opacity-80">{t(option.descriptionKey)}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-3" aria-label={t("vionto.aspect.aria")}>
                 <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.aspect.label")}</p>
                 <div className="mt-1 grid grid-cols-3 gap-2">
@@ -1581,6 +1622,11 @@ export function ViontoPage() {
                           {item.mode && (
                             <span className="shrink-0 rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
                               {item.mode}
+                            </span>
+                          )}
+                          {item.storyMode && (
+                            <span className="shrink-0 rounded-full border border-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] text-[var(--color-accent)]">
+                              {t(`vionto.storyMode.${item.storyMode}`)}
                             </span>
                           )}
                           {item.aspectLabel && (

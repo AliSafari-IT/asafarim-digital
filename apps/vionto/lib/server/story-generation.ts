@@ -164,6 +164,7 @@ export async function generateWithAnthropic(
 export type StoryPromptContext = {
   locale: string;
   mode: "story" | "slideshow" | "documentary";
+  storyMode?: string;
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
@@ -177,6 +178,9 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   const lines: string[] = [];
   lines.push(`Locale: ${ctx.locale}`);
   lines.push(`Mode: ${ctx.mode}`);
+  if (ctx.storyMode) {
+    lines.push(`Story mode: ${ctx.storyMode}`);
+  }
   if (ctx.userNotes && ctx.userNotes.trim()) {
     lines.push(`User notes: ${ctx.userNotes.trim()}`);
   }
@@ -188,7 +192,30 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   }
   lines.push("");
   lines.push("Instructions:");
-  lines.push("- Write a cohesive narration that flows across the provided images.");
+  
+  // Add story mode-specific instructions
+  if (ctx.storyMode === "memory_film") {
+    lines.push("- Write an emotional, cinematic narration for personal memories and reflective albums.");
+    lines.push("- Focus on feelings, nostalgia, and the emotional arc of the memories.");
+  } else if (ctx.storyMode === "travel_recap") {
+    lines.push("- Write a location-aware recap for trips, routes, and highlights.");
+    lines.push("- Emphasize date/place progression and the journey narrative.");
+  } else if (ctx.storyMode === "family_archive") {
+    lines.push("- Write warm, chronological, people-focused storytelling for family albums.");
+    lines.push("- Focus on relationships, generations, and family milestones.");
+  } else if (ctx.storyMode === "event_recap") {
+    lines.push("- Write a highlight-driven recap for weddings, birthdays, graduations, parties, and gatherings.");
+    lines.push("- Focus on key moments, celebrations, and event highlights.");
+  } else if (ctx.storyMode === "social_reel") {
+    lines.push("- Write short, fast-paced narration optimized for vertical social media (Reels, TikTok, Shorts).");
+    lines.push("- Use punchy, engaging language that works well in short form.");
+  } else if (ctx.storyMode === "documentary") {
+    lines.push("- Write slower, more factual narration with emphasis on timeline, context, and observed details.");
+    lines.push("- Focus on historical context and factual accuracy.");
+  } else {
+    lines.push("- Write a cohesive narration that flows across the provided images.");
+  }
+  
   lines.push("- The SRT output should have one cue per sentence, with reasonable timing spaced roughly 3-6 seconds per cue for a ~30-60 second total duration.");
   lines.push("- Escape angle brackets in SRT text as &lt; and &gt;.");
   lines.push("- Do not include empty lines inside a cue text block.");
