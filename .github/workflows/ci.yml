@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 env:
-  NODE_VERSION: "22"
+  NODE_VERSION: "22.13"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE22: "true"
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 11
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -61,7 +61,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 11
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -94,7 +94,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 11
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -222,7 +222,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 11
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -263,7 +263,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 11
+          version: 11.1.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
