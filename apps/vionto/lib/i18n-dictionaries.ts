@@ -7,6 +7,7 @@ import type { Dictionaries } from "@asafarim/shared-i18n";
 export const viontoDictionaries: Dictionaries = {
   en: {
     // Upload
+    "vionto.upload.eyebrow": "Uploads",
     "vionto.upload.title": "Upload a memory set",
     "vionto.upload.subtitle": "Add photos, a zip archive, or a future cloud-drive import.",
     "vionto.upload.dropzoneLabel": "Drop images or zip here",
@@ -83,6 +84,7 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.export": "Export",
   },
   nl: {
+    "vionto.upload.eyebrow": "Uploads",
     "vionto.upload.title": "Upload een herinneringenset",
     "vionto.upload.subtitle": "Voeg foto's, een zip-archief of een toekomstige clouddrive-import toe.",
     "vionto.upload.dropzoneLabel": "Sleep afbeeldingen of zip hier",
@@ -150,6 +152,7 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.export": "Exporteren",
   },
   fr: {
+    "vionto.upload.eyebrow": "Uploads",
     "vionto.upload.title": "Uploader un ensemble de souvenirs",
     "vionto.upload.subtitle": "Ajoutez des photos, une archive zip ou une future importation depuis le cloud.",
     "vionto.upload.dropzoneLabel": "Déposez images ou zip ici",
@@ -217,6 +220,7 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.export": "Exporter",
   },
   de: {
+    "vionto.upload.eyebrow": "Uploads",
     "vionto.upload.title": "Erinnerungsset hochladen",
     "vionto.upload.subtitle": "Fügen Sie Fotos, ein Zip-Archiv oder einen zukünftigen Cloud-Drive-Import hinzu.",
     "vionto.upload.dropzoneLabel": "Bilder oder Zip hier ablegen",

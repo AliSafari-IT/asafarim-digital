@@ -1024,7 +1024,7 @@ export function ViontoPage() {
           <div className="creator-grid" id="create">
             <section className="upload-panel" id="uploads" aria-labelledby="upload-title">
               <div>
-                <p className="eyebrow">{t("common.loading")}</p>
+                <p className="eyebrow">{t("vionto.upload.eyebrow")}</p>
                 <h2 id="upload-title">{t("vionto.upload.title")}</h2>
                 <p>{t("vionto.upload.subtitle")}</p>
               </div>
