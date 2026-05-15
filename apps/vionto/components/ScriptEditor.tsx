@@ -70,16 +70,29 @@ export function ScriptEditor({ versions, projectId, onGenerate, onSave, isGenera
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[var(--color-text)]">
-          <Captions size={20} />
-          <h2 className="font-semibold">{t("vionto.script.title")}</h2>
+    <div className="script-editor-card">
+      <div className="script-editor-toolbar">
+        <div className="script-editor-toolbar-row">
+          <div className="script-editor-title text-[var(--color-text)]">
+            <Captions size={18} />
+            <h2>{t("vionto.script.title")}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className="script-regenerate-button"
+          >
+            {isGenerating ? <RefreshCw size={15} className="animate-spin" /> : <Wand2 size={15} />}
+            <span>{isGenerating ? t("vionto.script.generating") : t("vionto.script.regenerate")}</span>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          {versions.length > 0 && (
+
+        {versions.length > 0 && (
+          <label className="script-version-field">
+            <span>Version</span>
             <select
-              className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-sm text-[var(--color-text)]"
+              className="script-version-select"
               value={activeIndex}
               onChange={(e) => selectVersion(Number(e.target.value))}
               aria-label="Select script version"
@@ -91,23 +104,14 @@ export function ScriptEditor({ versions, projectId, onGenerate, onSave, isGenera
                 </option>
               ))}
             </select>
-          )}
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
-          >
-            {isGenerating ? <RefreshCw size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {isGenerating ? t("vionto.script.generating") : t("vionto.script.regenerate")}
-          </button>
-        </div>
+          </label>
+        )}
       </div>
 
       {activeVersion ? (
         <div className="flex flex-col gap-3">
           <textarea
-            className="min-h-[120px] w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+            className="script-textarea"
             value={narration}
             onChange={(e) => setNarration(e.target.value)}
             placeholder={t("vionto.script.placeholder")}
@@ -117,13 +121,13 @@ export function ScriptEditor({ versions, projectId, onGenerate, onSave, isGenera
               SRT subtitles
             </summary>
             <textarea
-              className="mt-2 min-h-[120px] w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3 font-mono text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+              className="script-textarea script-textarea-srt"
               value={srt}
               onChange={(e) => setSrt(e.target.value)}
             />
           </details>
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-[var(--color-text-muted)]">
+          <div className="script-editor-footer">
+            <div className="script-meta">
               {activeVersion.provider && (
                 <span className="mr-2">
                   {activeVersion.provider} · {activeVersion.model ?? "unknown model"}
@@ -154,10 +158,10 @@ export function ScriptEditor({ versions, projectId, onGenerate, onSave, isGenera
             type="button"
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+            className="script-regenerate-button"
           >
-            {isGenerating ? <RefreshCw size={16} className="animate-spin" /> : <Wand2 size={16} />}
-            {isGenerating ? t("vionto.script.generating") : t("vionto.script.regenerate")}
+            {isGenerating ? <RefreshCw size={15} className="animate-spin" /> : <Wand2 size={15} />}
+            <span>{isGenerating ? t("vionto.script.generating") : t("vionto.script.regenerate")}</span>
           </button>
         </div>
       )}
