@@ -40,8 +40,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 worker
 
-# Copy only the prisma schema so we can generate the native Alpine client.
-# Everything else (bullmq, ioredis, openai, aws-sdk...) is already bundled.
+# Copy the built @asafarim/db package and prisma schema.
+# @asafarim/db is bundled by tsup (noExternal), so we need its build output.
+COPY --from=builder /repo/packages/db/dist ./node_modules/@asafarim/db
 COPY --from=builder /repo/packages/db/prisma ./prisma
 
 # Install all external runtime deps and regenerate Prisma for Alpine (musl)
