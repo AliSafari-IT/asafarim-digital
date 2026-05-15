@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation, type Locale } from "@asafarim/shared-i18n";
 import {
   BENELUX_COUNTRIES,
@@ -30,6 +31,7 @@ export function CountryLanguageSelector({
   );
   const [dropdownStyle, setDropdownStyle] = useState<Record<string, number | string>>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
   const manualRef = useRef(false);
 
   /* Sync country only when locale changes *externally* (cookie, another tab).
@@ -45,7 +47,10 @@ export function CountryLanguageSelector({
   useEffect(() => {
     if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedTrigger = rootRef.current?.contains(target);
+      const clickedDropdown = dropdownRef.current?.contains(target);
+      if (!clickedTrigger && !clickedDropdown) {
         setOpen(false);
       }
     }
@@ -60,7 +65,7 @@ export function CountryLanguageSelector({
     };
   }, [open]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
 
     function positionDropdown() {
@@ -75,6 +80,7 @@ export function CountryLanguageSelector({
         top: rect.bottom + 8,
         left,
         width,
+        visibility: "visible",
       });
     }
 
@@ -91,6 +97,90 @@ export function CountryLanguageSelector({
   const activeCountry = BENELUX_COUNTRIES[country];
   const languages = activeCountry.languages;
   const activeLabel = LOCALE_LABELS[locale];
+  const dropdown = open ? (
+    <div
+      ref={dropdownRef}
+      role="listbox"
+      className="z-[9999] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/20"
+      style={{ visibility: "hidden", ...dropdownStyle }}
+    >
+      {/* Countries */}
+      {!lockCountry && (
+        <div className="flex border-b border-[var(--color-border)]">
+          {COUNTRY_ORDER.map((code) => {
+            const c = BENELUX_COUNTRIES[code];
+            const active = code === country;
+            return (
+              <button
+                key={code}
+                type="button"
+                onClick={() => pickCountry(code)}
+                className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs transition ${
+                  active
+                    ? "bg-[var(--color-surface-soft)] text-[var(--color-text)]"
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)]/60 hover:text-[var(--color-text)]"
+                }`}
+                aria-pressed={active}
+              >
+                <span className="text-base leading-none">{c.flag}</span>
+                <span className="font-medium">{c.code}</span>
+                {active && (
+                  <span className="ml-0.5 h-1 w-1 rounded-full bg-[var(--color-accent)]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Languages */}
+      <div className="p-1">
+        <ul className="space-y-0.5">
+          {languages.map((lng) => {
+            const active = lng === locale;
+            const label = LOCALE_LABELS[lng];
+            return (
+              <li key={lng}>
+                <button
+                  type="button"
+                  onClick={() => pickLocale(lng)}
+                  role="option"
+                  aria-selected={active}
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
+                    active
+                      ? "bg-[var(--color-surface-soft)] text-[var(--color-accent)]"
+                      : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)]/60 hover:text-[var(--color-text)]"
+                  }`}
+                >
+                  <span className="font-medium">{label.long}</span>
+                  {active ? (
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 8l3.5 3.5L13 5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : (
+                    <span className="font-mono text-[10px] text-[var(--color-text-subtle)]">
+                      {lng}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  ) : null;
 
   function pickCountry(code: CountryCode) {
     manualRef.current = true;
@@ -136,89 +226,9 @@ export function CountryLanguageSelector({
         </svg>
       </button>
 
-      {open && (
-        <div
-          role="listbox"
-          className="z-[9999] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl shadow-black/20"
-          style={dropdownStyle}
-        >
-          {/* Countries */}
-          {!lockCountry && (
-            <div className="flex border-b border-[var(--color-border)]">
-              {COUNTRY_ORDER.map((code) => {
-                const c = BENELUX_COUNTRIES[code];
-                const active = code === country;
-                return (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => pickCountry(code)}
-                    className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs transition ${
-                      active
-                        ? "bg-[var(--color-surface-soft)] text-[var(--color-text)]"
-                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)]/60 hover:text-[var(--color-text)]"
-                    }`}
-                    aria-pressed={active}
-                  >
-                    <span className="text-base leading-none">{c.flag}</span>
-                    <span className="font-medium">{c.code}</span>
-                    {active && (
-                      <span className="ml-0.5 h-1 w-1 rounded-full bg-[var(--color-accent)]" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Languages */}
-          <div className="p-1">
-            <ul className="space-y-0.5">
-              {languages.map((lng) => {
-                const active = lng === locale;
-                const label = LOCALE_LABELS[lng];
-                return (
-                  <li key={lng}>
-                    <button
-                      type="button"
-                      onClick={() => pickLocale(lng)}
-                      role="option"
-                      aria-selected={active}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition ${
-                        active
-                          ? "bg-[var(--color-surface-soft)] text-[var(--color-accent)]"
-                          : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-soft)]/60 hover:text-[var(--color-text)]"
-                      }`}
-                    >
-                      <span className="font-medium">{label.long}</span>
-                      {active ? (
-                        <svg
-                          viewBox="0 0 16 16"
-                          className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M3 8l3.5 3.5L13 5"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      ) : (
-                        <span className="font-mono text-[10px] text-[var(--color-text-subtle)]">
-                          {lng}
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      )}
+      {dropdown && typeof document !== "undefined"
+        ? createPortal(dropdown, document.body)
+        : null}
     </div>
   );
 }
