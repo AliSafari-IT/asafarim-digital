@@ -94,25 +94,29 @@ function Stop-ProcessOnPort {
     param([int]$Port, [int]$WaitSeconds = 3)
     $startTime = Get-Date
 
-    # Get all PIDs on this port
-    $pids = netstat -ano 2>$null |
-        Select-String ":$Port\s" |
-        ForEach-Object { ($_ -split '\s+')[-1] } |
-        Where-Object { $_ -match '^\d+$' } |
-        Sort-Object -Unique
+    # Use kill-port for faster process termination
+    try {
+        $null = & npx kill-port $Port 2>&1
+        Log-Info "Killed process on port $Port using kill-port"
+    } catch {
+        # Fallback to manual method if kill-port fails
+        $pids = netstat -ano 2>$null |
+            Select-String ":$Port\s" |
+            ForEach-Object { ($_ -split '\s+')[-1] } |
+            Where-Object { $_ -match '^\d+$' } |
+            Sort-Object -Unique
 
-    if (-not $pids) { return $true }
-
-    # First attempt: taskkill /T /F kills entire process tree (faster than Stop-Process)
-    foreach ($p in $pids) {
-        try {
-            $proc = Get-Process -Id ([int]$p) -ErrorAction SilentlyContinue
-            if ($proc) {
-                # Use taskkill to kill process tree (children included)
-                $null = cmd /c "taskkill /PID $p /T /F 2>nul"
-                Log-Info "Stopped process tree $p on port $Port"
+        if ($pids) {
+            foreach ($p in $pids) {
+                try {
+                    $proc = Get-Process -Id ([int]$p) -ErrorAction SilentlyContinue
+                    if ($proc) {
+                        $null = cmd /c "taskkill /PID $p /T /F 2>nul"
+                        Log-Info "Stopped process tree $p on port $Port (fallback)"
+                    }
+                } catch {}
             }
-        } catch {}
+        }
     }
 
     # Verify port is freed with timeout
@@ -122,20 +126,6 @@ function Stop-ProcessOnPort {
         if (-not $stillListening) { return $true }
         Start-Sleep -Milliseconds 200
         $elapsed = ((Get-Date) - $startTime).TotalSeconds
-    }
-
-    # Final cleanup attempt for any remaining
-    $remaining = netstat -ano 2>$null |
-        Select-String ":$Port\s" |
-        ForEach-Object { ($_ -split '\s+')[-1] } |
-        Where-Object { $_ -match '^\d+$' } |
-        Sort-Object -Unique
-
-    foreach ($p in $remaining) {
-        try {
-            Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue
-            Log-Info "Force-stopped remaining process $p on port $Port"
-        } catch {}
     }
 
     return $true
