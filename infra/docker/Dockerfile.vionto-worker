@@ -49,7 +49,7 @@ COPY --from=builder /repo/packages/db/prisma ./prisma
 # Install all external runtime deps and regenerate Prisma for Alpine (musl)
 RUN npm install \
       @prisma/client@6.19.3 prisma@6.19.3 \
-      bullmq ioredis openai \
+      bullmq ioredis openai zod \
       @aws-sdk/client-s3 @aws-sdk/s3-request-presigner && \
     npx prisma generate --schema=prisma/schema.prisma
 
