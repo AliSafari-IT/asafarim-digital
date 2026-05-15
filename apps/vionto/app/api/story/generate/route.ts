@@ -20,6 +20,7 @@ type GenerateBody = {
   projectId: string;
   locale?: string;
   mode?: "story" | "slideshow" | "documentary";
+  storyMode?: string;
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
       return badRequest("Invalid JSON body.");
     }
 
-    const { projectId, locale = "en", mode = "story", userNotes, captions, exifSummary, totalDurationMs = 30_000 } = body;
+    const { projectId, locale = "en", mode = "story", storyMode, userNotes, captions, exifSummary, totalDurationMs = 30_000 } = body;
     if (!projectId || typeof projectId !== "string") {
       return badRequest("projectId is required.");
     }
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true },
+      select: { id: true, locale: true, mode: true, storyMode: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
 
     const effectiveLocale = locale || project.locale || "en";
     const effectiveMode = (mode || project.mode || "story") as "story" | "slideshow" | "documentary";
+    const effectiveStoryMode = storyMode || (project.storyMode as string | undefined) || "memory_film";
 
     // Query project assets server-side to get captions and build EXIF summary
     const assets = await prisma.viontoAsset.findMany({
@@ -137,6 +139,7 @@ export async function POST(req: Request) {
     const userPrompt = buildStoryUserPrompt({
       locale: effectiveLocale,
       mode: effectiveMode,
+      storyMode: effectiveStoryMode,
       userNotes,
       captions: effectiveCaptions,
       exifSummary: effectiveExifSummary,

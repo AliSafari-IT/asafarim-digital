@@ -83,6 +83,21 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.audio": "Audio",
     "vionto.nav.export": "Export",
 
+    // Story modes
+    "vionto.storyMode.label": "Story mode",
+    "vionto.storyMode.memory_film": "Memory film",
+    "vionto.storyMode.memory_film.description": "Emotional, cinematic narration for personal memories and reflective albums.",
+    "vionto.storyMode.travel_recap": "Travel recap",
+    "vionto.storyMode.travel_recap.description": "Location-aware recap for trips, routes, highlights, and date/place progression.",
+    "vionto.storyMode.family_archive": "Family archive",
+    "vionto.storyMode.family_archive.description": "Warm, chronological, people-focused storytelling for family albums.",
+    "vionto.storyMode.event_recap": "Event recap",
+    "vionto.storyMode.event_recap.description": "Highlight-driven recap for weddings, birthdays, graduations, parties, and gatherings.",
+    "vionto.storyMode.social_reel": "Social reel",
+    "vionto.storyMode.social_reel.description": "Short, fast-paced vertical-friendly output for Reels, TikTok, Shorts, and stories.",
+    "vionto.storyMode.documentary": "Documentary",
+    "vionto.storyMode.documentary.description": "Slower, more factual narration with stronger emphasis on timeline, context, and observed details.",
+
     // Create workflow
     "vionto.project.label": "Project",
     "vionto.project.selectPlaceholder": "Select a project...",
@@ -192,6 +207,21 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.audio": "Audio",
     "vionto.nav.export": "Exporteren",
 
+    // Story modes
+    "vionto.storyMode.label": "Verhaalmodus",
+    "vionto.storyMode.memory_film": "Herinneringenfilm",
+    "vionto.storyMode.memory_film.description": "Emotionele, cinematografische vertelling voor persoonlijke herinneringen en reflectieve albums.",
+    "vionto.storyMode.travel_recap": "Reisoverzicht",
+    "vionto.storyMode.travel_recap.description": "Locatiebewust overzicht voor reizen, routes, hoogtepunten en datum/plaats voortgang.",
+    "vionto.storyMode.family_archive": "Familiearchief",
+    "vionto.storyMode.family_archive.description": "Warme, chronologische, mensgerichte vertelling voor familiealbums.",
+    "vionto.storyMode.event_recap": "Evenementenoverzicht",
+    "vionto.storyMode.event_recap.description": "Hoogtepunten-gedreven overzicht voor bruiloften, verjaardagen, diploma-uitreikingen, feesten en bijeenkomsten.",
+    "vionto.storyMode.social_reel": "Social reel",
+    "vionto.storyMode.social_reel.description": "Korte, snel-tempo verticaal-vriendelijke output voor Reels, TikTok, Shorts en stories.",
+    "vionto.storyMode.documentary": "Documentaire",
+    "vionto.storyMode.documentary.description": "Trager, meer feitelijke vertelling met sterke nadruk op tijdlijn, context en waargenomen details.",
+
     "vionto.project.label": "Project",
     "vionto.project.selectPlaceholder": "Selecteer een project...",
     "vionto.project.new": "Nieuw",
@@ -300,6 +330,21 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.audio": "Audio",
     "vionto.nav.export": "Exporter",
 
+    // Story modes
+    "vionto.storyMode.label": "Mode d'histoire",
+    "vionto.storyMode.memory_film": "Film de souvenirs",
+    "vionto.storyMode.memory_film.description": "Narration émotionnelle et cinématographique pour les souvenirs personnels et les albums réflexifs.",
+    "vionto.storyMode.travel_recap": "Récapitulatif de voyage",
+    "vionto.storyMode.travel_recap.description": "Récapitulatif sensible au lieu pour les voyages, itinéraires, points forts et progression date/lieu.",
+    "vionto.storyMode.family_archive": "Archives familiales",
+    "vionto.storyMode.family_archive.description": "Narration chaleureuse, chronologique et centrée sur les personnes pour les albums familiaux.",
+    "vionto.storyMode.event_recap": "Récapitulatif d'événement",
+    "vionto.storyMode.event_recap.description": "Récapitulatif axé sur les points forts pour les mariages, anniversaires, remises de diplômes, fêtes et rassemblements.",
+    "vionto.storyMode.social_reel": "Reel social",
+    "vionto.storyMode.social_reel.description": "Courte, rapide et adaptée au format vertical pour Reels, TikTok, Shorts et stories.",
+    "vionto.storyMode.documentary": "Documentaire",
+    "vionto.storyMode.documentary.description": "Narration plus lente et factuelle avec un accent plus fort sur la chronologie, le contexte et les détails observés.",
+
     "vionto.project.label": "Projet",
     "vionto.project.selectPlaceholder": "Selectionnez un projet...",
     "vionto.project.new": "Nouveau",
@@ -407,6 +452,21 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.nav.script": "Skript",
     "vionto.nav.audio": "Audio",
     "vionto.nav.export": "Exportieren",
+
+    // Story modes
+    "vionto.storyMode.label": "Geschichtenmodus",
+    "vionto.storyMode.memory_film": "Erinnerungsfilm",
+    "vionto.storyMode.memory_film.description": "Emotionale, filmische Erzählung für persönliche Erinnerungen und reflektierende Alben.",
+    "vionto.storyMode.travel_recap": "Reisezusammenfassung",
+    "vionto.storyMode.travel_recap.description": "Ortsbewusste Zusammenfassung für Reisen, Routen, Höhepunkte und Datums/Ort-Fortschritt.",
+    "vionto.storyMode.family_archive": "Familienarchiv",
+    "vionto.storyMode.family_archive.description": "Warme, chronologische, menschenorientierte Erzählung für Familienalben.",
+    "vionto.storyMode.event_recap": "Veranstaltungszusammenfassung",
+    "vionto.storyMode.event_recap.description": "Höhepunktengesteuerte Zusammenfassung für Hochzeiten, Geburtstage, Abschlüsse, Partys und Treffen.",
+    "vionto.storyMode.social_reel": "Social Reel",
+    "vionto.storyMode.social_reel.description": "Kurze, schnelle, vertikal-freundliche Ausgabe für Reels, TikTok, Shorts und Stories.",
+    "vionto.storyMode.documentary": "Dokumentation",
+    "vionto.storyMode.documentary.description": "Langsamere, faktischere Erzählung mit stärkerem Fokus auf Zeitstrahl, Kontext und beobachtete Details.",
 
     "vionto.project.label": "Projekt",
     "vionto.project.selectPlaceholder": "Projekt auswaehlen...",

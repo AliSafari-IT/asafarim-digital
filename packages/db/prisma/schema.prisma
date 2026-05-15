@@ -1225,6 +1225,9 @@ model ViontoProject {
   // Story mode: narrative arc vs. simple slideshow
   mode                 String   @default("story") // story, slideshow, documentary
 
+  // Story narrative mode: genre/style of narration
+  storyMode            String?  @default("memory_film") // memory_film, travel_recap, family_archive, event_recap, social_reel, documentary
+
   // Target locale for narration / captions
   locale               String   @default("en-US")
 
