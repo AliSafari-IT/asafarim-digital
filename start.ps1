@@ -160,6 +160,86 @@ function Test-HttpHealth {
     return $false
 }
 
+function Stop-AppPorts {
+    Log-Step "Releasing app ports before dependency work..."
+    foreach ($kv in $APP_PORTS.GetEnumerator()) {
+        Stop-ProcessOnPort -Port $kv.Value | Out-Null
+    }
+}
+
+function Stop-WorkspaceNodeProcesses {
+    param([int]$WaitSeconds = 1)
+
+    $repoPath = $SCRIPT_DIR
+    $processes = Get-CimInstance Win32_Process -Filter "name = 'node.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like "*$repoPath*" }
+
+    if (-not $processes) { return }
+
+    foreach ($proc in $processes) {
+        try {
+            Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
+            Log-Info "Stopped workspace Node process $($proc.ProcessId)"
+        } catch {}
+    }
+
+    if ($WaitSeconds -gt 0) { Start-Sleep -Seconds $WaitSeconds }
+}
+
+function Test-PrismaGeneratedClientExists {
+    $pnpmDir = Join-Path $SCRIPT_DIR "node_modules\.pnpm"
+    if (-not (Test-Path $pnpmDir)) { return $false }
+
+    $engine = Get-ChildItem `
+        -Path $pnpmDir `
+        -Filter "query_engine-windows.dll.node" `
+        -Recurse `
+        -File `
+        -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+
+    return ($null -ne $engine)
+}
+
+function Test-PrismaWindowsRenameLock {
+    param($Output)
+    $text = ($Output | Out-String)
+    return ($text -match "EPERM: operation not permitted, rename" -and
+            $text -match "query_engine-windows\.dll\.node")
+}
+
+function Invoke-PrismaGenerate {
+    Log-Info ">>> packages\db (prisma generate)"
+    $dbDir = Join-Path $SCRIPT_DIR "packages\db"
+    Push-Location $dbDir
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = & pnpm.cmd exec prisma generate 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($output) {
+            $output |
+                ForEach-Object { $_.ToString() } |
+                Where-Object { $_ -notmatch "^System\.Management\.Automation\." } |
+                ForEach-Object { Write-Host $_ }
+        }
+
+        if ($exitCode -eq 0) { return }
+
+        if ((Test-PrismaWindowsRenameLock -Output $output) -and (Test-PrismaGeneratedClientExists)) {
+            Log-Warn "Prisma generate hit a Windows file lock while replacing the query engine DLL."
+            Log-Warn "An existing generated Prisma client is present, so startup will continue."
+            Log-Warn "If schema changes are missing, close dev servers/VS Code TypeScript server and run: pnpm --filter @asafarim/db exec prisma generate"
+            return
+        }
+
+        throw "prisma generate failed"
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        Pop-Location
+    }
+}
+
 function Invoke-PnpmCommand {
     param([string]$Dir, [string]$Label, [string]$PnpmArgs)
     if (-not (Test-Path $Dir)) {
@@ -260,7 +340,12 @@ function Cmd-Install {
     Push-Location $SCRIPT_DIR
     try {
         pnpm install
-        if ($LASTEXITCODE -ne 0) { throw "pnpm install failed" }
+        if ($LASTEXITCODE -ne 0) {
+            Log-Warn "pnpm install failed. Retrying with --ignore-scripts, then running Prisma generate separately..."
+            pnpm install --ignore-scripts
+            if ($LASTEXITCODE -ne 0) { throw "pnpm install failed" }
+            Invoke-PrismaGenerate
+        }
     } finally {
         Pop-Location
     }
@@ -272,7 +357,11 @@ function Cmd-Build {
     foreach ($pkg in $PACKAGES_BUILD_ORDER) {
         $dir = Join-Path $SCRIPT_DIR $pkg
         if (Test-Path $dir) {
-            Invoke-PnpmCommand -Dir $dir -Label $pkg -PnpmArgs "build"
+            if ($pkg -eq "packages\db") {
+                Invoke-PrismaGenerate
+            } else {
+                Invoke-PnpmCommand -Dir $dir -Label $pkg -PnpmArgs "build"
+            }
         }
     }
     Log-Info "OK All packages built"
@@ -400,6 +489,8 @@ function Cmd-Start {
     Log-Step "Full pipeline: install, build packages, then dev..."
     Show-Banner
     Assert-Dependencies
+    Stop-AppPorts
+    Stop-WorkspaceNodeProcesses
     Cmd-Install
     Cmd-Build
     Cmd-Dev -Apps $ExtraArgs
@@ -418,6 +509,8 @@ function Cmd-Status {
 function Cmd-Stop {
     Log-Step "Stopping all services..."
     $stopStart = Get-Date
+
+    Stop-WorkspaceNodeProcesses -WaitSeconds 0
 
     # Kill all app ports in parallel
     $stopJobs = @()
