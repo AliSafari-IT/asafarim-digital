@@ -17,6 +17,7 @@ on:
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
   DEPLOY_PATH: /var/repos/asafarim-digital
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -53,19 +54,25 @@ jobs:
       - name: Add VPS to known hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -4 -T 15 -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -4 -T 15 -p "${VPS_SSH_PORT}" -H "${VPS_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Deploy to VPS
         env:
           FORCE_SEED: ${{ github.event.inputs.force_seed || 'false' }}
         run: |
           set -euo pipefail
-          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+          SSH_OPTS="-4 -p ${VPS_SSH_PORT} -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
 
-          echo "Checking SSH connectivity to VPS..."
+          echo "Checking SSH connectivity to VPS on ${VPS_HOST}:${VPS_SSH_PORT}..."
+          if timeout 10 bash -c "cat < /dev/null > /dev/tcp/${VPS_HOST}/${VPS_SSH_PORT}" 2>/dev/null; then
+            echo "TCP connectivity to ${VPS_HOST}:${VPS_SSH_PORT} is open."
+          else
+            echo "::warning::TCP connectivity to ${VPS_HOST}:${VPS_SSH_PORT} failed. If SSH is on a non-standard port, set the VPS_SSH_PORT secret. Otherwise check VPS firewall/provider rules/sshd."
+          fi
+
           SSH_READY=false
           for attempt in 1 2 3; do
-            if ssh -v ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo ssh-ok"; then
+            if ssh -v ${SSH_OPTS} "${VPS_USER}@${VPS_HOST}" "echo ssh-ok"; then
               SSH_READY=true
               echo "SSH connectivity confirmed on attempt ${attempt}."
               break
@@ -75,7 +82,8 @@ jobs:
           done
 
           if [ "$SSH_READY" != "true" ]; then
-            echo "Unable to reach VPS over SSH after 3 attempts. Check VPS status/firewall/network."
+            echo "Unable to reach VPS over SSH after 3 attempts at ${VPS_HOST}:${VPS_SSH_PORT}."
+            echo "Check VPS status, provider firewall/security-group inbound TCP ${VPS_SSH_PORT}, UFW/fail2ban, sshd status, and that VPS_HOST points to the current public IP."
             exit 1
           fi
 
@@ -98,7 +106,7 @@ jobs:
               --filter='P .env.*' \
               --filter='P */.env' \
               --filter='P */.env.*' \
-              ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.DEPLOY_PATH }}/; then
+              ./ "${VPS_USER}@${VPS_HOST}:${DEPLOY_PATH}/"; then
               RSYNC_DONE=true
               echo "Rsync completed on attempt ${attempt}."
               break
@@ -113,7 +121,7 @@ jobs:
           fi
 
           # Build and restart on VPS (FORCE_SEED passed as positional arg $1)
-          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "bash -s ${FORCE_SEED}" << 'ENDSSH'
+          ssh ${SSH_OPTS} "${VPS_USER}@${VPS_HOST}" "bash -s ${FORCE_SEED}" << 'ENDSSH'
             set -euo pipefail
             FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
@@ -205,8 +213,8 @@ jobs:
       - name: Verify deployment
         run: |
           set -euo pipefail
-          SSH_OPTS="-4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
-          ssh ${SSH_OPTS} ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'ENDVERIFY'
+          SSH_OPTS="-4 -p ${VPS_SSH_PORT} -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+          ssh ${SSH_OPTS} "${VPS_USER}@${VPS_HOST}" << 'ENDVERIFY'
             echo "Waiting for all services to become healthy..."
             RETRIES=18
             for i in $(seq 1 $RETRIES); do
