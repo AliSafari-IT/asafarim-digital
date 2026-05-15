@@ -32,15 +32,24 @@
   --color-text: #f6f1ea;
   --color-text-muted: #b5b0aa;
   --color-text-subtle: #817b74;
+  --landing-card-bg: rgba(32, 35, 39, 0.78);
+  --landing-card-border: rgba(246, 241, 234, 0.12);
+  --landing-band-bg: rgba(23, 25, 27, 0.65);
+  --landing-band-border: rgba(246, 241, 234, 0.07);
+  --landing-stack-bg: rgba(16, 17, 18, 0.85);
+  --landing-secondary-bg: rgba(32, 35, 39, 0.85);
+  --landing-secondary-border: rgba(246, 241, 234, 0.2);
+  --landing-step-line: rgba(246, 241, 234, 0.1);
+  --landing-footer-border: rgba(246, 241, 234, 0.09);
 }
 
 html[data-theme="light"] {
-  --surface: #f5f1ec;
-  --surface-soft: #ede9e2;
-  --surface-panel: #e6e1d8;
-  --surface-warm: #f0ebe0;
-  --text: #1a1610;
-  --muted: #6b6460;
+  --surface: #faf7f2;
+  --surface-soft: #f3eee7;
+  --surface-panel: #ffffff;
+  --surface-warm: #f8efe4;
+  --text: #17130f;
+  --muted: #645a52;
   --line: rgba(26, 22, 16, 0.12);
   --line-strong: rgba(26, 22, 16, 0.22);
 
@@ -48,18 +57,27 @@ html[data-theme="light"] {
   --color-primary-dark: #2b64cc;
   --color-accent: #c4851a;
   --color-primary-soft: rgba(243, 111, 86, 0.1);
-  --color-bg: #f5f1ec;
-  --color-bg-soft: rgba(245, 241, 236, 0.6);
-  --color-surface: #f5f1ec;
-  --color-surface-soft: #ede9e2;
-  --color-surface-elevated: #e6e1d8;
-  --color-panel: rgba(230, 225, 216, 0.88);
-  --color-panel-strong: rgba(245, 241, 236, 0.95);
+  --color-bg: #faf7f2;
+  --color-bg-soft: rgba(250, 247, 242, 0.72);
+  --color-surface: #faf7f2;
+  --color-surface-soft: #f3eee7;
+  --color-surface-elevated: #ffffff;
+  --color-panel: rgba(255, 255, 255, 0.82);
+  --color-panel-strong: rgba(255, 255, 255, 0.94);
   --color-border: rgba(26, 22, 16, 0.12);
   --color-border-strong: rgba(26, 22, 16, 0.22);
-  --color-text: #1a1610;
-  --color-text-muted: #6b6460;
-  --color-text-subtle: #958f88;
+  --color-text: #17130f;
+  --color-text-muted: #645a52;
+  --color-text-subtle: #8c8278;
+  --landing-card-bg: rgba(255, 255, 255, 0.86);
+  --landing-card-border: rgba(46, 37, 29, 0.12);
+  --landing-band-bg: linear-gradient(180deg, #ffffff 0%, #f4eee7 100%);
+  --landing-band-border: rgba(46, 37, 29, 0.1);
+  --landing-stack-bg: linear-gradient(180deg, #f1ece5 0%, #e8e1d8 100%);
+  --landing-secondary-bg: rgba(255, 255, 255, 0.78);
+  --landing-secondary-border: rgba(46, 37, 29, 0.16);
+  --landing-step-line: rgba(46, 37, 29, 0.14);
+  --landing-footer-border: rgba(46, 37, 29, 0.11);
 }
 
 * {

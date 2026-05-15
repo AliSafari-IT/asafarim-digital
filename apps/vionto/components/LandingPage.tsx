@@ -214,8 +214,8 @@ function FeatureCard({
   return (
     <div
       style={{
-        background: "rgba(32,35,39,0.72)",
-        border: "1px solid rgba(246,241,234,0.1)",
+        background: "var(--landing-card-bg)",
+        border: "1px solid var(--landing-card-border)",
         borderRadius: "18px",
         padding: "28px",
         backdropFilter: "blur(14px)",
@@ -230,7 +230,7 @@ function FeatureCard({
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget as HTMLDivElement;
-        el.style.borderColor = "rgba(246,241,234,0.1)";
+        el.style.borderColor = "var(--landing-card-border)";
         el.style.transform = "translateY(0)";
         el.style.boxShadow = "none";
       }}
@@ -287,7 +287,7 @@ function Step({
           {num}
         </div>
         {!isLast && (
-          <div style={{ width: "1.5px", flex: 1, minHeight: "32px", background: "rgba(246,241,234,0.1)", marginTop: "8px" }} />
+          <div style={{ width: "1.5px", flex: 1, minHeight: "32px", background: "var(--landing-step-line)", marginTop: "8px" }} />
         )}
       </div>
       <div style={{ paddingTop: "10px", paddingBottom: isLast ? 0 : "32px" }}>
@@ -316,7 +316,7 @@ function ModeCard({
   return (
     <div
       style={{
-        background: "rgba(32,35,39,0.72)",
+        background: "var(--landing-card-bg)",
         border: `1px solid ${accent}30`,
         borderRadius: "20px",
         padding: "32px 28px",
@@ -392,7 +392,7 @@ function AIBadge({ name, role, color, initials }: { name: string; role: string; 
         display: "flex",
         alignItems: "center",
         gap: "16px",
-        background: "rgba(32,35,39,0.8)",
+        background: "var(--landing-card-bg)",
         border: `1px solid ${color}30`,
         borderRadius: "16px",
         padding: "22px 24px",
@@ -599,8 +599,8 @@ export function LandingPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "9px",
-                background: "rgba(32,35,39,0.85)",
-                border: "1px solid rgba(246,241,234,0.2)",
+                background: "var(--landing-secondary-bg)",
+                border: "1px solid var(--landing-secondary-border)",
                 color: "var(--text)",
                 fontWeight: 600,
                 fontSize: "0.96rem",
@@ -611,12 +611,12 @@ export function LandingPage() {
               }}
               onMouseEnter={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
-                el.style.borderColor = "rgba(246,241,234,0.42)";
+                el.style.borderColor = "var(--line-strong)";
                 el.style.transform = "translateY(-2px)";
               }}
               onMouseLeave={(e) => {
                 const el = e.currentTarget as HTMLAnchorElement;
-                el.style.borderColor = "rgba(246,241,234,0.2)";
+                el.style.borderColor = "var(--landing-secondary-border)";
                 el.style.transform = "translateY(0)";
               }}
             >
@@ -710,9 +710,9 @@ export function LandingPage() {
           id="how-it-works"
           style={{
             padding: "96px 24px",
-            background: "rgba(23,25,27,0.65)",
-            borderTop: "1px solid rgba(246,241,234,0.07)",
-            borderBottom: "1px solid rgba(246,241,234,0.07)",
+            background: "var(--landing-band-bg)",
+            borderTop: "1px solid var(--landing-band-border)",
+            borderBottom: "1px solid var(--landing-band-border)",
           }}
         >
           <div style={{ maxWidth: "960px", margin: "0 auto" }}>
@@ -815,9 +815,9 @@ export function LandingPage() {
         <section
           style={{
             padding: "96px 24px",
-            background: "rgba(16,17,18,0.85)",
-            borderTop: "1px solid rgba(246,241,234,0.07)",
-            borderBottom: "1px solid rgba(246,241,234,0.07)",
+            background: "var(--landing-stack-bg)",
+            borderTop: "1px solid var(--landing-band-border)",
+            borderBottom: "1px solid var(--landing-band-border)",
           }}
         >
           <div style={{ maxWidth: "960px", margin: "0 auto" }}>
@@ -940,7 +940,7 @@ export function LandingPage() {
         {/* ─── FOOTER ────────────────────────────────────────────────────── */}
         <footer
           style={{
-            borderTop: "1px solid rgba(246,241,234,0.09)",
+            borderTop: "1px solid var(--landing-footer-border)",
             padding: "36px 24px",
             maxWidth: "1120px",
             margin: "0 auto",
