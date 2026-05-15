@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   ArrowRight,
   Clapperboard,
@@ -429,6 +430,17 @@ function AIBadge({ name, role, color, initials }: { name: string; role: string; 
 /* ─── Main landing page ─────────────────────────────────────────────────── */
 
 export function LandingPage() {
+  const { status } = useSession();
+  const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000";
+
+  const handleStartCreating = () => {
+    if (status === "authenticated") {
+      window.location.href = "/create";
+    } else {
+      window.location.href = `${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(window.location.origin + "/create")}`;
+    }
+  };
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: KEYFRAMES }} />
@@ -562,8 +574,9 @@ export function LandingPage() {
               zIndex: 1,
             }}
           >
-            <Link
-              href="/create"
+            <button
+              type="button"
+              onClick={handleStartCreating}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -574,25 +587,26 @@ export function LandingPage() {
                 fontSize: "0.96rem",
                 padding: "15px 30px",
                 borderRadius: "100px",
-                textDecoration: "none",
+                border: "none",
+                cursor: "pointer",
                 boxShadow: "0 10px 36px rgba(243,111,86,0.38)",
                 transition: "opacity 0.2s, transform 0.2s, box-shadow 0.2s",
               }}
               onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLAnchorElement;
+                const el = e.currentTarget as HTMLButtonElement;
                 el.style.opacity = "0.92";
                 el.style.transform = "translateY(-2px)";
                 el.style.boxShadow = "0 16px 48px rgba(243,111,86,0.5)";
               }}
               onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLAnchorElement;
+                const el = e.currentTarget as HTMLButtonElement;
                 el.style.opacity = "1";
                 el.style.transform = "translateY(0)";
                 el.style.boxShadow = "0 10px 36px rgba(243,111,86,0.38)";
               }}
             >
               Start Creating <ArrowRight size={16} />
-            </Link>
+            </button>
             <a
               href="#how-it-works"
               style={{

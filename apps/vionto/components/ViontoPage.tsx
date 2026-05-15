@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clapperboard,
   CloudUpload,
+  Copy,
   Download,
   FileAudio,
   ImagePlus,
@@ -21,6 +22,7 @@ import {
   Sparkles,
   Trash2,
   Wand2,
+  X,
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
@@ -141,6 +143,7 @@ export function ViontoPage() {
   const [renderError, setRenderError] = useState<string | null>(null);
   const [exportId, setExportId] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [showDownloadDialog, setShowDownloadDialog] = useState(false);
   const [latestExport, setLatestExport] = useState<LibraryExport | null>(null);
   const [libraryExports, setLibraryExports] = useState<LibraryExport[]>([]);
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
@@ -579,10 +582,17 @@ export function ViontoPage() {
       }
       const data = await res.json();
       setDownloadUrl(data.downloadUrl);
+      setShowDownloadDialog(true);
     } catch (error) {
       console.error("Failed to get download URL", error);
       alert("Failed to get download URL");
     }
+  }
+
+  function copyToClipboard() {
+    if (!downloadUrl) return;
+    navigator.clipboard.writeText(downloadUrl);
+    alert("Download link copied to clipboard");
   }
 
   async function createProject() {
@@ -1653,6 +1663,60 @@ export function ViontoPage() {
           </section>
         </section>
       </section>
+
+      {/* Download URL Dialog */}
+      {showDownloadDialog && downloadUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Download Link</h3>
+              <button
+                type="button"
+                onClick={() => setShowDownloadDialog(false)}
+                className="rounded-lg p-1 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-text)]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-[var(--color-text-muted)]">
+              Your video is ready. You can copy the download link below to share it, or download it directly.
+            </p>
+            <div className="mb-4 flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={downloadUrl}
+                className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+              />
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
+              >
+                <Copy size={16} />
+                Copy
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={downloadUrl}
+                download
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90"
+              >
+                <Download size={16} />
+                Download MP4
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowDownloadDialog(false)}
+                className="inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
