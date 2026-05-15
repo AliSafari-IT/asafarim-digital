@@ -74,6 +74,7 @@ export function ThemeToggle() {
 
 function UserMenu() {
   const { data: session, status, update } = useSession();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
@@ -110,7 +111,7 @@ function UserMenu() {
   }
 
   if (!session?.user) {
-    const callbackUrl = typeof window === "undefined" ? viontoUrl : window.location.href;
+    const callbackUrl = new URL(pathname || "/", `${viontoUrl}/`).toString();
     const signInUrl = `${portalUrl}/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 
     return (
