@@ -58,7 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" suppressHydrationWarning data-theme={initialTheme}>
-      <head>
+      <body>
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -66,8 +66,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: themeInitScript,
           }}
         />
-      </head>
-      <body>
         <SessionProvider>
           <Shell user={user}>{children}</Shell>
         </SessionProvider>

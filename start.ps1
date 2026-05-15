@@ -442,19 +442,15 @@ function Cmd-Dev {
         Log-Info "Stopping all dev servers..."
         $stopStart = Get-Date
 
-        # Stop PowerShell jobs first
-        foreach ($kv in $jobs.GetEnumerator()) {
-            Stop-Job -Job $kv.Value -ErrorAction SilentlyContinue
-            Remove-Job -Job $kv.Value -Force -ErrorAction SilentlyContinue
-        }
-
-        # Kill ports in parallel using jobs for faster cleanup
+        # Kill ports FIRST - fastest way to stop dev servers
         $stopJobs = @()
         foreach ($kv in $jobs.GetEnumerator()) {
             $port = $toStart[$kv.Key]
             $sj = Start-Job -ScriptBlock {
                 param($p)
-                # Quick taskkill for this specific port
+                # Use kill-port for faster termination
+                try { $null = & npx kill-port $p 2>&1 } catch {}
+                # Fallback to taskkill if kill-port fails
                 $pids = netstat -ano 2>$null | Select-String ":$p\s" | ForEach-Object { ($_ -split '\s+')[-1] } | Where-Object { $_ -match '^\d+$' }
                 foreach ($id in $pids) { cmd /c "taskkill /PID $id /T /F 2>nul" | Out-Null }
             } -ArgumentList $port
@@ -464,6 +460,12 @@ function Cmd-Dev {
         # Wait for all stop jobs with 2 second timeout
         $stopJobs | Wait-Job -Timeout 2 | Out-Null
         $stopJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+
+        # Then stop PowerShell jobs (cleanup)
+        foreach ($kv in $jobs.GetEnumerator()) {
+            Stop-Job -Job $kv.Value -ErrorAction SilentlyContinue
+            Remove-Job -Job $kv.Value -Force -ErrorAction SilentlyContinue
+        }
 
         # Final verification - kill any remaining quickly
         foreach ($kv in $jobs.GetEnumerator()) {
@@ -500,14 +502,16 @@ function Cmd-Stop {
     Log-Step "Stopping all services..."
     $stopStart = Get-Date
 
-    Stop-WorkspaceNodeProcesses -WaitSeconds 0
-
-    # Kill all app ports in parallel
+    # Kill ports FIRST - fastest way to stop dev servers
+    Log-Info "Killing all app ports first..."
     $stopJobs = @()
     foreach ($kv in $APP_PORTS.GetEnumerator()) {
         $port = $kv.Value
         $sj = Start-Job -ScriptBlock {
             param($p)
+            # Use kill-port for faster termination
+            try { $null = & npx kill-port $p 2>&1 } catch {}
+            # Fallback to taskkill if kill-port fails
             $pids = netstat -ano 2>$null | Select-String ":$p\s" | ForEach-Object { ($_ -split '\s+')[-1] } | Where-Object { $_ -match '^\d+$' }
             foreach ($id in $pids) { cmd /c "taskkill /PID $id /T /F 2>nul" | Out-Null }
         } -ArgumentList $port
@@ -517,6 +521,9 @@ function Cmd-Stop {
     # Wait for parallel kills with 2 second timeout
     $stopJobs | Wait-Job -Timeout 2 | Out-Null
     $stopJobs | Remove-Job -Force -ErrorAction SilentlyContinue
+
+    # Then stop workspace processes (cleanup)
+    Stop-WorkspaceNodeProcesses -WaitSeconds 0
 
     # Clean up any PowerShell jobs
     Get-Job | Stop-Job -ErrorAction SilentlyContinue

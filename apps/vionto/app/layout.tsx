@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={initialLocale} data-theme={theme} style={{ colorScheme: theme }} suppressHydrationWarning>
-      <head>
+      <body className="flex min-h-screen flex-col">
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -64,8 +64,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             __html: themeInitScript,
           }}
         />
-      </head>
-      <body className="flex min-h-screen flex-col">
         <I18nProvider initialLocale={initialLocale} dictionaries={viontoDictionaries}>
           <SessionProvider>
             <div className="flex-1">{children}</div>

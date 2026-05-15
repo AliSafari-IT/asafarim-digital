@@ -55,7 +55,7 @@ export default async function RootLayout({
       suppressHydrationWarning
       data-theme={initialTheme}
     >
-      <head>
+      <body className="flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -63,8 +63,6 @@ export default async function RootLayout({
             __html: themeInitScript,
           }}
         />
-      </head>
-      <body className="flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-text)] antialiased">
         <I18nProvider
           initialLocale={initialLocale}
           dictionaries={edumatchDictionaries}

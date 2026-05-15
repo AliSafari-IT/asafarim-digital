@@ -104,7 +104,7 @@ export default async function RootLayout({
 
   return (
     <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme} className={`${manrope.variable} ${ibmPlexMono.variable}`}>
-      <head>
+      <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -112,10 +112,8 @@ export default async function RootLayout({
             __html: themeInitScript,
           }}
         />
-        <StructuredData data={[organizationSchema(), websiteSchema()]} />
-      </head>
-      <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <AttributionCapture />
+        <StructuredData data={[organizationSchema(), websiteSchema()]} />
         <I18nProvider initialLocale={initialLocale} dictionaries={portalDictionaries}>
           <SessionProvider>{children}</SessionProvider>
         </I18nProvider>

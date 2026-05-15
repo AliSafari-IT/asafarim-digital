@@ -77,7 +77,7 @@ export default async function RootLayout({
 
   return (
     <html lang={initialLocale} suppressHydrationWarning data-theme={initialTheme}>
-      <head>
+      <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -86,8 +86,6 @@ export default async function RootLayout({
           }}
         />
         <StructuredData data={softwareApplicationSchema()} />
-      </head>
-      <body className="bg-[var(--color-surface)] text-[var(--color-text)] antialiased">
         <I18nProvider initialLocale={initialLocale} dictionaries={contentGeneratorDictionaries}>
           <SessionProvider>
             <Shell>{children}</Shell>
