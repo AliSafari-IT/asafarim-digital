@@ -317,7 +317,6 @@ export function ViontoNav() {
       logo={<ViontoLogo />}
       navItems={navItems}
       countryLangSelector={<CountryLanguageSelector />}
-      themeToggler={<ThemeToggle />}
       actions={<ViontoTopbarControls />}
       className="bg-[var(--color-surface)]/80 backdrop-blur-xl"
     />
