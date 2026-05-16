@@ -107,7 +107,7 @@ export const createProjectSchema = z.object({
   storyMode: z.string().optional(),
   emotionalTone: z.string().optional(),
   musicOption: z.enum(["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic", "no_music", "upload_own"]).default("no_music"),
-  musicTrackId: z.string().nullable().optional(),
+  musicTrackId: z.string().optional(),
   musicMetadata: z.any().optional(),
   locale: z.string().min(2).max(10).default("en"),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
