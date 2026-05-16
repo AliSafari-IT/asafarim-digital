@@ -102,9 +102,40 @@ type ProjectSummary = {
   title: string;
   status: string;
   mode: string;
+  storyMode?: string | null;
+  emotionalTone?: string | null;
+  musicOption?: string | null;
+  musicTrackId?: string | null;
+  musicMetadata?: unknown;
   aspectRatio: AspectRatio | "4:3";
   createdAt: string;
 };
+
+function normalizeProjectMusicMetadata(metadata: unknown): NormalizedTrackMetadata[] {
+  if (Array.isArray(metadata)) {
+    return metadata.filter((track): track is NormalizedTrackMetadata => (
+      !!track &&
+      typeof track === "object" &&
+      "trackId" in track &&
+      "title" in track &&
+      "artist" in track &&
+      "downloadUrl" in track
+    ));
+  }
+
+  if (
+    metadata &&
+    typeof metadata === "object" &&
+    "trackId" in metadata &&
+    "title" in metadata &&
+    "artist" in metadata &&
+    "downloadUrl" in metadata
+  ) {
+    return [metadata as NormalizedTrackMetadata];
+  }
+
+  return [];
+}
 
 type LibraryExport = {
   id: string;
@@ -250,6 +281,9 @@ export function ViontoPage() {
       const selected = projects.find((project) => project.id === selectedProjectId);
       if (selected) {
         setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
+        setSelectedStoryMode(selected.storyMode ?? "memory_film");
+        setSelectedEmotionalTone(selected.emotionalTone ?? "nostalgic");
+        setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
       }
@@ -263,6 +297,7 @@ export function ViontoPage() {
       setProjectAssets([]);
       setVersions([]);
       setSelectedVoice(null);
+      setSelectedMusicTracks([]);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);

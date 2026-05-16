@@ -194,7 +194,7 @@ export function buildRenderCommand(
   const narrationInputIndex = opts.narrationWavPath ? 1 : null;
   const musicInputIndex = opts.musicPath ? (opts.narrationWavPath ? 2 : 1) : null;
   const audioFilter = narrationInputIndex !== null && musicInputIndex !== null
-    ? `[${narrationInputIndex}:a]volume=1.0[narration];[${musicInputIndex}:a]volume=0.22[music];[narration][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`
+    ? `[${narrationInputIndex}:a]volume=1.0[narration];[${musicInputIndex}:a]volume=0.025[music];[music][narration]sidechaincompress=threshold=0.01:ratio=20:attack=10:release=1000:makeup=0[duckedmusic];[narration][duckedmusic]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`
     : "";
 
   const vfParts: string[] = [];
