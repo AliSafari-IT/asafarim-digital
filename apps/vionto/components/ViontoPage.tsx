@@ -413,8 +413,8 @@ export function ViontoPage() {
     }
   }
 
-  async function saveProjectSettings() {
-    if (!selectedProjectId) return;
+  async function saveProjectSettings(): Promise<boolean> {
+    if (!selectedProjectId) return false;
     try {
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch(`/api/projects/${selectedProjectId}`, {
@@ -430,17 +430,21 @@ export function ViontoPage() {
           aspectRatio: activeAspectRatio,
         }),
       });
-      if (res.ok) {
-        setProjects((prev) =>
-          prev.map((project) =>
-            project.id === selectedProjectId
-              ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
-              : project
-          )
-        );
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to save project settings");
       }
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === selectedProjectId
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            : project
+        )
+      );
+      return true;
     } catch (error) {
       console.error("Failed to save project settings", error);
+      return false;
     }
   }
 
@@ -550,7 +554,12 @@ export function ViontoPage() {
       setRenderError("Generate or save a narration script before rendering.");
       return;
     }
-    await saveProjectSettings();
+    const savedSettings = await saveProjectSettings();
+    if (!savedSettings) {
+      alert("Failed to save project settings before rendering");
+      setRenderError("Failed to save project settings before rendering.");
+      return;
+    }
 
     setRenderState("queued");
     setRenderProgress(0);

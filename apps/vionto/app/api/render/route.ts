@@ -70,6 +70,14 @@ export async function POST(req: Request) {
       return badRequest("Project not found.");
     }
 
+    console.log("[render] Project fetched:", {
+      id: project.id,
+      musicOption: project.musicOption,
+      musicMetadata: project.musicMetadata,
+      musicUploadKey: project.musicUploadKey,
+      musicTrackId: project.musicTrackId,
+    });
+
     // Validate manifest if provided; otherwise build a minimal one
     let manifest = (body as Record<string, unknown>)?.manifest;
     if (manifest) {
@@ -167,10 +175,16 @@ export async function POST(req: Request) {
 
       // Handle music selection
       let musicTracks: Array<Record<string, unknown>> = [];
+      console.log("[render] Music option:", project.musicOption);
+      console.log("[render] Music metadata:", JSON.stringify(project.musicMetadata));
+      console.log("[render] Music upload key:", project.musicUploadKey);
+
       if (project.musicOption && project.musicOption !== "no_music") {
         const selectedMusicTracks = getProjectMusicTracks(project.musicMetadata);
+        console.log("[render] Selected music tracks:", selectedMusicTracks);
 
         const renderableMusicTracks = selectedMusicTracks.filter(isRenderableMusicTrack);
+        console.log("[render] Renderable music tracks:", renderableMusicTracks);
 
         if (renderableMusicTracks.length > 0) {
           musicTracks = renderableMusicTracks.map((track, index) => ({
@@ -185,6 +199,7 @@ export async function POST(req: Request) {
                   .slice(0, index)
                   .reduce((offset, previous) => offset + (typeof previous.duration === "number" ? previous.duration : 0), 0),
           }));
+          console.log("[render] Using music tracks from metadata:", musicTracks);
         } else if (project.musicOption === "upload_own" && project.musicUploadKey) {
           // User-uploaded music
           musicTracks = [{
@@ -192,6 +207,7 @@ export async function POST(req: Request) {
             storageKey: project.musicUploadKey,
             metadata: project.musicMetadata,
           }];
+          console.log("[render] Using music from upload key:", musicTracks);
         } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(project.musicOption)) {
           // Fetch from Pixabay based on category
           try {

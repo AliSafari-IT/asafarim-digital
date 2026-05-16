@@ -191,11 +191,11 @@ export function buildRenderCommand(
     videoFilter = buildSubtitleFilter(manifest.subtitleStyle, opts.srtPath);
   }
 
-  // Audio filter
-  let audioFilter = "";
-  if (opts.narrationWavPath && opts.musicPath) {
-    audioFilter = `[${opts.narrationWavPath ? "1" : "0"}:a][${opts.musicPath ? "2" : "1"}:a]amix=inputs=2:duration=first:dropout_transition=3`;
-  }
+  const narrationInputIndex = opts.narrationWavPath ? 1 : null;
+  const musicInputIndex = opts.musicPath ? (opts.narrationWavPath ? 2 : 1) : null;
+  const audioFilter = narrationInputIndex !== null && musicInputIndex !== null
+    ? `[${narrationInputIndex}:a]volume=1.0[narration];[${musicInputIndex}:a]volume=0.22[music];[narration][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`
+    : "";
 
   const vfParts: string[] = [];
   if (videoFilter) vfParts.push(videoFilter);
@@ -211,8 +211,14 @@ export function buildRenderCommand(
     finalArgs.push("-vf", vfParts.join(","));
   }
 
+  finalArgs.push("-map", "0:v:0");
+
   if (audioFilter) {
-    finalArgs.push("-af", audioFilter);
+    finalArgs.push("-filter_complex", audioFilter, "-map", "[aout]");
+  } else if (narrationInputIndex !== null) {
+    finalArgs.push("-map", `${narrationInputIndex}:a:0`);
+  } else if (musicInputIndex !== null) {
+    finalArgs.push("-map", `${musicInputIndex}:a:0`);
   }
 
   finalArgs.push(
