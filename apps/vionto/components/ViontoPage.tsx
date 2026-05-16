@@ -165,6 +165,7 @@ export function ViontoPage() {
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
   const [selectedMusicTracks, setSelectedMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
+  const [musicBlobUrls, setMusicBlobUrls] = useState<Set<string>>(new Set());
   const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
   const [isMusicLoading, setIsMusicLoading] = useState(false);
   const [musicFilterQuery, setMusicFilterQuery] = useState("");
@@ -953,6 +954,9 @@ export function ViontoPage() {
     musicPreviewAudioRef.current?.pause();
     musicPreviewAudioRef.current = null;
     setMusicPreviewTrackId(null);
+    // Revoke all blob URLs
+    musicBlobUrls.forEach((url) => URL.revokeObjectURL(url));
+    setMusicBlobUrls(new Set());
     setSelectedMusicTracks([]);
     setShowMusicSelector(false);
   };
@@ -962,6 +966,15 @@ export function ViontoPage() {
       musicPreviewAudioRef.current?.pause();
       musicPreviewAudioRef.current = null;
       setMusicPreviewTrackId(null);
+    }
+    // Revoke blob URL if this is an uploaded track
+    if (track.provider === "upload" && track.downloadUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(track.downloadUrl);
+      setMusicBlobUrls((prev) => {
+        const next = new Set(prev);
+        next.delete(track.downloadUrl);
+        return next;
+      });
     }
     setSelectedMusicTracks((current) =>
       current.filter((selected) => !(selected.trackId === track.trackId && selected.provider === track.provider))
@@ -982,16 +995,31 @@ export function ViontoPage() {
 
     const previewUrl = track.downloadUrl;
 
-    musicPreviewAudioRef.current?.pause();
+    // Clean up previous audio
+    if (musicPreviewAudioRef.current) {
+      musicPreviewAudioRef.current.pause();
+      musicPreviewAudioRef.current.src = "";
+      musicPreviewAudioRef.current.load();
+    }
+
     const audio = new Audio(previewUrl);
     musicPreviewAudioRef.current = audio;
     setMusicPreviewTrackId(track.trackId);
 
-    audio.addEventListener("ended", () => setMusicPreviewTrackId(null), { once: true });
-    audio.addEventListener("error", () => {
+    const handleEnded = () => {
+      setMusicPreviewTrackId(null);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+    };
+    const handleError = () => {
       console.error("Failed to preview audio");
       setMusicPreviewTrackId(null);
-    }, { once: true });
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+    };
+
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
     await audio.play();
   };
 
@@ -1479,27 +1507,35 @@ export function ViontoPage() {
                             ref={musicUploadInputRef}
                             type="file"
                             accept="audio/*"
+                            multiple
                             onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              
-                              // Create a URL for the uploaded file
-                              const url = URL.createObjectURL(file);
-                              
-                              handleSelectMusicTrack({
-                                provider: "upload",
-                                trackId: `upload_${Date.now()}`,
-                                title: file.name.replace(/\.[^/.]+$/, ""),
-                                artist: "Uploaded",
-                                artistId: "upload",
-                                duration: undefined,
-                                tags: ["uploaded"],
-                                sourceUrl: url,
-                                downloadUrl: url,
-                                license: "uploaded",
-                                licenseInfo: t("vionto.music.uploadDisclaimer"),
-                                downloads: 0,
-                                likes: 0,
+                              const files = Array.from(e.target.files ?? []);
+                              if (files.length === 0) return;
+
+                              const uploadedTracks = files.map((file, index) => {
+                                const url = URL.createObjectURL(file);
+                                return {
+                                  provider: "upload",
+                                  trackId: `upload_${Date.now()}_${index}`,
+                                  title: file.name.replace(/\.[^/.]+$/, ""),
+                                  artist: "Uploaded",
+                                  artistId: "upload",
+                                  duration: undefined,
+                                  tags: ["uploaded"],
+                                  sourceUrl: url,
+                                  downloadUrl: url,
+                                  license: "uploaded",
+                                  licenseInfo: t("vionto.music.uploadDisclaimer"),
+                                  downloads: 0,
+                                  likes: 0,
+                                } satisfies NormalizedTrackMetadata;
+                              });
+
+                              setSelectedMusicTracks((current) => [...current, ...uploadedTracks]);
+                              setMusicBlobUrls((prev) => {
+                                const next = new Set(prev);
+                                uploadedTracks.forEach((track) => next.add(track.downloadUrl));
+                                return next;
                               });
                               setShowMusicSelector(false);
                               // Reset input value to allow selecting the same file again
