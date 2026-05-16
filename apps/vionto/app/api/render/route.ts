@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { renderQueue } from "@/lib/server/queue";
 import { safeParseManifest } from "@/lib/server/render-manifest";
+import { fetchPixabayMusicByCategory, selectTrackByDuration } from "@/lib/server/pixabay-music";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true },
+      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -100,6 +101,45 @@ export async function POST(req: Request) {
         return badRequest("Select a narration voice before rendering.");
       }
 
+      // Handle music selection
+      let musicTrack = null;
+      if (project.musicOption && project.musicOption !== "no_music") {
+        if (project.musicOption === "upload_own" && project.musicUploadKey) {
+          // User-uploaded music
+          musicTrack = {
+            type: "music",
+            storageKey: project.musicUploadKey,
+            metadata: project.musicMetadata,
+          };
+        } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(project.musicOption)) {
+          // Fetch from Pixabay based on category
+          try {
+            const tracks = await fetchPixabayMusicByCategory(project.musicOption, 10);
+            const targetDuration = assets.length * 5; // Approximate video duration
+            const selectedTrack = selectTrackByDuration(tracks, targetDuration);
+            if (selectedTrack) {
+              musicTrack = {
+                type: "music",
+                provider: "pixabay",
+                downloadUrl: selectedTrack.downloadUrl,
+                metadata: selectedTrack,
+              };
+              // Update project with selected track metadata
+              await prisma.viontoProject.update({
+                where: { id: project.id },
+                data: {
+                  musicTrackId: selectedTrack.trackId,
+                  musicMetadata: selectedTrack as Prisma.InputJsonValue,
+                },
+              }).catch(() => null);
+            }
+          } catch (error) {
+            console.error("[render] Failed to fetch Pixabay music:", error);
+            // Continue without music if Pixabay fails
+          }
+        }
+      }
+
       const generatedManifest = {
         projectId: project.id,
         userId: user.id,
@@ -115,24 +155,27 @@ export async function POST(req: Request) {
         })),
         narrationText: latestScript?.narrationText ?? undefined,
         srtText: latestScript?.srtText ?? undefined,
-        audioTracks: audioTracks
-          .filter((track) => track.storageKey || track.voiceId)
-          .map((track) => {
-            const mixSettings = typeof track.mixSettings === "object" && track.mixSettings !== null && !Array.isArray(track.mixSettings)
-              ? track.mixSettings as Record<string, unknown>
-              : {};
-            return {
-              type: track.type,
-              storageKey: track.storageKey ?? undefined,
-              voiceId: track.voiceId ?? undefined,
-              voiceName: track.voiceName ?? undefined,
-              volume: typeof mixSettings.volume === "number" ? mixSettings.volume : undefined,
-              fadeInSeconds: typeof mixSettings.fadeInSeconds === "number" ? mixSettings.fadeInSeconds : undefined,
-              fadeOutSeconds: typeof mixSettings.fadeOutSeconds === "number" ? mixSettings.fadeOutSeconds : undefined,
-              startOffsetSeconds: typeof mixSettings.startOffsetSeconds === "number" ? mixSettings.startOffsetSeconds : undefined,
-              duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
-            };
-          }),
+        audioTracks: [
+          ...audioTracks
+            .filter((track) => track.storageKey || track.voiceId)
+            .map((track) => {
+              const mixSettings = typeof track.mixSettings === "object" && track.mixSettings !== null && !Array.isArray(track.mixSettings)
+                ? track.mixSettings as Record<string, unknown>
+                : {};
+              return {
+                type: track.type,
+                storageKey: track.storageKey ?? undefined,
+                voiceId: track.voiceId ?? undefined,
+                voiceName: track.voiceName ?? undefined,
+                volume: typeof mixSettings.volume === "number" ? mixSettings.volume : undefined,
+                fadeInSeconds: typeof mixSettings.fadeInSeconds === "number" ? mixSettings.fadeInSeconds : undefined,
+                fadeOutSeconds: typeof mixSettings.fadeOutSeconds === "number" ? mixSettings.fadeOutSeconds : undefined,
+                startOffsetSeconds: typeof mixSettings.startOffsetSeconds === "number" ? mixSettings.startOffsetSeconds : undefined,
+                duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
+              };
+            }),
+          ...(musicTrack ? [musicTrack] : []),
+        ],
       };
 
       const parsed = safeParseManifest(generatedManifest);

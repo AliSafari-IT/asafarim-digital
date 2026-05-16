@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   ImagePlus,
   ListChecks,
   Mic,
+  Pause,
   Play,
   Plus,
   RefreshCw,
@@ -92,6 +94,11 @@ const EMOTIONAL_TONE_OPTIONS = [
   { labelKey: "vionto.emotionalTone.reflective", descriptionKey: "vionto.emotionalTone.reflective.description", value: "reflective" },
 ] as const;
 
+const MUSIC_OPTIONS = [
+  { labelKey: "vionto.music.no_music", descriptionKey: "vionto.music.no_music.description", value: "no_music" },
+  { labelKey: "vionto.music.upload_own", descriptionKey: "vionto.music.upload_own.description", value: "upload_own" },
+] as const;
+
 type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
 type UiMode = "cinematic" | "slideshow" | "social";
 
@@ -150,15 +157,32 @@ export function ViontoPage() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      musicPreviewAudioRef.current?.pause();
+      musicPreviewAudioRef.current = null;
+    };
+  }, []);
+
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
+  const [selectedMusicOption, setSelectedMusicOption] = useState<string>("no_music");
+  const [selectedMusicTrack, setSelectedMusicTrack] = useState<NormalizedTrackMetadata | null>(null);
+  const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
+  const [isMusicLoading, setIsMusicLoading] = useState(false);
+  const [musicFilterQuery, setMusicFilterQuery] = useState("");
+  const [musicFilterMinDuration, setMusicFilterMinDuration] = useState("");
+  const [musicFilterMaxDuration, setMusicFilterMaxDuration] = useState("");
+  const [showMusicSelector, setShowMusicSelector] = useState(false);
+  const [musicPreviewTrackId, setMusicPreviewTrackId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const musicPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Render state
   const [renderJobId, setRenderJobId] = useState<string | null>(null);
@@ -394,13 +418,18 @@ export function ViontoPage() {
 
   async function saveProjectSettings() {
     if (!selectedProjectId) return;
-    const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
     try {
+      const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch(`/api/projects/${selectedProjectId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: apiMode,
+          storyMode: selectedStoryMode,
+          emotionalTone: selectedEmotionalTone,
+          musicOption: selectedMusicOption,
+          musicTrackId: selectedMusicTrack?.trackId || null,
+          musicMetadata: selectedMusicTrack || null,
           aspectRatio: activeAspectRatio,
         }),
       });
@@ -408,7 +437,14 @@ export function ViontoPage() {
         setProjects((prev) =>
           prev.map((project) =>
             project.id === selectedProjectId
-              ? { ...project, mode: apiMode, aspectRatio: activeAspectRatio }
+              ? { 
+                  ...project, 
+                  mode: apiMode, 
+                  storyMode: selectedStoryMode,
+                  emotionalTone: selectedEmotionalTone,
+                  musicOption: selectedMusicOption,
+                  aspectRatio: activeAspectRatio 
+                }
               : project
           )
         );
@@ -631,6 +667,9 @@ export function ViontoPage() {
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          musicOption: selectedMusicOption,
+          musicTrackId: selectedMusicTrack?.trackId || null,
+          musicMetadata: selectedMusicTrack || null,
           aspectRatio: activeAspectRatio,
           locale: locale.split("-")[0] ?? "en",
         }),
@@ -910,6 +949,102 @@ export function ViontoPage() {
       prev.map((v) => (v.id === scriptId ? { ...v, narrationText: narration, srtText: srt, isUserEdited: true } : v))
     );
   }, []);
+
+  // Fetch music tracks based on category and filters
+  const fetchMusicTracks = useCallback(async () => {
+    if (selectedMusicOption === "no_music" || selectedMusicOption === "upload_own") {
+      setMusicTracks([]);
+      return;
+    }
+
+    setIsMusicLoading(true);
+    try {
+      const params = new URLSearchParams({
+        category: selectedMusicOption,
+        limit: "20",
+      });
+      if (musicFilterQuery) params.set("query", musicFilterQuery);
+      if (musicFilterMinDuration) params.set("minDuration", musicFilterMinDuration);
+      if (musicFilterMaxDuration) params.set("maxDuration", musicFilterMaxDuration);
+
+      const res = await fetch(`/api/music/pixabay?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch music tracks");
+      }
+      const data = (await res.json()) as { tracks: NormalizedTrackMetadata[]; error?: string; details?: string };
+      if (data.error) {
+        console.error("Music API error:", data.error, data.details);
+        throw new Error(data.error);
+      }
+      setMusicTracks(data.tracks);
+    } catch (error) {
+      console.error("Failed to fetch music tracks:", error);
+      setMusicTracks([]);
+    } finally {
+      setIsMusicLoading(false);
+    }
+  }, [selectedMusicOption, musicFilterQuery, musicFilterMinDuration, musicFilterMaxDuration]);
+
+  // Fetch music when category or filters change
+  useEffect(() => {
+    if (showMusicSelector) {
+      fetchMusicTracks();
+    }
+  }, [showMusicSelector, fetchMusicTracks]);
+
+  // Handle music track selection
+  const handleSelectMusicTrack = (track: NormalizedTrackMetadata) => {
+    setSelectedMusicTrack(track);
+    setShowMusicSelector(false);
+  };
+
+  const toggleMusicPreview = async (track: NormalizedTrackMetadata) => {
+    if (musicPreviewTrackId === track.trackId) {
+      musicPreviewAudioRef.current?.pause();
+      musicPreviewAudioRef.current = null;
+      setMusicPreviewTrackId(null);
+      return;
+    }
+
+    const previewUrl = track.downloadUrl;
+
+    musicPreviewAudioRef.current?.pause();
+    const audio = new Audio(previewUrl);
+    musicPreviewAudioRef.current = audio;
+    setMusicPreviewTrackId(track.trackId);
+
+    audio.addEventListener("ended", () => setMusicPreviewTrackId(null), { once: true });
+    audio.addEventListener("error", () => {
+      if (musicPreviewAudioRef.current === audio) {
+        musicPreviewAudioRef.current = null;
+        setMusicPreviewTrackId(null);
+      }
+      alert(t("vionto.music.previewFailed"));
+    }, { once: true });
+
+    try {
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to preview music track", error);
+      if (musicPreviewAudioRef.current === audio) {
+        musicPreviewAudioRef.current = null;
+        setMusicPreviewTrackId(null);
+      }
+      alert(t("vionto.music.previewFailed"));
+    }
+  };
+
+  // Handle music option change
+  const handleMusicOptionChange = (value: string) => {
+    musicPreviewAudioRef.current?.pause();
+    musicPreviewAudioRef.current = null;
+    setMusicPreviewTrackId(null);
+    setSelectedMusicOption(value);
+    setSelectedMusicTrack(null);
+    if (value === "upload_own") {
+      setShowMusicSelector(true);
+    }
+  };
 
   return (
     <main className="min-h-screen text-[var(--text)]" style={{ background: 'var(--color-bg)' }}>
@@ -1312,6 +1447,205 @@ export function ViontoPage() {
                   </select>
                 </div>
               </div>
+
+              <div className="mt-3" aria-label={t("vionto.music.label")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.music.label")}</p>
+                <select
+                  value={selectedMusicOption}
+                  onChange={(e) => handleMusicOptionChange(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                >
+                  {MUSIC_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </option>
+                  ))}
+                </select>
+                {selectedMusicTrack && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleMusicPreview(selectedMusicTrack)}
+                      className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80"
+                      title={musicPreviewTrackId === selectedMusicTrack.trackId ? t("vionto.audio.previewing") : t("vionto.audio.preview")}
+                    >
+                      {musicPreviewTrackId === selectedMusicTrack.trackId ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--color-text)] truncate">{selectedMusicTrack.title}</p>
+                      <p className="text-xs text-[var(--color-text-muted)]">{selectedMusicTrack.artist}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMusicTrack(null)}
+                      className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Music Track Selector Modal */}
+              {showMusicSelector && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className="w-full max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 max-h-[80vh] overflow-y-auto">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+                        {selectedMusicOption === "upload_own" ? t("vionto.music.upload_own") : t("vionto.music.label")}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowMusicSelector(false)}
+                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {selectedMusicOption === "upload_own" ? (
+                      /* Upload Own Music UI */
+                      <div className="space-y-4">
+                        <div className="border-2 border-dashed border-[var(--color-border)] rounded-lg p-8 text-center">
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              
+                              // Create a URL for the uploaded file
+                              const url = URL.createObjectURL(file);
+                              
+                              setSelectedMusicTrack({
+                                provider: "upload",
+                                trackId: `upload_${Date.now()}`,
+                                title: file.name.replace(/\.[^/.]+$/, ""),
+                                artist: "Uploaded",
+                                artistId: "upload",
+                                duration: undefined,
+                                tags: ["uploaded"],
+                                sourceUrl: url,
+                                downloadUrl: url,
+                                license: "uploaded",
+                                licenseInfo: t("vionto.music.uploadDisclaimer"),
+                                downloads: 0,
+                                likes: 0,
+                              });
+                              setShowMusicSelector(false);
+                            }}
+                            className="hidden"
+                            id="music-upload"
+                          />
+                          <label
+                            htmlFor="music-upload"
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                          >
+                            <CloudUpload className="h-12 w-12 text-[var(--color-text-muted)]" />
+                            <p className="text-sm text-[var(--color-text)]">
+                              {t("vionto.music.upload_own")}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)]">
+                              MP3, WAV, OGG, M4A
+                            </p>
+                          </label>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-muted)] text-center">
+                          {t("vionto.music.uploadDisclaimer")}
+                        </p>
+                      </div>
+                    ) : (
+                      /* Track List (for future music providers) */
+                      <>
+                        {/* Filters */}
+                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Search by name or artist</label>
+                            <input
+                              type="text"
+                              value={musicFilterQuery}
+                              onChange={(e) => setMusicFilterQuery(e.target.value)}
+                              placeholder="Search tracks..."
+                              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Min duration (s)</label>
+                              <input
+                                type="number"
+                                value={musicFilterMinDuration}
+                                onChange={(e) => setMusicFilterMinDuration(e.target.value)}
+                                placeholder="Min"
+                                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Max duration (s)</label>
+                              <input
+                                type="number"
+                                value={musicFilterMaxDuration}
+                                onChange={(e) => setMusicFilterMaxDuration(e.target.value)}
+                                placeholder="Max"
+                                className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Track List */}
+                        {isMusicLoading ? (
+                          <div className="flex items-center justify-center py-8">
+                            <RefreshCw className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
+                          </div>
+                        ) : musicTracks.length === 0 ? (
+                          <div className="py-8 text-center text-[var(--color-text-muted)]">
+                            <p>{t("vionto.music.noTracks")}</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {musicTracks.map((track) => (
+                              <div
+                                key={track.trackId}
+                                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-3"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-[var(--color-text)] truncate">{track.title}</p>
+                                    <p className="text-xs text-[var(--color-text-muted)]">{track.artist}</p>
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                      {track.tags.slice(0, 3).map((tag) => (
+                                        <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-border)] text-[var(--color-text-muted)]">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="text-right text-xs text-[var(--color-text-muted)]">
+                                    <p>{track.likes} likes</p>
+                                    <p>{track.downloads} downloads</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSelectMusicTrack(track)}
+                                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent)]/90"
+                                  >
+                                    Select
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3" aria-label={t("vionto.aspect.aria")}>
                 <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.aspect.label")}</p>
