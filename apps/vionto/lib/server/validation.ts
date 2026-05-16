@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VISUAL_STYLE_VALUES } from "../visual-styles";
 
 /**
  * Vionto file constraints — kept in sync with the project plan §6.2.1.
@@ -106,6 +107,7 @@ export const createProjectSchema = z.object({
   mode: z.enum(["story", "slideshow", "documentary"]).default("story"),
   storyMode: z.string().optional(),
   emotionalTone: z.string().optional(),
+  visualStyle: z.enum(VISUAL_STYLE_VALUES).default("clean_modern_slideshow"),
   musicOption: z.enum(["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic", "no_music", "upload_own"]).default("no_music"),
   musicTrackId: z.string().nullable().optional(),
   musicMetadata: z.any().nullable().optional(),

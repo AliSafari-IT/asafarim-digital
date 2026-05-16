@@ -7,6 +7,7 @@ const BASE_MANIFEST: RenderManifest = {
   userId: "u1",
   jobId: "j1",
   mode: "cinematic",
+  visualStyle: "clean_modern_slideshow",
   resolution: "1080p",
   aspectRatio: "16:9",
   frameRate: 30,
@@ -113,6 +114,17 @@ describe("buildRenderCommand", () => {
     expect(final).toContain("[1:a]volume=1.0[narration];[2:a]volume=0.06[music];[narration][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]");
     expect(final).toContain("-map");
     expect(final).toContain("[aout]");
+  });
+
+  it("adds visual style filters for selected presets", () => {
+    const manifest: RenderManifest = { ...BASE_MANIFEST, visualStyle: "film_grain" };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+    });
+    const final = steps[steps.length - 1];
+    const vfIndex = final.indexOf("-vf");
+    expect(vfIndex).toBeGreaterThan(-1);
+    expect(final[vfIndex + 1]).toContain("noise=alls=8");
   });
 });
 

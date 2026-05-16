@@ -166,6 +166,7 @@ export type StoryPromptContext = {
   mode: "story" | "slideshow" | "documentary";
   storyMode?: string;
   emotionalTone?: string;
+  visualStyle?: string;
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
@@ -184,6 +185,9 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   }
   if (ctx.emotionalTone) {
     lines.push(`Emotional tone: ${ctx.emotionalTone}`);
+  }
+  if (ctx.visualStyle) {
+    lines.push(`Visual style: ${ctx.visualStyle}`);
   }
   if (ctx.userNotes && ctx.userNotes.trim()) {
     lines.push(`User notes: ${ctx.userNotes.trim()}`);
@@ -242,6 +246,16 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
     lines.push("- Focus on historical context and factual accuracy.");
   } else if (!ctx.emotionalTone) {
     lines.push("- Write a cohesive narration that flows across the provided images.");
+  }
+
+  if (ctx.visualStyle === "social_vertical_captions") {
+    lines.push("- Keep sentences short and caption-friendly so bold centered subtitles read quickly.");
+  } else if (ctx.visualStyle === "travel_map_overlay") {
+    lines.push("- Mention place, movement, route, arrival, or discovery when the photos support it.");
+  } else if (ctx.visualStyle === "vhs_archive" || ctx.visualStyle === "polaroid_memory") {
+    lines.push("- Lean into archive, memory, and time-passing language when it fits the album.");
+  } else if (ctx.visualStyle === "wedding_cinematic") {
+    lines.push("- Favor elegant, intimate phrasing that works with a cinematic wedding treatment.");
   }
   
   lines.push("- The SRT output should have one cue per sentence, with reasonable timing spaced roughly 3-6 seconds per cue for a ~30-60 second total duration.");

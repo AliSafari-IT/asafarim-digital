@@ -29,6 +29,7 @@ import {
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
+import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
 
 function ViontoMark({ className = "" }: { className?: string }) {
   return (
@@ -104,6 +105,7 @@ type ProjectSummary = {
   mode: string;
   storyMode?: string | null;
   emotionalTone?: string | null;
+  visualStyle?: string | null;
   musicOption?: string | null;
   musicTrackId?: string | null;
   musicMetadata?: unknown;
@@ -145,6 +147,7 @@ type LibraryExport = {
   mode: UiMode | null;
   storyMode: string | null;
   emotionalTone: string | null;
+  visualStyle: string | null;
   aspectRatio: string | null;
   aspectLabel: string | null;
   keywords: string[];
@@ -195,6 +198,7 @@ export function ViontoPage() {
   const [userNotes, setUserNotes] = useState("");
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
+  const [selectedVisualStyle, setSelectedVisualStyle] = useState<VisualStyle>(DEFAULT_VISUAL_STYLE);
   const [selectedMusicTracks, setSelectedMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
   const [musicBlobUrls, setMusicBlobUrls] = useState<Set<string>>(new Set());
   const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
@@ -283,6 +287,7 @@ export function ViontoPage() {
         setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
         setSelectedStoryMode(selected.storyMode ?? "memory_film");
         setSelectedEmotionalTone(selected.emotionalTone ?? "nostalgic");
+        setSelectedVisualStyle(normalizeVisualStyle(selected.visualStyle));
         setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
@@ -298,6 +303,7 @@ export function ViontoPage() {
       setVersions([]);
       setSelectedVoice(null);
       setSelectedMusicTracks([]);
+      setSelectedVisualStyle(DEFAULT_VISUAL_STYLE);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
@@ -459,6 +465,7 @@ export function ViontoPage() {
           mode: apiMode,
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          visualStyle: selectedVisualStyle,
           musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
@@ -472,7 +479,7 @@ export function ViontoPage() {
       setProjects((prev) =>
         prev.map((project) =>
           project.id === selectedProjectId
-            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
             : project
         )
       );
@@ -701,6 +708,7 @@ export function ViontoPage() {
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          visualStyle: selectedVisualStyle,
           musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
@@ -935,6 +943,7 @@ export function ViontoPage() {
           projectId: selectedProjectId,
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
+          visualStyle: selectedVisualStyle,
           userNotes: userNotes.trim() || undefined,
         }),
       });
@@ -966,7 +975,7 @@ export function ViontoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, userNotes, selectedProjectId]);
+  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -1527,6 +1536,30 @@ export function ViontoPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="mt-3" aria-label={t("vionto.visualStyle.label")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.visualStyle.label")}</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {VISUAL_STYLE_OPTIONS.map((option) => {
+                    const active = selectedVisualStyle === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedVisualStyle(option.value)}
+                        className={`rounded-lg border p-3 text-left transition ${
+                          active
+                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)]"
+                            : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{t(option.labelKey)}</span>
+                        <span className="mt-1 block text-xs leading-snug text-[var(--color-text-muted)]">{t(option.descriptionKey)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

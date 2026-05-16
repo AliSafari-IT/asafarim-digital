@@ -1231,6 +1231,9 @@ model ViontoProject {
   // Emotional tone: feeling/mood of the narration
   emotionalTone        String?  @default("nostalgic") // nostalgic, joyful, calm, epic, funny, romantic, reflective
 
+  // Visual style: render treatment for filters, captions, framing, and overlays
+  visualStyle          String?  @default("clean_modern_slideshow") // film_grain, polaroid_memory, clean_modern_slideshow, travel_map_overlay, vhs_archive, wedding_cinematic, social_vertical_captions
+
   // Music selection: soundtrack direction for the video
   musicOption          String?  @default("no_music") // calm_piano, cinematic_strings, travel_upbeat, family_warm_acoustic, no_music, upload_own
   musicTrackId         String?  // Pixabay track ID if a specific track was selected
@@ -1460,6 +1463,7 @@ model ViontoExport {
   renderMode      String? // worker/render manifest mode
   aspectRatio     String? // 16:9, 9:16, 1:1
   aspectLabel     String? // landscape, portrait, 1by1
+  visualStyle     String? // film_grain, polaroid_memory, clean_modern_slideshow, travel_map_overlay, vhs_archive, wedding_cinematic, social_vertical_captions
   storyKeywords   Json?
   previewTitle    String?
   previewSubtitle String? @db.Text

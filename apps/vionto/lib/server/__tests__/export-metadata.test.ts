@@ -7,6 +7,7 @@ const BASE_MANIFEST: RenderManifest = {
   userId: "u1",
   jobId: "j1",
   mode: "social",
+  visualStyle: "clean_modern_slideshow",
   targetDurationSeconds: 10,
   aspectRatio: "1:1",
   resolution: "1080p",
@@ -54,6 +55,6 @@ describe("export metadata helpers", () => {
     });
     expect(metadata.filename).toBe("social_1by1_targets_focus_victory_20260509-151340.mp4");
     expect(metadata.previewTitle).toBe("May2026 social render");
-    expect(metadata.previewSubtitle).toContain("Latest social 1:1 render");
+    expect(metadata.previewSubtitle).toContain("Latest clean modern slideshow social 1:1 render");
   });
 });

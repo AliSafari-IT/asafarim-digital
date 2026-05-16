@@ -22,6 +22,7 @@ type GenerateBody = {
   mode?: "story" | "slideshow" | "documentary";
   storyMode?: string;
   emotionalTone?: string;
+  visualStyle?: string;
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
       return badRequest("Invalid JSON body.");
     }
 
-    const { projectId, locale = "en", mode = "story", storyMode, emotionalTone, userNotes, captions, exifSummary, totalDurationMs = 30_000 } = body;
+    const { projectId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary, totalDurationMs = 30_000 } = body;
     if (!projectId || typeof projectId !== "string") {
       return badRequest("projectId is required.");
     }
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, musicOption: true },
+      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
     const effectiveMode = (mode || project.mode || "story") as "story" | "slideshow" | "documentary";
     const effectiveStoryMode = storyMode || project.storyMode || "memory_film";
     const effectiveEmotionalTone = emotionalTone || project.emotionalTone || "nostalgic";
+    const effectiveVisualStyle = visualStyle || project.visualStyle || "clean_modern_slideshow";
 
     // Query project assets server-side to get captions and build EXIF summary
     const assets = await prisma.viontoAsset.findMany({
@@ -143,6 +145,7 @@ export async function POST(req: Request) {
       mode: effectiveMode,
       storyMode: effectiveStoryMode,
       emotionalTone: effectiveEmotionalTone,
+      visualStyle: effectiveVisualStyle,
       userNotes,
       captions: effectiveCaptions,
       exifSummary: effectiveExifSummary,
