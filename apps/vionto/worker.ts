@@ -83,6 +83,7 @@ async function updateState(
 /** Run an FFmpeg command and stream stdout/stderr to logs. */
 function runFfmpeg(args: string[], workDir: string, logLines: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
+    logLines.push(`FFmpeg args: ${args.join(" ")}`);
     const proc = spawn(FFMPEG_BIN, args, {
       cwd: workDir,
       shell: false,
@@ -235,13 +236,24 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
       if (localMusicPaths.length === 1) {
         musicPath = localMusicPaths[0];
       } else {
-        musicPath = join(workDir, "music_playlist.mp3");
+        const musicConcatListPath = join(workDir, "music_concat_list.txt");
+        await writeFile(
+          musicConcatListPath,
+          localMusicPaths.map((path) => `file '${path.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`).join("\n")
+        );
+        musicPath = join(workDir, "music_playlist.m4a");
         await runFfmpeg([
-          ...localMusicPaths.flatMap((path) => ["-i", path]),
-          "-filter_complex",
-          `${localMusicPaths.map((_, index) => `[${index}:a]`).join("")}concat=n=${localMusicPaths.length}:v=0:a=1[outa]`,
-          "-map",
-          "[outa]",
+          "-f",
+          "concat",
+          "-safe",
+          "0",
+          "-i",
+          musicConcatListPath,
+          "-vn",
+          "-c:a",
+          "aac",
+          "-b:a",
+          "128k",
           "-y",
           musicPath,
         ], workDir, logLines);
@@ -290,6 +302,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
 
     // --- Final encode ---
     logLines.push("Final encode…");
+    logLines.push(`Final FFmpeg args: ${steps[steps.length - 1].join(" ")}`);
     await runFfmpeg(steps[steps.length - 1], workDir, logLines);
     await updateState(jobId, "running", { progressPercent: 75 });
 

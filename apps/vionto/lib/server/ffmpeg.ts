@@ -30,6 +30,26 @@ const RESOLUTION_MAP: Record<string, { width: number; height: number }> = {
   "4k": { width: 3840, height: 2160 },
 };
 
+function even(value: number): number {
+  return Math.max(2, Math.round(value / 2) * 2);
+}
+
+function getTargetDimensions(resolution: string, aspectRatio: string): { width: number; height: number } {
+  const res = RESOLUTION_MAP[resolution] ?? RESOLUTION_MAP["1080p"];
+  const [arW, arH] = aspectRatio.split(":").map(Number);
+  if (!arW || !arH) return res;
+
+  if (arW === arH) {
+    return { width: res.height, height: res.height };
+  }
+
+  if (arW < arH) {
+    return { width: even(res.height * (arW / arH)), height: res.width };
+  }
+
+  return { width: res.width, height: even(res.width * (arH / arW)) };
+}
+
 /** Deterministic motion presets per asset index (cycling). */
 export function pickMotionPreset(index: number, mode: RenderManifest["mode"]): MotionPreset {
   const cinematicCycle: MotionPreset["name"][] = ["ken_burns", "pan_left", "zoom_in", "pan_right", "zoom_out"];
@@ -92,7 +112,7 @@ function buildImageSegmentCmd(
   frameRate: number,
   outputPath: string
 ): string[] {
-  const res = RESOLUTION_MAP[resolution] ?? RESOLUTION_MAP["1080p"];
+  const res = getTargetDimensions(resolution, "16:9");
   const duration = asset.durationSeconds ?? motion.durationSeconds;
   const totalFrames = Math.max(1, Math.round(duration * frameRate));
   const { zExpr, xExpr, yExpr } = buildZoompanExpr(motion, frameRate, totalFrames);
@@ -153,7 +173,7 @@ export function buildRenderCommand(
   }
 ): { steps: string[][]; concatListPath?: string } {
   const { mode, resolution, frameRate, assets, aspectRatio } = manifest;
-  const res = RESOLUTION_MAP[resolution] ?? RESOLUTION_MAP["1080p"];
+  const res = getTargetDimensions(resolution, aspectRatio);
   const steps: string[][] = [];
   const segmentPaths: string[] = [];
 
@@ -194,18 +214,12 @@ export function buildRenderCommand(
   const narrationInputIndex = opts.narrationWavPath ? 1 : null;
   const musicInputIndex = opts.musicPath ? (opts.narrationWavPath ? 2 : 1) : null;
   const audioFilter = narrationInputIndex !== null && musicInputIndex !== null
-    ? `[${narrationInputIndex}:a]volume=1.0[narration];[${musicInputIndex}:a]volume=0.025[music];[music][narration]sidechaincompress=threshold=0.01:ratio=20:attack=10:release=1000:makeup=0[duckedmusic];[narration][duckedmusic]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`
+    ? `[${narrationInputIndex}:a]volume=1.0[narration];[${musicInputIndex}:a]volume=0.06[music];[narration][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]`
     : "";
 
   const vfParts: string[] = [];
   if (videoFilter) vfParts.push(videoFilter);
-  // Ensure output aspect ratio
-  const [arW, arH] = aspectRatio.split(":").map(Number);
-  if (arW && arH) {
-    const targetW = res.width;
-    const targetH = Math.round(targetW * (arH / arW));
-    vfParts.push(`scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2:black`);
-  }
+  vfParts.push(`scale=${res.width}:${res.height}:force_original_aspect_ratio=decrease,pad=${res.width}:${res.height}:(ow-iw)/2:(oh-ih)/2:black`);
 
   if (vfParts.length > 0) {
     finalArgs.push("-vf", vfParts.join(","));
