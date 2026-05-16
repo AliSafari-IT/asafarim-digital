@@ -13,6 +13,35 @@ function toRenderMode(mode: string | null): "cinematic" | "slideshow" | "social"
   return "cinematic";
 }
 
+type ProjectMusicTrack = {
+  trackId?: string;
+  provider?: string;
+  downloadUrl?: string;
+  storageKey?: string;
+  duration?: number;
+  [key: string]: unknown;
+};
+
+function getProjectMusicTracks(metadata: Prisma.JsonValue | null): ProjectMusicTrack[] {
+  if (Array.isArray(metadata)) {
+    return metadata
+      .filter((track) => !!track && typeof track === "object" && !Array.isArray(track))
+      .map((track) => track as ProjectMusicTrack);
+  }
+
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    return [metadata as ProjectMusicTrack];
+  }
+
+  return [];
+}
+
+function isRenderableMusicTrack(track: ProjectMusicTrack): boolean {
+  return typeof track.storageKey === "string" || (
+    typeof track.downloadUrl === "string" && /^https?:\/\//i.test(track.downloadUrl)
+  );
+}
+
 /** POST /api/render — queue a new render job. */
 export async function POST(req: Request) {
   try {
@@ -102,15 +131,32 @@ export async function POST(req: Request) {
       }
 
       // Handle music selection
-      let musicTrack = null;
+      let musicTracks: Array<Record<string, unknown>> = [];
       if (project.musicOption && project.musicOption !== "no_music") {
-        if (project.musicOption === "upload_own" && project.musicUploadKey) {
+        const selectedMusicTracks = getProjectMusicTracks(project.musicMetadata);
+
+        const renderableMusicTracks = selectedMusicTracks.filter(isRenderableMusicTrack);
+
+        if (renderableMusicTracks.length > 0) {
+          musicTracks = renderableMusicTracks.map((track, index) => ({
+            type: "music",
+            provider: track.provider,
+            storageKey: track.storageKey,
+            downloadUrl: track.downloadUrl,
+            metadata: track,
+            startOffsetSeconds: index === 0
+              ? 0
+              : renderableMusicTracks
+                  .slice(0, index)
+                  .reduce((offset, previous) => offset + (typeof previous.duration === "number" ? previous.duration : 0), 0),
+          }));
+        } else if (project.musicOption === "upload_own" && project.musicUploadKey) {
           // User-uploaded music
-          musicTrack = {
+          musicTracks = [{
             type: "music",
             storageKey: project.musicUploadKey,
             metadata: project.musicMetadata,
-          };
+          }];
         } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(project.musicOption)) {
           // Fetch from Pixabay based on category
           try {
@@ -118,18 +164,18 @@ export async function POST(req: Request) {
             const targetDuration = assets.length * 5; // Approximate video duration
             const selectedTrack = selectTrackByDuration(tracks, targetDuration);
             if (selectedTrack) {
-              musicTrack = {
+              musicTracks = [{
                 type: "music",
                 provider: "pixabay",
                 downloadUrl: selectedTrack.downloadUrl,
                 metadata: selectedTrack,
-              };
+              }];
               // Update project with selected track metadata
               await prisma.viontoProject.update({
                 where: { id: project.id },
                 data: {
                   musicTrackId: selectedTrack.trackId,
-                  musicMetadata: selectedTrack as Prisma.InputJsonValue,
+                  musicMetadata: [selectedTrack] as Prisma.InputJsonValue,
                 },
               }).catch(() => null);
             }
@@ -174,7 +220,7 @@ export async function POST(req: Request) {
                 duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
               };
             }),
-          ...(musicTrack ? [musicTrack] : []),
+          ...musicTracks,
         ],
       };
 

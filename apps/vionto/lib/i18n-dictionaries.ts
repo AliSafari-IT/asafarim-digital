@@ -176,6 +176,9 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.fetchError": "Failed to load music tracks. Please try again later.",
     "vionto.music.download": "Download from Pixabay",
     "vionto.music.noTracks": "No tracks found. Try adjusting your filters.",
+    "vionto.music.more": "More music",
+    "vionto.music.remove": "Remove music",
+    "vionto.music.removeAll": "Remove all music",
   },
   nl: {
     "vionto.upload.eyebrow": "Uploads",
@@ -337,6 +340,9 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.fetchError": "Muziektracks laden mislukt. Probeer het later opnieuw.",
     "vionto.music.download": "Downloaden van Pixabay",
     "vionto.music.noTracks": "Geen tracks gevonden. Probeer je filters aan te passen.",
+    "vionto.music.more": "Meer muziek",
+    "vionto.music.remove": "Muziek verwijderen",
+    "vionto.music.removeAll": "Alle muziek verwijderen",
   },
   fr: {
     "vionto.upload.eyebrow": "Uploads",
@@ -498,6 +504,9 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.fetchError": "Echec du chargement des pistes musicales. Reessayez plus tard.",
     "vionto.music.download": "Telecharger depuis Pixabay",
     "vionto.music.noTracks": "Aucune piste trouvee. Essayez d'ajuster vos filtres.",
+    "vionto.music.more": "Plus de musique",
+    "vionto.music.remove": "Supprimer la musique",
+    "vionto.music.removeAll": "Supprimer toute la musique",
   },
   de: {
     "vionto.upload.eyebrow": "Uploads",
@@ -659,5 +668,8 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.fetchError": "Musikstuecke laden fehlgeschlagen. Versuchen Sie es spaeter erneut.",
     "vionto.music.download": "Von Pixabay herunterladen",
     "vionto.music.noTracks": "Keine Stuecke gefunden. Versuchen Sie, Ihre Filter anzupassen.",
+    "vionto.music.more": "Mehr Musik",
+    "vionto.music.remove": "Musik entfernen",
+    "vionto.music.removeAll": "Alle Musik entfernen",
   },
 };
