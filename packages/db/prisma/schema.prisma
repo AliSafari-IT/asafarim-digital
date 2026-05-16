@@ -1228,6 +1228,9 @@ model ViontoProject {
   // Story narrative mode: genre/style of narration
   storyMode            String?  @default("memory_film") // memory_film, travel_recap, family_archive, event_recap, social_reel, documentary
 
+  // Emotional tone: feeling/mood of the narration
+  emotionalTone        String?  @default("nostalgic") // nostalgic, joyful, calm, epic, funny, romantic, reflective
+
   // Target locale for narration / captions
   locale               String   @default("en-US")
 
