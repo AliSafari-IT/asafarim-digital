@@ -82,6 +82,16 @@ const STORY_MODE_OPTIONS = [
   { labelKey: "vionto.storyMode.documentary", descriptionKey: "vionto.storyMode.documentary.description", value: "documentary" },
 ] as const;
 
+const EMOTIONAL_TONE_OPTIONS = [
+  { labelKey: "vionto.emotionalTone.nostalgic", descriptionKey: "vionto.emotionalTone.nostalgic.description", value: "nostalgic" },
+  { labelKey: "vionto.emotionalTone.joyful", descriptionKey: "vionto.emotionalTone.joyful.description", value: "joyful" },
+  { labelKey: "vionto.emotionalTone.calm", descriptionKey: "vionto.emotionalTone.calm.description", value: "calm" },
+  { labelKey: "vionto.emotionalTone.epic", descriptionKey: "vionto.emotionalTone.epic.description", value: "epic" },
+  { labelKey: "vionto.emotionalTone.funny", descriptionKey: "vionto.emotionalTone.funny.description", value: "funny" },
+  { labelKey: "vionto.emotionalTone.romantic", descriptionKey: "vionto.emotionalTone.romantic.description", value: "romantic" },
+  { labelKey: "vionto.emotionalTone.reflective", descriptionKey: "vionto.emotionalTone.reflective.description", value: "reflective" },
+] as const;
+
 type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
 type UiMode = "cinematic" | "slideshow" | "social";
 
@@ -101,6 +111,7 @@ type LibraryExport = {
   filename: string | null;
   mode: UiMode | null;
   storyMode: string | null;
+  emotionalTone: string | null;
   aspectRatio: string | null;
   aspectLabel: string | null;
   keywords: string[];
@@ -143,6 +154,7 @@ export function ViontoPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
+  const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -618,6 +630,7 @@ export function ViontoPage() {
           title: newProjectTitle.trim(),
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
+          emotionalTone: selectedEmotionalTone,
           aspectRatio: activeAspectRatio,
           locale: locale.split("-")[0] ?? "en",
         }),
@@ -1269,32 +1282,34 @@ export function ViontoPage() {
                 ))}
               </div>
 
-              <div className="mt-3" aria-label={t("vionto.storyMode.label")}>
-                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.storyMode.label")}</p>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  {STORY_MODE_OPTIONS.map((option) => (
-                    <label
-                      key={option.value}
-                      className={`flex cursor-pointer items-start rounded-lg border p-2.5 transition ${
-                        selectedStoryMode === option.value
-                          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/15 text-[var(--color-text)]"
-                          : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="vionto-story-mode"
-                        className="sr-only"
-                        value={option.value}
-                        checked={selectedStoryMode === option.value}
-                        onChange={() => setSelectedStoryMode(option.value)}
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-medium">{t(option.labelKey)}</span>
-                        <span className="text-xs opacity-80">{t(option.descriptionKey)}</span>
-                      </div>
-                    </label>
-                  ))}
+              <div className="mt-3 flex gap-3" aria-label={t("vionto.storyMode.label")}>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.storyMode.label")}</p>
+                  <select
+                    value={selectedStoryMode}
+                    onChange={(e) => setSelectedStoryMode(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                  >
+                    {STORY_MODE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.emotionalTone.label")}</p>
+                  <select
+                    value={selectedEmotionalTone}
+                    onChange={(e) => setSelectedEmotionalTone(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)]"
+                  >
+                    {EMOTIONAL_TONE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -1627,6 +1642,11 @@ export function ViontoPage() {
                           {item.storyMode && (
                             <span className="shrink-0 rounded-full border border-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] text-[var(--color-accent)]">
                               {t(`vionto.storyMode.${item.storyMode}`)}
+                            </span>
+                          )}
+                          {item.emotionalTone && (
+                            <span className="shrink-0 rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
+                              {t(`vionto.emotionalTone.${item.emotionalTone}`)}
                             </span>
                           )}
                           {item.aspectLabel && (

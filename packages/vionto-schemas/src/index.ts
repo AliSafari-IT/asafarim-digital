@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export const ProjectMode = z.enum(["story", "slideshow", "documentary"]);
 export const StoryMode = z.enum(["memory_film", "travel_recap", "family_archive", "event_recap", "social_reel", "documentary"]);
+export const EmotionalTone = z.enum(["nostalgic", "joyful", "calm", "epic", "funny", "romantic", "reflective"]);
 export const AspectRatio = z.enum(["16:9", "9:16", "1:1", "4:3"]);
 export const Resolution = z.enum(["720p", "1080p", "4k"]);
 export const FrameRate = z.number().int().positive().default(30);

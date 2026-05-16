@@ -165,6 +165,7 @@ export type StoryPromptContext = {
   locale: string;
   mode: "story" | "slideshow" | "documentary";
   storyMode?: string;
+  emotionalTone?: string;
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
@@ -181,6 +182,9 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   if (ctx.storyMode) {
     lines.push(`Story mode: ${ctx.storyMode}`);
   }
+  if (ctx.emotionalTone) {
+    lines.push(`Emotional tone: ${ctx.emotionalTone}`);
+  }
   if (ctx.userNotes && ctx.userNotes.trim()) {
     lines.push(`User notes: ${ctx.userNotes.trim()}`);
   }
@@ -192,6 +196,30 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   }
   lines.push("");
   lines.push("Instructions:");
+  
+  // Add emotional tone-specific instructions
+  if (ctx.emotionalTone === "nostalgic") {
+    lines.push("- Write warm, reflective, memory-focused narration with a slower, contemplative pace.");
+    lines.push("- Use language that evokes longing, fondness, and sentimental reflection.");
+  } else if (ctx.emotionalTone === "joyful") {
+    lines.push("- Write bright, celebratory, upbeat narration for happy moments and events.");
+    lines.push("- Use enthusiastic, energetic language that captures joy and excitement.");
+  } else if (ctx.emotionalTone === "calm") {
+    lines.push("- Write soft, peaceful, minimal narration with a gentle, unhurried pace.");
+    lines.push("- Use serene, tranquil language that creates a sense of peace and relaxation.");
+  } else if (ctx.emotionalTone === "epic") {
+    lines.push("- Write cinematic, dramatic, grand narration for big trips, milestones, and highlights.");
+    lines.push("- Use powerful, awe-inspiring language that conveys magnitude and significance.");
+  } else if (ctx.emotionalTone === "funny") {
+    lines.push("- Write light, playful, witty narration for casual albums and social edits.");
+    lines.push("- Use humorous, clever language that brings a smile and lightens the mood.");
+  } else if (ctx.emotionalTone === "romantic") {
+    lines.push("- Write tender, intimate, affectionate narration for couples, weddings, anniversaries, and love stories.");
+    lines.push("- Use loving, gentle language that expresses affection and deep emotional connection.");
+  } else if (ctx.emotionalTone === "reflective") {
+    lines.push("- Write thoughtful, grounded, introspective narration for personal archives or meaningful life moments.");
+    lines.push("- Use contemplative, sincere language that encourages deeper meaning and insight.");
+  }
   
   // Add story mode-specific instructions
   if (ctx.storyMode === "memory_film") {
@@ -212,7 +240,7 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   } else if (ctx.storyMode === "documentary") {
     lines.push("- Write slower, more factual narration with emphasis on timeline, context, and observed details.");
     lines.push("- Focus on historical context and factual accuracy.");
-  } else {
+  } else if (!ctx.emotionalTone) {
     lines.push("- Write a cohesive narration that flows across the provided images.");
   }
   

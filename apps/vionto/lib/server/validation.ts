@@ -105,6 +105,7 @@ export const createProjectSchema = z.object({
   description: z.string().max(2000).optional(),
   mode: z.enum(["story", "slideshow", "documentary"]).default("story"),
   storyMode: z.string().optional(),
+  emotionalTone: z.string().optional(),
   locale: z.string().min(2).max(10).default("en"),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),

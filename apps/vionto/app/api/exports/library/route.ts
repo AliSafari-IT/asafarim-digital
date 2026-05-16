@@ -78,7 +78,7 @@ export async function GET(req: Request) {
         durationSeconds: true,
         fileSizeBytes: true,
         createdAt: true,
-        project: { select: { title: true, storyMode: true } },
+        project: { select: { title: true, storyMode: true, emotionalTone: true } },
       },
     });
 
@@ -92,6 +92,7 @@ export async function GET(req: Request) {
       filename: item.filename,
       mode: item.userMode,
       storyMode: item.project.storyMode,
+      emotionalTone: item.project.emotionalTone,
       renderMode: item.renderMode,
       aspectRatio: item.aspectRatio,
       aspectLabel: item.aspectLabel,
