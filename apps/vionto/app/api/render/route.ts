@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { renderQueue } from "@/lib/server/queue";
-import { safeParseManifest } from "@/lib/server/render-manifest";
+import { safeParseManifest, type RenderAsset } from "@/lib/server/render-manifest";
 import { fetchPixabayMusicByCategory, selectTrackByDuration } from "@/lib/server/pixabay-music";
+import { analyzeProjectForPacing, applyPacingToAssets } from "@/lib/server/smart-pacing";
 
 export const runtime = "nodejs";
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true },
+      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -130,6 +131,40 @@ export async function POST(req: Request) {
         return badRequest("Select a narration voice before rendering.");
       }
 
+      // Run smart pacing analysis
+      let pacingAssets: RenderAsset[] = assets.map((asset) => ({
+        storageKey: asset.storageKey!,
+        width: asset.width ?? undefined,
+        height: asset.height ?? undefined,
+        durationSeconds: 5,
+      }));
+      let targetDurationSeconds = assets.length * 5;
+      
+      try {
+        const pacingResult = await analyzeProjectForPacing(
+          project.id,
+          project.emotionalTone || "nostalgic",
+          project.storyMode || "memory_film",
+          {
+            targetTotalDurationSeconds: targetDurationSeconds,
+          }
+        );
+        
+        console.log("[render] Smart pacing summary:", pacingResult.summary);
+
+        // Apply pacing to assets
+        pacingAssets = applyPacingToAssets(
+          assets.map((a) => ({ storageKey: a.storageKey!, width: a.width ?? undefined, height: a.height ?? undefined })),
+          pacingResult.pacingPlan
+        );
+        
+        // Update target duration based on pacing
+        targetDurationSeconds = pacingResult.summary.totalDuration;
+      } catch (error) {
+        console.error("[render] Smart pacing analysis failed, using defaults:", error);
+        // Continue with default pacing if analysis fails
+      }
+
       // Handle music selection
       let musicTracks: Array<Record<string, unknown>> = [];
       if (project.musicOption && project.musicOption !== "no_music") {
@@ -191,13 +226,16 @@ export async function POST(req: Request) {
         userId: user.id,
         jobId: job.id,
         mode: toRenderMode(project.mode),
-        targetDurationSeconds: assets.length * 5,
+        targetDurationSeconds: targetDurationSeconds,
         aspectRatio: project.aspectRatio ?? "16:9",
         resolution: project.resolution ?? "1080p",
-        assets: assets.map((asset) => ({
+        assets: pacingAssets.map((asset) => ({
           storageKey: asset.storageKey,
           width: asset.width ?? undefined,
           height: asset.height ?? undefined,
+          durationSeconds: asset.durationSeconds,
+          motion: asset.motion,
+          transition: asset.transition,
         })),
         narrationText: latestScript?.narrationText ?? undefined,
         srtText: latestScript?.srtText ?? undefined,
