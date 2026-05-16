@@ -26,7 +26,8 @@
     "tc": "pnpm typecheck",
     "db": "docker compose up -d postgres",
     "onVPS:dockerDown": "docker compose down",
-    "seed": "turbo seed"
+    "seed": "turbo seed",
+    "redis": "docker compose ps redis"
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
