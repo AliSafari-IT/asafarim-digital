@@ -1009,18 +1009,31 @@ export function ViontoPage() {
     const handleEnded = () => {
       setMusicPreviewTrackId(null);
       audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
-    };
-    const handleError = () => {
-      console.error("Failed to preview audio");
-      setMusicPreviewTrackId(null);
-      audio.removeEventListener("ended", handleEnded);
-      audio.removeEventListener("error", handleError);
     };
 
     audio.addEventListener("ended", handleEnded);
-    audio.addEventListener("error", handleError);
-    await audio.play();
+
+    try {
+      // Wait for audio to be ready to play
+      await new Promise<void>((resolve, reject) => {
+        const handleCanPlay = () => {
+          audio.removeEventListener("canplay", handleCanPlay);
+          audio.removeEventListener("error", handleLoadError);
+          resolve();
+        };
+        const handleLoadError = (e: Event) => {
+          audio.removeEventListener("canplay", handleCanPlay);
+          audio.removeEventListener("error", handleLoadError);
+          reject((e.target as HTMLAudioElement)?.error || new Error("Failed to load audio"));
+        };
+        audio.addEventListener("canplay", handleCanPlay);
+        audio.addEventListener("error", handleLoadError);
+      });
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to play audio:", error);
+      setMusicPreviewTrackId(null);
+    }
   };
 
   return (

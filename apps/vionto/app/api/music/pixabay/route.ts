@@ -27,6 +27,7 @@ export async function GET(req: Request) {
     const category = searchParams.get("category");
     const trackId = searchParams.get("trackId");
     const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const safeLimit = isNaN(limit) ? 10 : limit;
     const query = searchParams.get("query") || undefined;
     const minDuration = searchParams.get("minDuration");
     const maxDuration = searchParams.get("maxDuration");
@@ -57,22 +58,24 @@ export async function GET(req: Request) {
       );
     }
 
-    if (limit < 1 || limit > 50) {
+    if (safeLimit < 1 || safeLimit > 50) {
       return NextResponse.json(
         { error: "limit must be between 1 and 50" },
         { status: 400 }
       );
     }
 
-    const tracks = await fetchPixabayMusicByCategory(category, limit, query);
+    const tracks = await fetchPixabayMusicByCategory(category, safeLimit, query);
     
     // Filter by duration if specified
     let filteredTracks = tracks;
     if (minDuration || maxDuration) {
+      const min = minDuration ? parseInt(minDuration, 10) : undefined;
+      const max = maxDuration ? parseInt(maxDuration, 10) : undefined;
       filteredTracks = tracks.filter(track => {
         if (!track.duration) return false;
-        if (minDuration && track.duration < parseInt(minDuration, 10)) return false;
-        if (maxDuration && track.duration > parseInt(maxDuration, 10)) return false;
+        if (min !== undefined && !isNaN(min) && track.duration < min) return false;
+        if (max !== undefined && !isNaN(max) && track.duration > max) return false;
         return true;
       });
     }
