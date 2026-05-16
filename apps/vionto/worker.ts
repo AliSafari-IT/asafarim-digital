@@ -115,6 +115,15 @@ function runFfmpeg(args: string[], workDir: string, logLines: string[]): Promise
   });
 }
 
+async function downloadUrlToLocalFile(url: string, path: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`download failed ${response.status} ${response.statusText}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  await writeFile(path, buffer);
+}
+
 /** Main job processor. */
 async function processRenderJob(jobId: string, manifestRaw: unknown) {
   const logLines: string[] = [`[${new Date().toISOString()}] Job ${jobId} start`];
@@ -181,7 +190,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     let narrationWavPath: string | undefined;
     let musicPath: string | undefined;
     const narrationTrack = manifest.audioTracks.find((t) => t.type === "narration");
-    const musicTrack = manifest.audioTracks.find((t) => t.type === "music" && t.storageKey);
+    const musicTracks = manifest.audioTracks.filter((t) => t.type === "music" && (t.storageKey || t.downloadUrl));
 
     if (narrationTrack?.storageKey) {
       const ext = extname(narrationTrack.storageKey).replace(/[^a-zA-Z0-9.]/g, "") || ".mp3";
@@ -200,11 +209,44 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
       logLines.push(`TTS done (${ttsResult.provider}, ${ttsResult.latencyMs}ms)`);
     }
 
-    if (musicTrack?.storageKey) {
-      const ext = extname(musicTrack.storageKey).replace(/[^a-zA-Z0-9.]/g, "") || ".mp3";
-      musicPath = join(workDir, `music${ext}`);
-      await downloadObjectToLocalFile(musicTrack.storageKey, musicPath);
-      logLines.push(`Downloaded music audio: ${musicTrack.storageKey}`);
+    if (musicTracks.length > 0) {
+      const localMusicPaths: string[] = [];
+      for (let i = 0; i < musicTracks.length; i++) {
+        const track = musicTracks[i];
+        const sourcePath = track.storageKey ?? track.downloadUrl ?? "";
+        const sourceExt = (() => {
+          try {
+            return extname(track.storageKey ?? new URL(track.downloadUrl ?? "").pathname);
+          } catch {
+            return "";
+          }
+        })().replace(/[^a-zA-Z0-9.]/g, "") || ".mp3";
+        const localPath = join(workDir, `music_${String(i).padStart(2, "0")}${sourceExt}`);
+        if (track.storageKey) {
+          await downloadObjectToLocalFile(track.storageKey, localPath);
+          logLines.push(`Downloaded music audio: ${track.storageKey}`);
+        } else if (track.downloadUrl) {
+          await downloadUrlToLocalFile(track.downloadUrl, localPath);
+          logLines.push(`Downloaded music audio from URL: ${track.downloadUrl}`);
+        }
+        localMusicPaths.push(localPath);
+      }
+
+      if (localMusicPaths.length === 1) {
+        musicPath = localMusicPaths[0];
+      } else {
+        musicPath = join(workDir, "music_playlist.mp3");
+        await runFfmpeg([
+          ...localMusicPaths.flatMap((path) => ["-i", path]),
+          "-filter_complex",
+          `${localMusicPaths.map((_, index) => `[${index}:a]`).join("")}concat=n=${localMusicPaths.length}:v=0:a=1[outa]`,
+          "-map",
+          "[outa]",
+          "-y",
+          musicPath,
+        ], workDir, logLines);
+        logLines.push(`Concatenated ${localMusicPaths.length} music tracks`);
+      }
     }
     await updateState(jobId, "running", { progressPercent: 25 });
 

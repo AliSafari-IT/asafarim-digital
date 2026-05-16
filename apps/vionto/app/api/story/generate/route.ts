@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true },
+      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, musicOption: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -213,6 +213,7 @@ export async function POST(req: Request) {
         model: success.model,
         narrationText: narration,
         srtText: srtText,
+        musicOption: project.musicOption || null,
         promptTokens: success.promptTokens ?? null,
         completionTokens: success.completionTokens ?? null,
         totalTokens: success.totalTokens ?? null,

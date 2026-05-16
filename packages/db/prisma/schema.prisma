@@ -1231,6 +1231,12 @@ model ViontoProject {
   // Emotional tone: feeling/mood of the narration
   emotionalTone        String?  @default("nostalgic") // nostalgic, joyful, calm, epic, funny, romantic, reflective
 
+  // Music selection: soundtrack direction for the video
+  musicOption          String?  @default("no_music") // calm_piano, cinematic_strings, travel_upbeat, family_warm_acoustic, no_music, upload_own
+  musicTrackId         String?  // Pixabay track ID if a specific track was selected
+  musicUploadKey       String?  // Storage key for user-uploaded music
+  musicMetadata        Json?    // Track metadata (title, artist, duration, tags, downloadUrl, license, etc.)
+
   // Target locale for narration / captions
   locale               String   @default("en-US")
 
@@ -1327,6 +1333,11 @@ model ViontoScript {
   // Content
   narrationText   String? @db.Text // Plain-text narration
   srtText         String? @db.Text // SubRip subtitle text
+
+  // Music selection for this script generation
+  musicOption     String?  // calm_piano, cinematic_strings, travel_upbeat, family_warm_acoustic, no_music, upload_own
+  musicTrackId    String?  // Pixabay track ID if a specific track was selected
+  musicMetadata   Json?    // Track metadata (title, artist, duration, tags, downloadUrl, license, etc.)
 
   // User override tracking
   isUserEdited    Boolean @default(false)
@@ -1452,6 +1463,11 @@ model ViontoExport {
   storyKeywords   Json?
   previewTitle    String?
   previewSubtitle String? @db.Text
+
+  // Music selection used for this export
+  musicOption     String?  // calm_piano, cinematic_strings, travel_upbeat, family_warm_acoustic, no_music, upload_own
+  musicTrackId    String?  // Pixabay track ID if a specific track was selected
+  musicMetadata   Json?    // Track metadata (title, artist, duration, tags, downloadUrl, license, etc.)
 
   // Signed URL for direct download (time-limited)
   signedUrl       String?

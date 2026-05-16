@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { renderQueue } from "@/lib/server/queue";
 import { safeParseManifest } from "@/lib/server/render-manifest";
+import { fetchPixabayMusicByCategory, selectTrackByDuration } from "@/lib/server/pixabay-music";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,35 @@ function toRenderMode(mode: string | null): "cinematic" | "slideshow" | "social"
   if (mode === "slideshow") return "slideshow";
   if (mode === "documentary") return "social";
   return "cinematic";
+}
+
+type ProjectMusicTrack = {
+  trackId?: string;
+  provider?: string;
+  downloadUrl?: string;
+  storageKey?: string;
+  duration?: number;
+  [key: string]: unknown;
+};
+
+function getProjectMusicTracks(metadata: Prisma.JsonValue | null): ProjectMusicTrack[] {
+  if (Array.isArray(metadata)) {
+    return metadata
+      .filter((track) => !!track && typeof track === "object" && !Array.isArray(track))
+      .map((track) => track as ProjectMusicTrack);
+  }
+
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    return [metadata as ProjectMusicTrack];
+  }
+
+  return [];
+}
+
+function isRenderableMusicTrack(track: ProjectMusicTrack): boolean {
+  return typeof track.storageKey === "string" || (
+    typeof track.downloadUrl === "string" && /^https?:\/\//i.test(track.downloadUrl)
+  );
 }
 
 /** POST /api/render — queue a new render job. */
@@ -33,7 +63,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true },
+      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -100,6 +130,62 @@ export async function POST(req: Request) {
         return badRequest("Select a narration voice before rendering.");
       }
 
+      // Handle music selection
+      let musicTracks: Array<Record<string, unknown>> = [];
+      if (project.musicOption && project.musicOption !== "no_music") {
+        const selectedMusicTracks = getProjectMusicTracks(project.musicMetadata);
+
+        const renderableMusicTracks = selectedMusicTracks.filter(isRenderableMusicTrack);
+
+        if (renderableMusicTracks.length > 0) {
+          musicTracks = renderableMusicTracks.map((track, index) => ({
+            type: "music",
+            provider: track.provider,
+            storageKey: track.storageKey,
+            downloadUrl: track.downloadUrl,
+            metadata: track,
+            startOffsetSeconds: index === 0
+              ? 0
+              : renderableMusicTracks
+                  .slice(0, index)
+                  .reduce((offset, previous) => offset + (typeof previous.duration === "number" ? previous.duration : 0), 0),
+          }));
+        } else if (project.musicOption === "upload_own" && project.musicUploadKey) {
+          // User-uploaded music
+          musicTracks = [{
+            type: "music",
+            storageKey: project.musicUploadKey,
+            metadata: project.musicMetadata,
+          }];
+        } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(project.musicOption)) {
+          // Fetch from Pixabay based on category
+          try {
+            const tracks = await fetchPixabayMusicByCategory(project.musicOption, 10);
+            const targetDuration = assets.length * 5; // Approximate video duration
+            const selectedTrack = selectTrackByDuration(tracks, targetDuration);
+            if (selectedTrack) {
+              musicTracks = [{
+                type: "music",
+                provider: "pixabay",
+                downloadUrl: selectedTrack.downloadUrl,
+                metadata: selectedTrack,
+              }];
+              // Update project with selected track metadata
+              await prisma.viontoProject.update({
+                where: { id: project.id },
+                data: {
+                  musicTrackId: selectedTrack.trackId,
+                  musicMetadata: [selectedTrack] as Prisma.InputJsonValue,
+                },
+              }).catch(() => null);
+            }
+          } catch (error) {
+            console.error("[render] Failed to fetch Pixabay music:", error);
+            // Continue without music if Pixabay fails
+          }
+        }
+      }
+
       const generatedManifest = {
         projectId: project.id,
         userId: user.id,
@@ -115,24 +201,27 @@ export async function POST(req: Request) {
         })),
         narrationText: latestScript?.narrationText ?? undefined,
         srtText: latestScript?.srtText ?? undefined,
-        audioTracks: audioTracks
-          .filter((track) => track.storageKey || track.voiceId)
-          .map((track) => {
-            const mixSettings = typeof track.mixSettings === "object" && track.mixSettings !== null && !Array.isArray(track.mixSettings)
-              ? track.mixSettings as Record<string, unknown>
-              : {};
-            return {
-              type: track.type,
-              storageKey: track.storageKey ?? undefined,
-              voiceId: track.voiceId ?? undefined,
-              voiceName: track.voiceName ?? undefined,
-              volume: typeof mixSettings.volume === "number" ? mixSettings.volume : undefined,
-              fadeInSeconds: typeof mixSettings.fadeInSeconds === "number" ? mixSettings.fadeInSeconds : undefined,
-              fadeOutSeconds: typeof mixSettings.fadeOutSeconds === "number" ? mixSettings.fadeOutSeconds : undefined,
-              startOffsetSeconds: typeof mixSettings.startOffsetSeconds === "number" ? mixSettings.startOffsetSeconds : undefined,
-              duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
-            };
-          }),
+        audioTracks: [
+          ...audioTracks
+            .filter((track) => track.storageKey || track.voiceId)
+            .map((track) => {
+              const mixSettings = typeof track.mixSettings === "object" && track.mixSettings !== null && !Array.isArray(track.mixSettings)
+                ? track.mixSettings as Record<string, unknown>
+                : {};
+              return {
+                type: track.type,
+                storageKey: track.storageKey ?? undefined,
+                voiceId: track.voiceId ?? undefined,
+                voiceName: track.voiceName ?? undefined,
+                volume: typeof mixSettings.volume === "number" ? mixSettings.volume : undefined,
+                fadeInSeconds: typeof mixSettings.fadeInSeconds === "number" ? mixSettings.fadeInSeconds : undefined,
+                fadeOutSeconds: typeof mixSettings.fadeOutSeconds === "number" ? mixSettings.fadeOutSeconds : undefined,
+                startOffsetSeconds: typeof mixSettings.startOffsetSeconds === "number" ? mixSettings.startOffsetSeconds : undefined,
+                duckGainDuringNarration: typeof mixSettings.duckGainDuringNarration === "number" ? mixSettings.duckGainDuringNarration : undefined,
+              };
+            }),
+          ...musicTracks,
+        ],
       };
 
       const parsed = safeParseManifest(generatedManifest);

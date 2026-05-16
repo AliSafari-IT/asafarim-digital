@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
@@ -15,6 +16,7 @@ import {
   ImagePlus,
   ListChecks,
   Mic,
+  Pause,
   Play,
   Plus,
   RefreshCw,
@@ -150,15 +152,33 @@ export function ViontoPage() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      musicPreviewAudioRef.current?.pause();
+      musicPreviewAudioRef.current = null;
+    };
+  }, []);
+
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
+  const [selectedMusicTracks, setSelectedMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
+  const [musicBlobUrls, setMusicBlobUrls] = useState<Set<string>>(new Set());
+  const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
+  const [isMusicLoading, setIsMusicLoading] = useState(false);
+  const [musicFilterQuery, setMusicFilterQuery] = useState("");
+  const [musicFilterMinDuration, setMusicFilterMinDuration] = useState("");
+  const [musicFilterMaxDuration, setMusicFilterMaxDuration] = useState("");
+  const [showMusicSelector, setShowMusicSelector] = useState(false);
+  const [musicPreviewTrackId, setMusicPreviewTrackId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const musicUploadInputRef = useRef<HTMLInputElement>(null);
+  const musicPreviewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Render state
   const [renderJobId, setRenderJobId] = useState<string | null>(null);
@@ -394,13 +414,18 @@ export function ViontoPage() {
 
   async function saveProjectSettings() {
     if (!selectedProjectId) return;
-    const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
     try {
+      const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch(`/api/projects/${selectedProjectId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: apiMode,
+          storyMode: selectedStoryMode,
+          emotionalTone: selectedEmotionalTone,
+          musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
+          musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
+          musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
         }),
       });
@@ -408,7 +433,7 @@ export function ViontoPage() {
         setProjects((prev) =>
           prev.map((project) =>
             project.id === selectedProjectId
-              ? { ...project, mode: apiMode, aspectRatio: activeAspectRatio }
+              ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
               : project
           )
         );
@@ -631,6 +656,9 @@ export function ViontoPage() {
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
+          musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
+          musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
           locale: locale.split("-")[0] ?? "en",
         }),
@@ -910,6 +938,103 @@ export function ViontoPage() {
       prev.map((v) => (v.id === scriptId ? { ...v, narrationText: narration, srtText: srt, isUserEdited: true } : v))
     );
   }, []);
+
+
+  // Handle music track selection
+  const handleSelectMusicTrack = (track: NormalizedTrackMetadata) => {
+    setSelectedMusicTracks((current) => (
+      current.some((selected) => selected.trackId === track.trackId && selected.provider === track.provider)
+        ? current
+        : [...current, track]
+    ));
+    setShowMusicSelector(false);
+  };
+
+  const clearMusicSelection = () => {
+    musicPreviewAudioRef.current?.pause();
+    musicPreviewAudioRef.current = null;
+    setMusicPreviewTrackId(null);
+    // Revoke all blob URLs
+    musicBlobUrls.forEach((url) => URL.revokeObjectURL(url));
+    setMusicBlobUrls(new Set());
+    setSelectedMusicTracks([]);
+    setShowMusicSelector(false);
+  };
+
+  const removeMusicTrack = (track: NormalizedTrackMetadata) => {
+    if (musicPreviewTrackId === track.trackId) {
+      musicPreviewAudioRef.current?.pause();
+      musicPreviewAudioRef.current = null;
+      setMusicPreviewTrackId(null);
+    }
+    // Revoke blob URL if this is an uploaded track
+    if (track.provider === "upload" && track.downloadUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(track.downloadUrl);
+      setMusicBlobUrls((prev) => {
+        const next = new Set(prev);
+        next.delete(track.downloadUrl);
+        return next;
+      });
+    }
+    setSelectedMusicTracks((current) =>
+      current.filter((selected) => !(selected.trackId === track.trackId && selected.provider === track.provider))
+    );
+  };
+
+  const openMoreMusic = () => {
+    setShowMusicSelector(true);
+  };
+
+  const toggleMusicPreview = async (track: NormalizedTrackMetadata) => {
+    if (musicPreviewTrackId === track.trackId) {
+      musicPreviewAudioRef.current?.pause();
+      musicPreviewAudioRef.current = null;
+      setMusicPreviewTrackId(null);
+      return;
+    }
+
+    const previewUrl = track.downloadUrl;
+
+    // Clean up previous audio
+    if (musicPreviewAudioRef.current) {
+      musicPreviewAudioRef.current.pause();
+      musicPreviewAudioRef.current.src = "";
+      musicPreviewAudioRef.current.load();
+    }
+
+    const audio = new Audio(previewUrl);
+    musicPreviewAudioRef.current = audio;
+    setMusicPreviewTrackId(track.trackId);
+
+    const handleEnded = () => {
+      setMusicPreviewTrackId(null);
+      audio.removeEventListener("ended", handleEnded);
+    };
+
+    audio.addEventListener("ended", handleEnded);
+
+    try {
+      // Wait for audio to be ready to play
+      await new Promise<void>((resolve, reject) => {
+        const handleCanPlay = () => {
+          audio.removeEventListener("canplay", handleCanPlay);
+          audio.removeEventListener("error", handleLoadError);
+          resolve();
+        };
+        const handleLoadError = (e: Event) => {
+          audio.removeEventListener("canplay", handleCanPlay);
+          audio.removeEventListener("error", handleLoadError);
+          reject((e.target as HTMLAudioElement)?.error || new Error("Failed to load audio"));
+        };
+        audio.addEventListener("canplay", handleCanPlay);
+        audio.addEventListener("error", handleLoadError);
+      });
+      await audio.play();
+    } catch (error) {
+      console.error("Failed to play audio:", error);
+      setMusicPreviewTrackId(null);
+    }
+  };
 
   return (
     <main className="min-h-screen text-[var(--text)]" style={{ background: 'var(--color-bg)' }}>
@@ -1312,6 +1437,146 @@ export function ViontoPage() {
                   </select>
                 </div>
               </div>
+
+              <div className="mt-3" aria-label={t("vionto.music.label")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.music.label")}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={openMoreMusic}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("vionto.music.more")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearMusicSelection}
+                    disabled={selectedMusicTracks.length === 0}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm font-medium text-[var(--color-text-muted)] hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t("vionto.music.removeAll")}
+                  </button>
+                </div>
+                {selectedMusicTracks.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {selectedMusicTracks.map((track, index) => (
+                      <div key={`${track.provider}-${track.trackId}`} className="flex items-center gap-2 rounded-lg border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-xs font-semibold text-white">
+                          {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleMusicPreview(track)}
+                          className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80"
+                          title={musicPreviewTrackId === track.trackId ? t("vionto.audio.previewing") : t("vionto.audio.preview")}
+                        >
+                          {musicPreviewTrackId === track.trackId ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[var(--color-text)] truncate">{track.title}</p>
+                          <p className="text-xs text-[var(--color-text-muted)]">{track.artist}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeMusicTrack(track)}
+                          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                          title={t("vionto.music.remove")}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Music Track Selector Modal */}
+              {showMusicSelector && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className="w-full max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 max-h-[80vh] overflow-y-auto">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-[var(--color-text)]">
+                        {t("vionto.music.upload_own")}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowMusicSelector(false)}
+                        className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {/* Upload Own Music UI */}
+                    <div className="space-y-4">
+                        <div className="border-2 border-dashed border-[var(--color-border)] rounded-lg p-8 text-center">
+                          <input
+                            ref={musicUploadInputRef}
+                            type="file"
+                            accept="audio/*"
+                            multiple
+                            onChange={async (e) => {
+                              const files = Array.from(e.target.files ?? []);
+                              if (files.length === 0) return;
+
+                              const uploadedTracks = files.map((file, index) => {
+                                const url = URL.createObjectURL(file);
+                                return {
+                                  provider: "upload",
+                                  trackId: `upload_${Date.now()}_${index}`,
+                                  title: file.name.replace(/\.[^/.]+$/, ""),
+                                  artist: "Uploaded",
+                                  artistId: "upload",
+                                  duration: undefined,
+                                  tags: ["uploaded"],
+                                  sourceUrl: url,
+                                  downloadUrl: url,
+                                  license: "uploaded",
+                                  licenseInfo: t("vionto.music.uploadDisclaimer"),
+                                  downloads: 0,
+                                  likes: 0,
+                                } satisfies NormalizedTrackMetadata;
+                              });
+
+                              setSelectedMusicTracks((current) => [...current, ...uploadedTracks]);
+                              setMusicBlobUrls((prev) => {
+                                const next = new Set(prev);
+                                uploadedTracks.forEach((track) => next.add(track.downloadUrl));
+                                return next;
+                              });
+                              setShowMusicSelector(false);
+                              // Reset input value to allow selecting the same file again
+                              e.target.value = "";
+                            }}
+                            className="hidden"
+                            id="music-upload"
+                          />
+                          <label
+                            htmlFor="music-upload"
+                            className="cursor-pointer flex flex-col items-center gap-2"
+                          >
+                            <CloudUpload className="h-12 w-12 text-[var(--color-text-muted)]" />
+                            <p className="text-sm text-[var(--color-text)]">
+                              {t("vionto.music.upload_own")}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)]">
+                              MP3, WAV, OGG, M4A
+                            </p>
+                          </label>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-muted)] text-center">
+                          {t("vionto.music.uploadDisclaimer")}
+                        </p>
+                      </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3" aria-label={t("vionto.aspect.aria")}>
                 <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.aspect.label")}</p>

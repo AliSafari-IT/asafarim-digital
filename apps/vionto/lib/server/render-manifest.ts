@@ -44,6 +44,9 @@ export const renderAssetSchema = z.object({
 export const audioTrackSchema = z.object({
   storageKey: z.string().min(1).optional(),
   type: z.enum(["narration", "music", "sfx"]),
+  provider: z.string().optional(),
+  downloadUrl: z.string().url().optional(),
+  metadata: z.any().optional(),
   voiceId: z.string().min(1).optional(),
   voiceName: z.string().optional(),
   volume: z.number().min(0).max(2).default(1),
@@ -51,7 +54,7 @@ export const audioTrackSchema = z.object({
   fadeOutSeconds: z.number().min(0).max(5).default(0),
   startOffsetSeconds: z.number().min(0).default(0),
   duckGainDuringNarration: z.number().min(0).max(1).optional(),
-});
+}).passthrough();
 
 export const renderManifestSchema = z.object({
   projectId: z.string().min(1),
@@ -65,7 +68,7 @@ export const renderManifestSchema = z.object({
   frameRate: z.number().int().positive().default(30),
 
   assets: z.array(renderAssetSchema).min(1).max(200),
-  audioTracks: z.array(audioTrackSchema).max(8).default([]),
+  audioTracks: z.array(audioTrackSchema).max(16).default([]),
 
   narrationText: z.string().optional(),
   srtText: z.string().optional(),
