@@ -13,6 +13,7 @@ import { createServer } from "node:http";
 import { extname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { prisma } from "@asafarim/db";
+import { Prisma } from "@asafarim/db";
 import { safeParseManifest } from "./lib/server/render-manifest";
 import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./lib/server/ffmpeg";
 import { buildExportMetadata } from "./lib/server/export-metadata";
@@ -311,7 +312,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     const outputPath = join(workDir, "output.mp4");
     const project = await prisma.viontoProject.findFirst({
       where: { id: manifest.projectId, userId: manifest.userId },
-      select: { title: true },
+      select: { title: true, musicOption: true, musicTrackId: true, musicMetadata: true },
     });
     const exportMetadata = buildExportMetadata({
       manifest,
@@ -346,6 +347,9 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         storyKeywords: exportMetadata.storyKeywords,
         previewTitle: exportMetadata.previewTitle,
         previewSubtitle: exportMetadata.previewSubtitle,
+        musicOption: project?.musicOption,
+        musicTrackId: project?.musicTrackId,
+        musicMetadata: project?.musicMetadata as Prisma.InputJsonValue | undefined,
       },
     });
 

@@ -225,7 +225,7 @@ export async function POST(req: Request) {
               await prisma.viontoProject.update({
                 where: { id: project.id },
                 data: {
-                  musicTrackId: selectedTrack.trackId,
+                  musicTrackId: selectedTrack.trackId ?? undefined,
                   musicMetadata: [selectedTrack] as Prisma.InputJsonValue,
                 },
               }).catch(() => null);
