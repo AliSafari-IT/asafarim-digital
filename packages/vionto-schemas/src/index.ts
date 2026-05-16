@@ -215,6 +215,16 @@ export const transitionPresetSchema = z.object({
   durationSeconds: z.number().min(0).max(2).default(0.5),
 });
 
+export const VisualStyle = z.enum([
+  "film_grain",
+  "polaroid_memory",
+  "clean_modern_slideshow",
+  "travel_map_overlay",
+  "vhs_archive",
+  "wedding_cinematic",
+  "social_vertical_captions",
+]).default("clean_modern_slideshow");
+
 export const renderAssetSchema = z.object({
   storageKey: z.string().min(1),
   width: z.number().int().positive().optional(),
@@ -243,6 +253,7 @@ export const renderManifestSchema = z.object({
   jobId: z.string().min(1),
 
   mode: z.enum(["cinematic", "slideshow", "social"]).default("cinematic"),
+  visualStyle: VisualStyle,
   targetDurationSeconds: z.number().positive().optional(),
   aspectRatio: AspectRatio.default("16:9"),
   resolution: Resolution.default("1080p"),
@@ -290,6 +301,7 @@ export type AudioTrack = z.infer<typeof audioTrackSchema>;
 export type MotionPreset = z.infer<typeof motionPresetSchema>;
 export type TransitionPreset = z.infer<typeof transitionPresetSchema>;
 export type SubtitleStyle = z.infer<typeof subtitleStyleSchema>;
+export type VisualStyle = z.infer<typeof VisualStyle>;
 export type RenderJobResponse = z.infer<typeof renderJobResponseSchema>;
 
 export function parseManifest(payload: unknown): RenderManifest {

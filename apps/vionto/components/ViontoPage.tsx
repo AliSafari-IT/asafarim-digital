@@ -29,6 +29,7 @@ import {
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
+import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
 
 function ViontoMark({ className = "" }: { className?: string }) {
   return (
@@ -104,6 +105,7 @@ type ProjectSummary = {
   mode: string;
   storyMode?: string | null;
   emotionalTone?: string | null;
+  visualStyle?: string | null;
   musicOption?: string | null;
   musicTrackId?: string | null;
   musicMetadata?: unknown;
@@ -145,6 +147,7 @@ type LibraryExport = {
   mode: UiMode | null;
   storyMode: string | null;
   emotionalTone: string | null;
+  visualStyle: string | null;
   aspectRatio: string | null;
   aspectLabel: string | null;
   keywords: string[];
@@ -195,6 +198,7 @@ export function ViontoPage() {
   const [userNotes, setUserNotes] = useState("");
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
+  const [selectedVisualStyle, setSelectedVisualStyle] = useState<VisualStyle>(DEFAULT_VISUAL_STYLE);
   const [selectedMusicTracks, setSelectedMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
   const [musicBlobUrls, setMusicBlobUrls] = useState<Set<string>>(new Set());
   const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
@@ -283,6 +287,7 @@ export function ViontoPage() {
         setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
         setSelectedStoryMode(selected.storyMode ?? "memory_film");
         setSelectedEmotionalTone(selected.emotionalTone ?? "nostalgic");
+        setSelectedVisualStyle(normalizeVisualStyle(selected.visualStyle));
         setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
@@ -298,6 +303,7 @@ export function ViontoPage() {
       setVersions([]);
       setSelectedVoice(null);
       setSelectedMusicTracks([]);
+      setSelectedVisualStyle(DEFAULT_VISUAL_STYLE);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
@@ -459,6 +465,7 @@ export function ViontoPage() {
           mode: apiMode,
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          visualStyle: selectedVisualStyle,
           musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
@@ -472,7 +479,7 @@ export function ViontoPage() {
       setProjects((prev) =>
         prev.map((project) =>
           project.id === selectedProjectId
-            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
             : project
         )
       );
@@ -701,6 +708,7 @@ export function ViontoPage() {
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
+          visualStyle: selectedVisualStyle,
           musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
@@ -935,6 +943,7 @@ export function ViontoPage() {
           projectId: selectedProjectId,
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
+          visualStyle: selectedVisualStyle,
           userNotes: userNotes.trim() || undefined,
         }),
       });
@@ -966,7 +975,7 @@ export function ViontoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, userNotes, selectedProjectId]);
+  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -1130,7 +1139,7 @@ export function ViontoPage() {
 
   return (
     <main className="min-h-screen text-[var(--text)]" style={{ background: 'var(--color-bg)' }}>
-      <section className="workspace-shell">
+      <section className="workspace-shell m-0">
         {/* ─── Sidebar ─────────────────────────────────────────────── */}
         <aside
           aria-label="Vionto workspace navigation"
@@ -1276,7 +1285,7 @@ export function ViontoPage() {
           </div>
 
           <div className="creator-grid" id="create">
-            <section className="upload-panel" id="uploads" aria-labelledby="upload-title">
+            <section className="upload-panel w-full max-w-full" id="uploads" aria-labelledby="upload-title">
               <div>
                 <p className="eyebrow">{t("vionto.upload.eyebrow")}</p>
                 <h2 id="upload-title">{t("vionto.upload.title")}</h2>
@@ -1286,7 +1295,7 @@ export function ViontoPage() {
               {/* Project picker */}
               <div className="mt-3">
                 <label className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.project.label")}</label>
-                <div className="mt-1 flex gap-2">
+                <div className="project-picker-row mt-1">
                   <select
                     className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                     value={selectedProjectId ?? ""}
@@ -1302,7 +1311,7 @@ export function ViontoPage() {
                     type="button"
                     onClick={() => setIsCreatingProject(true)}
                     disabled={isUploading}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                    className="project-new-button inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                   >
                     <Plus size={16} /> {t("vionto.project.new")}
                   </button>
@@ -1358,7 +1367,7 @@ export function ViontoPage() {
                     className="dropzone"
                     role="button"
                     tabIndex={0}
-                    aria-label="Upload images or zip file"
+                    aria-label={t("vionto.upload.dropzoneLabel")}
                     onClick={() => !isUploading && fileInputRef.current?.click()}
                     onKeyDown={(e) => e.key === "Enter" && !isUploading && fileInputRef.current?.click()}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -1427,7 +1436,7 @@ export function ViontoPage() {
                   <p className="text-xs font-medium text-[var(--color-text-muted)]">
                     {t("vionto.project.assets")} ({projectAssets.length})
                   </p>
-                  <ul className="mt-1 grid grid-cols-4 gap-2">
+                  <ul className="project-assets-grid mt-1">
                     {projectAssets.map((a, idx) => (
                       <li
                         key={a.id}
@@ -1457,7 +1466,7 @@ export function ViontoPage() {
                           next.splice(to, 0, moved);
                           reorderAssets(next.map((x, i) => ({ ...x, orderIndex: i })));
                         }}
-                        className={`aspect-square rounded-lg bg-[var(--color-surface-soft)] border overflow-hidden relative group cursor-grab active:cursor-grabbing transition-all ${
+                        className={`asset-tile rounded-lg bg-[var(--color-surface-soft)] border overflow-hidden relative group cursor-grab active:cursor-grabbing transition-all ${
                           dragActiveId === a.id
                             ? "opacity-40 scale-95 border-[var(--color-accent)]"
                             : dragOverId === a.id
@@ -1466,7 +1475,7 @@ export function ViontoPage() {
                         }`}
                       >
                         <span className="absolute top-1 right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">{idx + 1}</span>
-                        <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="w-full h-full object-cover pointer-events-none" />
+                        <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="pointer-events-none" />
                         <button
                           type="button"
                           onClick={() => deleteAsset(a.id)}
@@ -1499,7 +1508,7 @@ export function ViontoPage() {
                 ))}
               </div>
 
-              <div className="mt-3 flex gap-3" aria-label={t("vionto.storyMode.label")}>
+              <div className="settings-row mt-3" aria-label={t("vionto.storyMode.label")}>
                 <div className="flex-1">
                   <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.storyMode.label")}</p>
                   <select
@@ -1527,6 +1536,30 @@ export function ViontoPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              <div className="mt-3" aria-label={t("vionto.visualStyle.label")}>
+                <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.visualStyle.label")}</p>
+                <div className="visual-style-grid mt-2">
+                  {VISUAL_STYLE_OPTIONS.map((option) => {
+                    const active = selectedVisualStyle === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setSelectedVisualStyle(option.value)}
+                        className={`rounded-lg border p-3 text-left transition ${
+                          active
+                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)]"
+                            : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{t(option.labelKey)}</span>
+                        <span className="mt-1 block text-xs leading-snug text-[var(--color-text-muted)]">{t(option.descriptionKey)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

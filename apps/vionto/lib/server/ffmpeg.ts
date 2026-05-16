@@ -5,7 +5,7 @@
  * subtitle burn-in, and audio mixing for cinematic / slideshow / social modes.
  */
 
-import type { RenderManifest, RenderAsset, MotionPreset, TransitionPreset, SubtitleStyle } from "./render-manifest";
+import type { RenderManifest, RenderAsset, MotionPreset, TransitionPreset, SubtitleStyle, VisualStyle } from "./render-manifest";
 
 export type FFmpegStage =
   | "prepare"
@@ -104,15 +104,38 @@ function buildZoompanExpr(motion: MotionPreset, frameRate: number, totalFrames: 
   return { zExpr, xExpr, yExpr };
 }
 
+function buildVisualStyleFilters(style: VisualStyle, hasSubtitles: boolean): string[] {
+  switch (style) {
+    case "film_grain":
+      return ["eq=contrast=1.05:saturation=0.92", "noise=alls=8:allf=t+u", "vignette=PI/6"];
+    case "polaroid_memory":
+      return ["eq=brightness=0.03:contrast=1.04:saturation=0.85", "vignette=PI/5"];
+    case "travel_map_overlay":
+      return ["eq=saturation=1.12:contrast=1.04", "drawgrid=width=iw/6:height=ih/6:thickness=1:color=white@0.10"];
+    case "vhs_archive":
+      return ["eq=contrast=1.12:saturation=0.70", "noise=alls=14:allf=t+u", "drawbox=x=0:y=0:w=iw:h=ih:color=black@0.12:t=6"];
+    case "wedding_cinematic":
+      return ["eq=contrast=1.08:saturation=1.06:brightness=0.01", "unsharp=5:5:0.45:3:3:0.15", "vignette=PI/7"];
+    case "social_vertical_captions":
+      return hasSubtitles
+        ? ["eq=contrast=1.10:saturation=1.12", "drawbox=x=0:y=ih*0.39:w=iw:h=ih*0.22:color=black@0.34:t=fill"]
+        : ["eq=contrast=1.10:saturation=1.12"];
+    case "clean_modern_slideshow":
+    default:
+      return [];
+  }
+}
+
 /** Build a single image-to-video segment command (no transitions). */
 function buildImageSegmentCmd(
   asset: RenderAsset,
   motion: MotionPreset,
   resolution: string,
+  aspectRatio: string,
   frameRate: number,
   outputPath: string
 ): string[] {
-  const res = getTargetDimensions(resolution, "16:9");
+  const res = getTargetDimensions(resolution, aspectRatio);
   const duration = asset.durationSeconds ?? motion.durationSeconds;
   const totalFrames = Math.max(1, Math.round(duration * frameRate));
   const { zExpr, xExpr, yExpr } = buildZoompanExpr(motion, frameRate, totalFrames);
@@ -172,7 +195,7 @@ export function buildRenderCommand(
     outputPath: string;
   }
 ): { steps: string[][]; concatListPath?: string } {
-  const { mode, resolution, frameRate, assets, aspectRatio } = manifest;
+  const { mode, resolution, frameRate, assets, aspectRatio, visualStyle } = manifest;
   const res = getTargetDimensions(resolution, aspectRatio);
   const steps: string[][] = [];
   const segmentPaths: string[] = [];
@@ -183,7 +206,7 @@ export function buildRenderCommand(
     const motion = asset.motion ?? pickMotionPreset(i, mode);
     const segPath = `${workDir}/seg_${String(i).padStart(4, "0")}.mp4`;
     segmentPaths.push(segPath);
-    steps.push(buildImageSegmentCmd(asset, motion, resolution, frameRate, segPath));
+    steps.push(buildImageSegmentCmd(asset, motion, resolution, aspectRatio, frameRate, segPath));
   }
 
   // Stage 2: concat segments
@@ -205,7 +228,7 @@ export function buildRenderCommand(
     finalArgs.push("-i", opts.musicPath);
   }
 
-  // Video filter: subtitles burn-in if requested
+  // Video filter: visual style treatment and subtitles burn-in if requested
   let videoFilter = "";
   if (manifest.burnSubtitles && opts.srtPath) {
     videoFilter = buildSubtitleFilter(manifest.subtitleStyle, opts.srtPath);
@@ -218,8 +241,9 @@ export function buildRenderCommand(
     : "";
 
   const vfParts: string[] = [];
-  if (videoFilter) vfParts.push(videoFilter);
   vfParts.push(`scale=${res.width}:${res.height}:force_original_aspect_ratio=decrease,pad=${res.width}:${res.height}:(ow-iw)/2:(oh-ih)/2:black`);
+  vfParts.push(...buildVisualStyleFilters(visualStyle, Boolean(videoFilter)));
+  if (videoFilter) vfParts.push(videoFilter);
 
   if (vfParts.length > 0) {
     finalArgs.push("-vf", vfParts.join(","));

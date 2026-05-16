@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { renderQueue } from "@/lib/server/queue";
-import { safeParseManifest, type RenderAsset } from "@/lib/server/render-manifest";
+import { safeParseManifest, type RenderAsset, type SubtitleStyle } from "@/lib/server/render-manifest";
 import { fetchPixabayMusicByCategory, selectTrackByDuration } from "@/lib/server/pixabay-music";
 import { analyzeProjectForPacing, applyPacingToAssets } from "@/lib/server/smart-pacing";
+import { DEFAULT_VISUAL_STYLE, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,29 @@ function isRenderableMusicTrack(track: ProjectMusicTrack): boolean {
   );
 }
 
+function buildSubtitleStyleForVisualStyle(visualStyle: VisualStyle, aspectRatio: string): Partial<SubtitleStyle> {
+  const isPortrait = aspectRatio === "9:16";
+  if (visualStyle === "social_vertical_captions") {
+    return {
+      fontName: "Arial",
+      fontSize: isPortrait ? 44 : 34,
+      outlineWidth: 4,
+      position: "center",
+      marginV: isPortrait ? 110 : 70,
+    };
+  }
+  if (visualStyle === "wedding_cinematic") {
+    return { fontName: "Georgia", fontSize: 30, outlineWidth: 2, position: "bottom", marginV: 70 };
+  }
+  if (visualStyle === "vhs_archive") {
+    return { fontName: "Courier New", fontSize: 26, outlineWidth: 3, position: "bottom", marginV: 54 };
+  }
+  if (visualStyle === "polaroid_memory") {
+    return { fontName: "Georgia", fontSize: 28, outlineWidth: 2, position: "bottom", marginV: 64 };
+  }
+  return {};
+}
+
 /** POST /api/render — queue a new render job. */
 export async function POST(req: Request) {
   try {
@@ -64,7 +88,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true },
+      select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true },
     });
     if (!project) {
       return badRequest("Project not found.");
@@ -76,6 +100,7 @@ export async function POST(req: Request) {
       musicMetadata: project.musicMetadata,
       musicUploadKey: project.musicUploadKey,
       musicTrackId: project.musicTrackId,
+      visualStyle: project.visualStyle,
     });
 
     // Validate manifest if provided; otherwise build a minimal one
@@ -242,6 +267,7 @@ export async function POST(req: Request) {
         userId: user.id,
         jobId: job.id,
         mode: toRenderMode(project.mode),
+        visualStyle: normalizeVisualStyle(project.visualStyle ?? DEFAULT_VISUAL_STYLE),
         targetDurationSeconds: targetDurationSeconds,
         aspectRatio: project.aspectRatio ?? "16:9",
         resolution: project.resolution ?? "1080p",
@@ -255,6 +281,10 @@ export async function POST(req: Request) {
         })),
         narrationText: latestScript?.narrationText ?? undefined,
         srtText: latestScript?.srtText ?? undefined,
+        subtitleStyle: buildSubtitleStyleForVisualStyle(
+          normalizeVisualStyle(project.visualStyle ?? DEFAULT_VISUAL_STYLE),
+          project.aspectRatio ?? "16:9"
+        ),
         audioTracks: [
           ...audioTracks
             .filter((track) => track.storageKey || track.voiceId)

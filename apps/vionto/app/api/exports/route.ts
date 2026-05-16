@@ -38,6 +38,7 @@ export async function GET(req: Request) {
         renderMode: true,
         aspectRatio: true,
         aspectLabel: true,
+        visualStyle: true,
         storyKeywords: true,
         previewTitle: true,
         previewSubtitle: true,

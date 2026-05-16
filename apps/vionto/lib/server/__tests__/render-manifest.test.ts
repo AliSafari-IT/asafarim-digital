@@ -11,6 +11,7 @@ describe("parseManifest", () => {
     });
     expect(manifest.projectId).toBe("proj-1");
     expect(manifest.mode).toBe("cinematic");
+    expect(manifest.visualStyle).toBe("clean_modern_slideshow");
     expect(manifest.assets).toHaveLength(1);
   });
 

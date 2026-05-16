@@ -312,7 +312,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     const outputPath = join(workDir, "output.mp4");
     const project = await prisma.viontoProject.findFirst({
       where: { id: manifest.projectId, userId: manifest.userId },
-      select: { title: true, musicOption: true, musicTrackId: true, musicMetadata: true },
+      select: { title: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true },
     });
     const exportMetadata = buildExportMetadata({
       manifest,
@@ -344,6 +344,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         renderMode: exportMetadata.renderMode,
         aspectRatio: exportMetadata.aspectRatio,
         aspectLabel: exportMetadata.aspectLabel,
+        visualStyle: manifest.visualStyle,
         storyKeywords: exportMetadata.storyKeywords,
         previewTitle: exportMetadata.previewTitle,
         previewSubtitle: exportMetadata.previewSubtitle,

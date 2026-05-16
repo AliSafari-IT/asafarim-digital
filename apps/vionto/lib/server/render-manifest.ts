@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VISUAL_STYLE_VALUES } from "../visual-styles";
 
 /**
  * Render manifest — shared contract between web UI, mobile app, and the
@@ -32,6 +33,8 @@ export const transitionPresetSchema = z.object({
   durationSeconds: z.number().min(0).max(2).default(0.5),
 });
 
+export const visualStyleSchema = z.enum(VISUAL_STYLE_VALUES).default("clean_modern_slideshow");
+
 export const renderAssetSchema = z.object({
   storageKey: z.string().min(1),
   width: z.number().int().positive().optional(),
@@ -62,6 +65,7 @@ export const renderManifestSchema = z.object({
   jobId: z.string().min(1),
 
   mode: z.enum(["cinematic", "slideshow", "social"]).default("cinematic"),
+  visualStyle: visualStyleSchema,
   targetDurationSeconds: z.number().positive().optional(),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
@@ -93,6 +97,7 @@ export type AudioTrack = z.infer<typeof audioTrackSchema>;
 export type MotionPreset = z.infer<typeof motionPresetSchema>;
 export type TransitionPreset = z.infer<typeof transitionPresetSchema>;
 export type SubtitleStyle = z.infer<typeof subtitleStyleSchema>;
+export type VisualStyle = z.infer<typeof visualStyleSchema>;
 
 /** Validate and parse a raw manifest payload. */
 export function parseManifest(payload: unknown): RenderManifest {

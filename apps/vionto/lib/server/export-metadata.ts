@@ -122,6 +122,6 @@ export function buildExportMetadata(input: {
     aspectLabel,
     storyKeywords: keywords,
     previewTitle: `${input.projectTitle || "Vionto"} ${manifest.mode} render`,
-    previewSubtitle: `Latest ${manifest.mode} ${readableAspect} render, built from ${keywordCopy}.`,
+    previewSubtitle: `Latest ${manifest.visualStyle.replace(/_/g, " ")} ${manifest.mode} ${readableAspect} render, built from ${keywordCopy}.`,
   };
 }
