@@ -51,7 +51,7 @@ export async function GET(
 }
 
 /** PUT /api/projects/[projectId] — update project */
-export async function PUT(
+async function updateProject(
   req: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
@@ -106,6 +106,20 @@ export async function PUT(
 }
 
 /** DELETE /api/projects/[projectId] — delete project */
+export async function PUT(
+  req: Request,
+  context: { params: Promise<{ projectId: string }> }
+) {
+  return updateProject(req, context);
+}
+
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ projectId: string }> }
+) {
+  return updateProject(req, context);
+}
+
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ projectId: string }> }

@@ -109,7 +109,10 @@ describe("buildRenderCommand", () => {
     const final = steps[steps.length - 1];
     expect(final).toContain("/tmp/work/narration.mp3");
     expect(final).toContain("/tmp/work/music.mp3");
-    expect(final).toContain("-af");
+    expect(final).toContain("-filter_complex");
+    expect(final).toContain("[1:a]volume=1.0[narration];[2:a]volume=0.06[music];[narration][music]amix=inputs=2:duration=first:dropout_transition=3:normalize=0[aout]");
+    expect(final).toContain("-map");
+    expect(final).toContain("[aout]");
   });
 });
 

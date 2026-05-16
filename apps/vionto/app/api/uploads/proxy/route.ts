@@ -10,6 +10,17 @@ function getFormString(form: FormData, name: string): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function inferContentType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (extension === "mp3") return "audio/mpeg";
+  if (extension === "wav") return "audio/wav";
+  if (extension === "ogg") return "audio/ogg";
+  if (extension === "m4a" || extension === "mp4") return "audio/mp4";
+  if (extension === "webm") return "audio/webm";
+  return "application/octet-stream";
+}
+
 export async function POST(req: Request) {
   try {
     const user = await getAuthedUser();
@@ -29,13 +40,14 @@ export async function POST(req: Request) {
     if (file.size < 1 || file.size > MAX_IMAGE_BYTES) {
       return badRequest(`File must be between 1 and ${MAX_IMAGE_BYTES} bytes.`);
     }
-    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(file.type as (typeof ALLOWED_UPLOAD_MIME_TYPES)[number])) {
+    const contentType = inferContentType(file);
+    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(contentType as (typeof ALLOWED_UPLOAD_MIME_TYPES)[number])) {
       return badRequest("Unsupported upload content type.");
     }
 
     const body = Buffer.from(await file.arrayBuffer());
-    console.log("[uploads/proxy] Uploading object", { key, size: body.length, contentType: file.type });
-    const publicUrl = await putObjectBytes(key, body, file.type);
+    console.log("[uploads/proxy] Uploading object", { key, size: body.length, contentType });
+    const publicUrl = await putObjectBytes(key, body, contentType);
     console.log("[uploads/proxy] Upload successful", { key, publicUrl });
 
     return NextResponse.json({

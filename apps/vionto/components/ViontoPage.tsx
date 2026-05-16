@@ -102,9 +102,40 @@ type ProjectSummary = {
   title: string;
   status: string;
   mode: string;
+  storyMode?: string | null;
+  emotionalTone?: string | null;
+  musicOption?: string | null;
+  musicTrackId?: string | null;
+  musicMetadata?: unknown;
   aspectRatio: AspectRatio | "4:3";
   createdAt: string;
 };
+
+function normalizeProjectMusicMetadata(metadata: unknown): NormalizedTrackMetadata[] {
+  if (Array.isArray(metadata)) {
+    return metadata.filter((track): track is NormalizedTrackMetadata => (
+      !!track &&
+      typeof track === "object" &&
+      "trackId" in track &&
+      "title" in track &&
+      "artist" in track &&
+      "downloadUrl" in track
+    ));
+  }
+
+  if (
+    metadata &&
+    typeof metadata === "object" &&
+    "trackId" in metadata &&
+    "title" in metadata &&
+    "artist" in metadata &&
+    "downloadUrl" in metadata
+  ) {
+    return [metadata as NormalizedTrackMetadata];
+  }
+
+  return [];
+}
 
 type LibraryExport = {
   id: string;
@@ -168,6 +199,7 @@ export function ViontoPage() {
   const [musicBlobUrls, setMusicBlobUrls] = useState<Set<string>>(new Set());
   const [musicTracks, setMusicTracks] = useState<NormalizedTrackMetadata[]>([]);
   const [isMusicLoading, setIsMusicLoading] = useState(false);
+  const [isMusicUploading, setIsMusicUploading] = useState(false);
   const [musicFilterQuery, setMusicFilterQuery] = useState("");
   const [musicFilterMinDuration, setMusicFilterMinDuration] = useState("");
   const [musicFilterMaxDuration, setMusicFilterMaxDuration] = useState("");
@@ -249,6 +281,9 @@ export function ViontoPage() {
       const selected = projects.find((project) => project.id === selectedProjectId);
       if (selected) {
         setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
+        setSelectedStoryMode(selected.storyMode ?? "memory_film");
+        setSelectedEmotionalTone(selected.emotionalTone ?? "nostalgic");
+        setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
       }
@@ -262,6 +297,7 @@ export function ViontoPage() {
       setProjectAssets([]);
       setVersions([]);
       setSelectedVoice(null);
+      setSelectedMusicTracks([]);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
@@ -412,8 +448,8 @@ export function ViontoPage() {
     }
   }
 
-  async function saveProjectSettings() {
-    if (!selectedProjectId) return;
+  async function saveProjectSettings(): Promise<boolean> {
+    if (!selectedProjectId) return false;
     try {
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch(`/api/projects/${selectedProjectId}`, {
@@ -429,17 +465,21 @@ export function ViontoPage() {
           aspectRatio: activeAspectRatio,
         }),
       });
-      if (res.ok) {
-        setProjects((prev) =>
-          prev.map((project) =>
-            project.id === selectedProjectId
-              ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
-              : project
-          )
-        );
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to save project settings");
       }
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === selectedProjectId
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            : project
+        )
+      );
+      return true;
     } catch (error) {
       console.error("Failed to save project settings", error);
+      return false;
     }
   }
 
@@ -549,7 +589,12 @@ export function ViontoPage() {
       setRenderError("Generate or save a narration script before rendering.");
       return;
     }
-    await saveProjectSettings();
+    const savedSettings = await saveProjectSettings();
+    if (!savedSettings) {
+      alert("Failed to save project settings before rendering");
+      setRenderError("Failed to save project settings before rendering.");
+      return;
+    }
 
     setRenderState("queued");
     setRenderProgress(0);
@@ -949,6 +994,53 @@ export function ViontoPage() {
     ));
     setShowMusicSelector(false);
   };
+
+  function getAudioContentType(file: File): string {
+    if (file.type) return file.type;
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (extension === "mp3") return "audio/mpeg";
+    if (extension === "wav") return "audio/wav";
+    if (extension === "ogg") return "audio/ogg";
+    if (extension === "m4a" || extension === "mp4") return "audio/mp4";
+    if (extension === "webm") return "audio/webm";
+    return "audio/mpeg";
+  }
+
+  async function uploadMusicFile(file: File): Promise<{ key: string; publicUrl?: string }> {
+    const contentType = getAudioContentType(file);
+    const presignRes = await fetch("/api/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType,
+        sizeBytes: file.size,
+      }),
+    });
+
+    if (!presignRes.ok) {
+      const message = await presignRes.text().catch(() => "");
+      throw new Error(message || "Failed to prepare music upload");
+    }
+
+    const presignData = (await presignRes.json()) as { key: string };
+    const form = new FormData();
+    form.append("key", presignData.key);
+    form.append("file", file);
+
+    const uploadRes = await fetch("/api/uploads/proxy", {
+      method: "POST",
+      body: form,
+    });
+
+    if (!uploadRes.ok) {
+      const message = await uploadRes.text().catch(() => "");
+      throw new Error(message || "Music upload failed");
+    }
+
+    const uploadData = (await uploadRes.json()) as { key: string; publicUrl?: string };
+    return { key: uploadData.key, publicUrl: uploadData.publicUrl };
+  }
 
   const clearMusicSelection = () => {
     musicPreviewAudioRef.current?.pause();
@@ -1521,49 +1613,67 @@ export function ViontoPage() {
                             type="file"
                             accept="audio/*"
                             multiple
+                            disabled={isMusicUploading}
                             onChange={async (e) => {
                               const files = Array.from(e.target.files ?? []);
                               if (files.length === 0) return;
 
-                              const uploadedTracks = files.map((file, index) => {
-                                const url = URL.createObjectURL(file);
-                                return {
-                                  provider: "upload",
-                                  trackId: `upload_${Date.now()}_${index}`,
-                                  title: file.name.replace(/\.[^/.]+$/, ""),
-                                  artist: "Uploaded",
-                                  artistId: "upload",
-                                  duration: undefined,
-                                  tags: ["uploaded"],
-                                  sourceUrl: url,
-                                  downloadUrl: url,
-                                  license: "uploaded",
-                                  licenseInfo: t("vionto.music.uploadDisclaimer"),
-                                  downloads: 0,
-                                  likes: 0,
-                                } satisfies NormalizedTrackMetadata;
-                              });
+                              setIsMusicUploading(true);
+                              try {
+                                const uploadedTracks = await Promise.all(files.map(async (file, index) => {
+                                  const [{ key }, previewUrl] = await Promise.all([
+                                    uploadMusicFile(file),
+                                    Promise.resolve(URL.createObjectURL(file)),
+                                  ]);
 
-                              setSelectedMusicTracks((current) => [...current, ...uploadedTracks]);
-                              setMusicBlobUrls((prev) => {
-                                const next = new Set(prev);
-                                uploadedTracks.forEach((track) => next.add(track.downloadUrl));
-                                return next;
-                              });
-                              setShowMusicSelector(false);
-                              // Reset input value to allow selecting the same file again
-                              e.target.value = "";
+                                  return {
+                                    provider: "upload",
+                                    trackId: `upload_${Date.now()}_${index}`,
+                                    title: file.name.replace(/\.[^/.]+$/, ""),
+                                    artist: "Uploaded",
+                                    artistId: "upload",
+                                    duration: undefined,
+                                    tags: ["uploaded"],
+                                    sourceUrl: previewUrl,
+                                    downloadUrl: previewUrl,
+                                    storageKey: key,
+                                    license: "uploaded",
+                                    licenseInfo: t("vionto.music.uploadDisclaimer"),
+                                    downloads: 0,
+                                    likes: 0,
+                                  } satisfies NormalizedTrackMetadata;
+                                }));
+
+                                setSelectedMusicTracks((current) => [...current, ...uploadedTracks]);
+                                setMusicBlobUrls((prev) => {
+                                  const next = new Set(prev);
+                                  uploadedTracks.forEach((track) => next.add(track.downloadUrl));
+                                  return next;
+                                });
+                                setShowMusicSelector(false);
+                              } catch (error) {
+                                console.error("Failed to upload music", error);
+                                alert(error instanceof Error ? error.message : "Music upload failed");
+                              } finally {
+                                setIsMusicUploading(false);
+                                // Reset input value to allow selecting the same file again
+                                e.target.value = "";
+                              }
                             }}
                             className="hidden"
                             id="music-upload"
                           />
                           <label
                             htmlFor="music-upload"
-                            className="cursor-pointer flex flex-col items-center gap-2"
+                            className={`flex flex-col items-center gap-2 ${isMusicUploading ? "cursor-wait opacity-70" : "cursor-pointer"}`}
                           >
-                            <CloudUpload className="h-12 w-12 text-[var(--color-text-muted)]" />
+                            {isMusicUploading ? (
+                              <RefreshCw className="h-12 w-12 animate-spin text-[var(--color-text-muted)]" />
+                            ) : (
+                              <CloudUpload className="h-12 w-12 text-[var(--color-text-muted)]" />
+                            )}
                             <p className="text-sm text-[var(--color-text)]">
-                              {t("vionto.music.upload_own")}
+                              {isMusicUploading ? t("vionto.music.uploading") : t("vionto.music.upload_own")}
                             </p>
                             <p className="text-xs text-[var(--color-text-muted)]">
                               MP3, WAV, OGG, M4A
