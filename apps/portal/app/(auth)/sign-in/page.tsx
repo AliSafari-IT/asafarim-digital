@@ -171,7 +171,6 @@ function Field({
   required?: boolean; suffix?: React.ReactNode; hint?: React.ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
-  const filled = value.length > 0;
 
   return (
     <div className="group relative flex flex-col gap-1">
@@ -270,11 +269,11 @@ function GoogleButton({ onClick, disabled, label }: { onClick: () => void; disab
 
 // ─── Divider ──────────────────────────────────────────────────────────────────
 
-function Divider() {
+function Divider({ label = "or" }: { label?: string }) {
   return (
     <div className="flex items-center gap-3">
       <div className="h-px flex-1 bg-[var(--color-border)]" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">or</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{label}</span>
       <div className="h-px flex-1 bg-[var(--color-border)]" />
     </div>
   );
@@ -298,6 +297,304 @@ function ErrorAlert({ message }: { message: string }) {
   );
 }
 
+// ─── Success notice ───────────────────────────────────────────────────────────
+
+function SuccessNotice({ message }: { message: string }) {
+  return (
+    <div
+      role="status"
+      className="flex items-start gap-3 rounded-xl border border-[#1a4a2e] bg-[#0d2b1a] px-4 py-3 text-sm text-[#6ee7a0]"
+    >
+      <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+        <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M5 8.5l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {message}
+    </div>
+  );
+}
+
+// ─── Method tab selector ──────────────────────────────────────────────────────
+
+type SignInMethod = "password" | "email-code";
+
+function MethodTabs({
+  active,
+  onChange,
+  disabled,
+}: {
+  active: SignInMethod;
+  onChange: (m: SignInMethod) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] p-1">
+      {(["password", "email-code"] as SignInMethod[]).map((method) => (
+        <button
+          key={method}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(method)}
+          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-150 ${
+            active === method
+              ? "bg-[var(--color-primary)] text-white shadow-sm"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          } disabled:cursor-not-allowed disabled:opacity-60`}
+        >
+          {method === "password" ? "Password" : "Email code"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── OTP code input ───────────────────────────────────────────────────────────
+
+function OtpInput({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    onChange(raw);
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label
+        htmlFor="otp-code"
+        className={`text-xs font-semibold transition-colors duration-150 ${
+          focused ? "text-[var(--color-primary)]" : "text-[var(--color-text-muted)]"
+        }`}
+      >
+        Login code<span className="ml-0.5 text-[var(--color-danger)]" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="otp-code"
+        type="text"
+        inputMode="text"
+        autoComplete="one-time-code"
+        spellCheck={false}
+        value={value}
+        onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        disabled={disabled}
+        maxLength={6}
+        placeholder="A1B2C3"
+        className={`h-14 w-full rounded-xl border bg-[var(--color-surface-soft)] px-4 text-center text-xl font-bold tracking-[0.4em] text-[var(--color-text)] placeholder-[var(--color-text-muted)]/40 outline-none transition-all duration-150 ${
+          focused
+            ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20"
+            : "border-[var(--color-border-strong)]"
+        } disabled:cursor-not-allowed disabled:opacity-60`}
+        aria-label="6-character login code"
+      />
+    </div>
+  );
+}
+
+// ─── Email-code sign-in form ──────────────────────────────────────────────────
+
+function EmailCodeForm({
+  callbackUrl,
+  disabled,
+}: {
+  callbackUrl: string;
+  disabled: boolean;
+}) {
+  const router = useRouter();
+
+  // step 1: "request" — email input
+  // step 2: "verify"  — code input
+  const [step, setStep] = useState<"request" | "verify">("request");
+
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // ── Step 1: request a code ──────────────────────────────────────────────
+  async function handleRequestCode(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+    try {
+      const res = await fetch("/api/auth/email-code/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await res.json()) as { message?: string; error?: string };
+      if (!res.ok) {
+        setErrorMessage(data.error ?? "Failed to send code. Please try again.");
+        return;
+      }
+      // Always show a generic success — even if the email is not registered
+      setSuccessMessage(
+        data.message ?? "Check your email for a 6-character login code."
+      );
+      setStep("verify");
+    } catch {
+      setErrorMessage("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // ── Step 2: verify the code ─────────────────────────────────────────────
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage("");
+    try {
+      // Call signIn directly with the email-code provider.
+      // NextAuth's authorize() is the canonical security gate.
+      const result = await signIn("email-code", {
+        email,
+        code,
+        callbackUrl,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        if (result.error === "CallbackRouteError") {
+          setErrorMessage(
+            "Too many attempts. Please request a new code."
+          );
+        } else {
+          setErrorMessage("Invalid or expired code. Please try again.");
+        }
+        return;
+      }
+
+      if (result?.url) {
+        window.location.href = result.url;
+      } else if (/^https?:\/\//.test(callbackUrl)) {
+        window.location.href = callbackUrl;
+      } else {
+        router.replace(callbackUrl);
+      }
+    } catch {
+      setErrorMessage("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const isDisabled = disabled || isLoading;
+
+  // ── Request step UI ─────────────────────────────────────────────────────
+  if (step === "request") {
+    return (
+      <form onSubmit={handleRequestCode} className="flex flex-col gap-4" noValidate>
+        {errorMessage && <ErrorAlert message={errorMessage} />}
+
+        <Field
+          id="ec-email"
+          label="Email address"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+          placeholder="you@example.com"
+          required
+        />
+
+        <button
+          type="submit"
+          disabled={isDisabled || !email.includes("@")}
+          className="relative mt-1 flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(76,125,255,0.7)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="20" />
+              </svg>
+              Sending code…
+            </span>
+          ) : (
+            "Send login code →"
+          )}
+        </button>
+      </form>
+    );
+  }
+
+  // ── Verify step UI ──────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-4">
+      {successMessage && <SuccessNotice message={successMessage} />}
+      {errorMessage && <ErrorAlert message={errorMessage} />}
+
+      {/* Sent-to summary */}
+      <div className="flex items-center justify-between rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
+            Code sent to
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-[var(--color-text)]">{email}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStep("request");
+            setCode("");
+            setErrorMessage("");
+            setSuccessMessage("");
+          }}
+          className="text-xs font-semibold text-[var(--color-primary)] hover:underline"
+        >
+          Change
+        </button>
+      </div>
+
+      <form onSubmit={handleVerifyCode} className="flex flex-col gap-4" noValidate>
+        <OtpInput value={code} onChange={setCode} disabled={isDisabled} />
+
+        <button
+          type="submit"
+          disabled={isDisabled || code.length !== 6}
+          className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(76,125,255,0.7)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="20" />
+              </svg>
+              Verifying…
+            </span>
+          ) : (
+            "Sign in →"
+          )}
+        </button>
+
+        <button
+          type="button"
+          disabled={isDisabled}
+          onClick={() => {
+            setStep("request");
+            setCode("");
+            setErrorMessage("");
+            setSuccessMessage("");
+          }}
+          className="text-center text-xs font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          ← Request a new code
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ─── Sign-in form ─────────────────────────────────────────────────────────────
 
 function SignInPageContent() {
@@ -310,6 +607,7 @@ function SignInPageContent() {
   const signUpHref = useMemo(() => `/sign-up?${new URLSearchParams({ callbackUrl })}`, [callbackUrl]);
   const forgotPasswordHref = useMemo(() => `/forgot-password?${new URLSearchParams({ callbackUrl })}`, [callbackUrl]);
 
+  const [method, setMethod] = useState<SignInMethod>("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -325,6 +623,12 @@ function SignInPageContent() {
       else router.replace(callbackUrl);
     }
   }, [status, callbackUrl, router]);
+
+  // Reset top-level error when switching method
+  function handleMethodChange(m: SignInMethod) {
+    setMethod(m);
+    setErrorMessage("");
+  }
 
   async function handleCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -352,6 +656,8 @@ function SignInPageContent() {
     setIsLoading(true);
     await signIn("google", { callbackUrl, redirect: true });
   }
+
+  const globalDisabled = isLoading || status === "loading";
 
   return (
     <div className="flex min-h-[100dvh] flex-col lg:flex-row">
@@ -396,55 +702,71 @@ function SignInPageContent() {
           {errorMessage && <ErrorAlert message={errorMessage} />}
 
           <div className="mt-5 flex flex-col gap-4">
+            {/* Google */}
             <GoogleButton
               onClick={handleGoogleSignIn}
-              disabled={isLoading || status === "loading"}
+              disabled={globalDisabled}
               label="Continue with Google"
             />
 
             <Divider />
 
-            <form onSubmit={handleCredentialsSubmit} className="flex flex-col gap-4">
-              <Field
-                id="email" label="Email address" type="email"
-                value={email} onChange={setEmail}
-                autoComplete="email" placeholder="you@example.com" required
-              />
-              <PasswordField
-                id="password" label="Password"
-                value={password} onChange={setPassword}
-                autoComplete="current-password" placeholder="Enter your password" required
-                hint={
-                  <div className="flex justify-end">
-                    <Link href={forgotPasswordHref}
-                      className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline">
-                      Forgot password?
-                    </Link>
-                  </div>
-                }
-              />
+            {/* Method tabs */}
+            <MethodTabs
+              active={method}
+              onChange={handleMethodChange}
+              disabled={globalDisabled}
+            />
 
-              <button
-                type="submit"
-                disabled={isLoading || status === "loading"}
-                className="relative mt-1 flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(76,125,255,0.7)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="20" />
-                    </svg>
-                    Signing in…
-                  </span>
-                ) : "Sign in →"}
-              </button>
-            </form>
+            {/* Password method */}
+            {method === "password" && (
+              <form onSubmit={handleCredentialsSubmit} className="flex flex-col gap-4">
+                <Field
+                  id="email" label="Email address" type="email"
+                  value={email} onChange={setEmail}
+                  autoComplete="email" placeholder="you@example.com" required
+                />
+                <PasswordField
+                  id="password" label="Password"
+                  value={password} onChange={setPassword}
+                  autoComplete="current-password" placeholder="Enter your password" required
+                  hint={
+                    <div className="flex justify-end">
+                      <Link href={forgotPasswordHref}
+                        className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline">
+                        Forgot password?
+                      </Link>
+                    </div>
+                  }
+                />
+
+                <button
+                  type="submit"
+                  disabled={globalDisabled}
+                  className="relative mt-1 flex h-12 w-full items-center justify-center overflow-hidden rounded-xl bg-[var(--color-primary)] text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(76,125,255,0.7)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="20" />
+                      </svg>
+                      Signing in…
+                    </span>
+                  ) : "Sign in →"}
+                </button>
+              </form>
+            )}
+
+            {/* Email-code method */}
+            {method === "email-code" && (
+              <EmailCodeForm callbackUrl={callbackUrl} disabled={globalDisabled} />
+            )}
           </div>
 
           <p className="mt-8 text-center text-[11px] text-[var(--color-text-muted)]">
             Protected by{" "}
             <span className="font-semibold text-[var(--color-text-muted)]/80">NextAuth</span>
-            {" "}· Credentials & Google SSO
+            {" "}· Credentials, Email Code & Google SSO
           </p>
         </div>
       </div>
