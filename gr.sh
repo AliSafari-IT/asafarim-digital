@@ -4,6 +4,6 @@ git fetch origin
 echo "Resetting to origin/main..."
 git reset --hard origin/main
 echo "Done!"
-git push --force
+git pull
 
 chmod +x gr.sh
