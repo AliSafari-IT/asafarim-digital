@@ -1,22 +1,27 @@
+import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { resolveLocaleFromCookie } from "@asafarim/shared-i18n/server";
+import { viontoDictionaries } from "@/lib/i18n-dictionaries";
 import { ViontoNav } from "@/components/ViontoNav";
 import { ProjectsPageClient } from "./ProjectsPageClient";
 
-export const metadata = {
-  title: "My Projects – Vionto",
-  description: "View, manage, and share your Vionto video projects.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = resolveLocaleFromCookie(cookieStore.toString());
+  const language = locale.split("-")[0] as keyof typeof viontoDictionaries;
+  const dictionary = viontoDictionaries[language] ?? viontoDictionaries.en ?? {};
+
+  return {
+    title: `${dictionary["vionto.projects.title"] ?? "Projects"} - Vionto`,
+    description: dictionary["vionto.projects.description"] ?? "View, manage, and share your Vionto video projects.",
+  };
+}
 
 export default function ProjectsPage() {
   return (
     <>
       <ViontoNav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Manage your video projects. Create new ones, rename or delete existing ones, or share them with teammates.
-          </p>
-        </div>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
         <ProjectsPageClient />
       </main>
     </>

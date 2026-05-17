@@ -12,6 +12,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef, FormEvent } from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ChevronLeft,
   ChevronRight,
@@ -75,7 +77,9 @@ export type ProjectListProps = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function statusBadge(status: string) {
+type Translate = (key: string, values?: Record<string, string | number>) => string;
+
+function statusBadge(status: string, t: Translate) {
   const map: Record<string, string> = {
     draft: "bg-[var(--color-border)] text-[var(--color-text-muted)]",
     ready: "bg-blue-500/15 text-blue-400",
@@ -85,13 +89,15 @@ function statusBadge(status: string) {
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${map[status] ?? map.draft}`}>
-      {status}
+      {t(`vionto.projects.status.${status}`)}
     </span>
   );
 }
 
-function modeBadge(mode: string, storyMode?: string | null) {
-  const label = storyMode ? `${mode} / ${storyMode.replace(/_/g, " ")}` : mode;
+function modeBadge(mode: string, storyMode: string | null | undefined, t: Translate) {
+  const modeLabel = t(`vionto.mode.${mode}`);
+  const storyModeLabel = storyMode ? t(`vionto.storyMode.${storyMode}`) : "";
+  const label = storyModeLabel ? `${modeLabel} / ${storyModeLabel}` : modeLabel;
   return (
     <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-text-muted)]">
       {label}
@@ -99,8 +105,8 @@ function modeBadge(mode: string, storyMode?: string | null) {
   );
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+function fmtDate(iso: string, locale?: string) {
+  return new Date(iso).toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
 }
 
 // ─── Modal backdrop ───────────────────────────────────────────────────────────
@@ -191,6 +197,7 @@ type CreateEditModalProps = {
 };
 
 function CreateEditModal({ project, onClose, onSaved }: CreateEditModalProps) {
+  const { t } = useTranslation();
   const isEdit = !!project;
   const [title, setTitle] = useState(project?.title ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
@@ -199,7 +206,7 @@ function CreateEditModal({ project, onClose, onSaved }: CreateEditModalProps) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!title.trim()) { setError("Title is required."); return; }
+    if (!title.trim()) { setError(t("vionto.projects.titleRequired")); return; }
     setError("");
     setLoading(true);
 
@@ -211,10 +218,10 @@ function CreateEditModal({ project, onClose, onSaved }: CreateEditModalProps) {
         body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data?.error ?? "Something went wrong."); return; }
+      if (!res.ok) { setError(data?.error ?? t("vionto.projects.genericError")); return; }
       onSaved(data as ProjectRow);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("vionto.projects.networkError"));
     } finally {
       setLoading(false);
     }
@@ -222,20 +229,20 @@ function CreateEditModal({ project, onClose, onSaved }: CreateEditModalProps) {
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title={isEdit ? "Rename project" : "New project"} onClose={onClose} />
+      <ModalHeader title={isEdit ? t("vionto.projects.renameTitle") : t("vionto.projects.newTitle")} onClose={onClose} />
       <form onSubmit={handleSubmit} className="space-y-4">
         <FieldInput
-          label="Title" id="project-title" autoFocus required
+          label={t("vionto.projects.fieldTitle")} id="project-title" autoFocus required
           value={title} onChange={setTitle} maxLength={120}
-          placeholder="e.g. Summer 2025 Trip"
+          placeholder={t("vionto.projects.titleExample")}
         />
         <div className="space-y-1.5">
-          <label htmlFor="project-desc" className="block text-sm font-medium">Description</label>
+          <label htmlFor="project-desc" className="block text-sm font-medium">{t("vionto.projects.fieldDescription")}</label>
           <textarea
             id="project-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description…"
+            placeholder={t("vionto.projects.descriptionPlaceholder")}
             maxLength={2000}
             rows={3}
             className="w-full rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm outline-none ring-[var(--color-primary)] focus:ring-2 placeholder:text-[var(--color-text-muted)] resize-none"
@@ -245,10 +252,14 @@ function CreateEditModal({ project, onClose, onSaved }: CreateEditModalProps) {
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose}
             className="flex-1 rounded-xl border border-[var(--color-border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--color-surface)]">
-            Cancel
+            {t("common.cancel")}
           </button>
           <div className="flex-1">
-            <SubmitButton loading={loading} label={isEdit ? "Save" : "Create project"} loadingLabel={isEdit ? "Saving…" : "Creating…"} />
+            <SubmitButton
+              loading={loading}
+              label={isEdit ? t("vionto.projects.save") : t("vionto.projects.newProject")}
+              loadingLabel={isEdit ? t("vionto.projects.saving") : t("vionto.projects.creating")}
+            />
           </div>
         </div>
       </form>
@@ -263,6 +274,7 @@ function DeleteModal({
 }: {
   project: ProjectRow; onClose: () => void; onDeleted: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -272,10 +284,10 @@ function DeleteModal({
     try {
       const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) { setError(data?.error ?? "Failed to delete."); return; }
+      if (!res.ok) { setError(data?.error ?? t("vionto.projects.deleteFailed")); return; }
       onDeleted(project.id);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("vionto.projects.networkError"));
     } finally {
       setLoading(false);
     }
@@ -283,27 +295,27 @@ function DeleteModal({
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title="Delete project?" onClose={onClose} />
+      <ModalHeader title={t("vionto.projects.deleteTitle")} onClose={onClose} />
       <p className="mb-2 text-sm text-[var(--color-text-muted)]">
-        This will permanently delete <strong className="text-[var(--color-text)]">{project.title}</strong> and
-        all its assets, scripts, and exports. This action cannot be undone.
+        {t("vionto.projects.deleteIntro")} <strong className="text-[var(--color-text)]">{project.title}</strong>{" "}
+        {t("vionto.projects.deleteOutro")}
       </p>
       {project._count.assets > 0 && (
         <p className="mb-4 flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-400">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          {project._count.assets} asset{project._count.assets !== 1 ? "s" : ""} will be removed.
+          {t(project._count.assets === 1 ? "vionto.projects.assetWillBeRemoved" : "vionto.projects.assetsWillBeRemoved", { count: project._count.assets })}
         </p>
       )}
       {error && <FormError message={error} />}
       <div className="mt-5 flex gap-3">
         <button type="button" onClick={onClose}
           className="flex-1 rounded-xl border border-[var(--color-border-strong)] px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--color-surface)]">
-          Cancel
+          {t("common.cancel")}
         </button>
         <button type="button" onClick={handleDelete} disabled={loading}
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60 hover:bg-red-700">
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? "Deleting…" : "Delete project"}
+          {loading ? t("vionto.projects.deleting") : t("vionto.projects.deleteProject")}
         </button>
       </div>
     </Modal>
@@ -313,6 +325,7 @@ function DeleteModal({
 // ─── Share management modal ───────────────────────────────────────────────────
 
 function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => void }) {
+  const { t, locale } = useTranslation();
   const [shares, setShares] = useState<Share[]>([]);
   const [loadingShares, setLoadingShares] = useState(true);
   const [email, setEmail] = useState("");
@@ -340,7 +353,7 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
     e.preventDefault();
     setAddError(""); setAddSuccess("");
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed) { setAddError("Email is required."); return; }
+    if (!trimmed) { setAddError(t("vionto.projects.emailRequired")); return; }
     setAddLoading(true);
     try {
       const res = await fetch(`/api/projects/${project.id}/shares`, {
@@ -349,16 +362,16 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
         body: JSON.stringify({ email: trimmed, permission }),
       });
       const data = await res.json();
-      if (!res.ok) { setAddError(data?.error ?? "Failed to share."); return; }
+      if (!res.ok) { setAddError(data?.error ?? t("vionto.projects.shareFailed")); return; }
       setEmail("");
       if (!data.isRegistered) {
-        setAddSuccess(`${trimmed} is not registered yet. They'll get access when they sign up.`);
+        setAddSuccess(t("vionto.projects.sharePending", { email: trimmed }));
       } else {
-        setAddSuccess(`${trimmed} now has ${permission} access.`);
+        setAddSuccess(t("vionto.projects.shareAdded", { email: trimmed, permission: t(`vionto.projects.permission.${permission}`) }));
       }
       await fetchShares();
     } catch {
-      setAddError("Network error. Please try again.");
+      setAddError(t("vionto.projects.networkError"));
     } finally {
       setAddLoading(false);
     }
@@ -369,10 +382,10 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
     try {
       const res = await fetch(`/api/projects/${project.id}/shares?shareId=${shareId}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) { setRemoveError(data?.error ?? "Failed to remove."); return; }
+      if (!res.ok) { setRemoveError(data?.error ?? t("vionto.projects.removeFailed")); return; }
       setShares((prev) => prev.filter((s) => s.id !== shareId));
     } catch {
-      setRemoveError("Network error. Please try again.");
+      setRemoveError(t("vionto.projects.networkError"));
     } finally {
       setRemovingId(null);
     }
@@ -380,7 +393,7 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
 
   return (
     <Modal onClose={onClose}>
-      <ModalHeader title={`Share "${project.title}"`} onClose={onClose} />
+      <ModalHeader title={t("vionto.projects.shareTitle", { title: project.title })} onClose={onClose} />
 
       {/* Add share form */}
       <form onSubmit={handleAdd} className="space-y-3">
@@ -398,8 +411,8 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
             onChange={(e) => setPermission(e.target.value as "viewer" | "editor")}
             className="rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2.5 py-2.5 text-sm outline-none ring-[var(--color-primary)] focus:ring-2"
           >
-            <option value="viewer">Viewer</option>
-            <option value="editor">Editor</option>
+            <option value="viewer">{t("vionto.projects.permission.viewer")}</option>
+            <option value="editor">{t("vionto.projects.permission.editor")}</option>
           </select>
         </div>
         {addError && <FormError message={addError} />}
@@ -412,14 +425,14 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
         <button type="submit" disabled={addLoading}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--color-primary)] transition disabled:opacity-60 hover:bg-[var(--color-primary)]/10">
           {addLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-          {addLoading ? "Adding…" : "Add person"}
+          {addLoading ? t("vionto.projects.adding") : t("vionto.projects.addPerson")}
         </button>
       </form>
 
       {/* People list */}
       <div className="mt-5">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-          People with access
+          {t("vionto.projects.peopleWithAccess")}
         </p>
 
         {loadingShares ? (
@@ -428,7 +441,7 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
           </div>
         ) : shares.length === 0 ? (
           <p className="py-4 text-center text-sm text-[var(--color-text-muted)]">
-            No one else has access yet.
+            {t("vionto.projects.noSharedUsers")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -445,15 +458,15 @@ function ShareModal({ project, onClose }: { project: ProjectRow; onClose: () => 
                     <p className="truncate text-xs text-[var(--color-text-muted)]">{s.email}</p>
                   )}
                   <p className="text-xs text-[var(--color-text-muted)]">
-                    {s.permission} · added {fmtDate(s.createdAt)}
-                    {!s.sharedWith && " · pending registration"}
+                    {t(`vionto.projects.permission.${s.permission}`)} · {t("vionto.projects.added")} {fmtDate(s.createdAt, locale)}
+                    {!s.sharedWith && ` · ${t("vionto.projects.pendingRegistration")}`}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRemove(s.id)}
                   disabled={removingId === s.id}
-                  aria-label={`Remove ${s.email}`}
+                  aria-label={t("vionto.projects.removePerson", { email: s.email })}
                   className="shrink-0 rounded-lg p-1.5 text-[var(--color-text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                 >
                   {removingId === s.id
@@ -483,12 +496,27 @@ type ActionMenuProps = {
 };
 
 function ActionMenu({ project, onSelect, onEdit, onDelete, onShare, isSelected }: ActionMenuProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 192, // 192px = w-48
+      });
+    }
+  }, [open]);
 
   useEffect(() => {
     function close(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) && buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     }
     if (open) document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -496,8 +524,54 @@ function ActionMenu({ project, onSelect, onEdit, onDelete, onShare, isSelected }
 
   const btn = "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition hover:bg-[var(--color-surface)]";
 
+  const dropdown = open && (
+    <div
+      ref={menuRef}
+      className="fixed z-[9999] w-48 rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-1.5 shadow-xl"
+      style={{ top: position.top, left: position.left }}
+    >
+      {!onSelect && (
+        <a
+          href={`/create?projectId=${project.id}`}
+          className={btn + " text-[var(--color-text)]"}
+          onClick={() => setOpen(false)}
+        >
+          <FolderOpen className="h-4 w-4" />
+          {t("vionto.projects.openProject")}
+          <ExternalLink className="ml-auto h-3 w-3 opacity-50" />
+        </a>
+      )}
+      {project.isOwner && (
+        <>
+          <button type="button" className={btn} onClick={() => { setOpen(false); onEdit(project); }}>
+            <Pencil className="h-4 w-4" />
+            {t("vionto.projects.renameEdit")}
+          </button>
+          <button type="button" className={btn} onClick={() => { setOpen(false); onShare(project); }}>
+            <Share2 className="h-4 w-4" />
+            {t("vionto.projects.manageSharing")}
+          </button>
+          <div className="my-1 border-t border-[var(--color-border)]" />
+          <button
+            type="button"
+            className={btn + " text-red-400 hover:bg-red-500/10"}
+            onClick={() => { setOpen(false); onDelete(project); }}
+          >
+            <Trash2 className="h-4 w-4" />
+            {t("vionto.projects.deleteProject")}
+          </button>
+        </>
+      )}
+      {!project.isOwner && (
+        <p className="px-3 py-2 text-xs text-[var(--color-text-muted)]">
+          {t("vionto.projects.sharedViewOnly")}
+        </p>
+      )}
+    </div>
+  );
+
   return (
-    <div ref={ref} className="relative flex items-center gap-1.5">
+    <div className="relative flex items-center gap-1.5">
       {onSelect && (
         <button
           type="button"
@@ -508,14 +582,15 @@ function ActionMenu({ project, onSelect, onEdit, onDelete, onShare, isSelected }
               : "border-[var(--color-border-strong)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
           }`}
         >
-          {isSelected ? "Selected" : "Select"}
+          {isSelected ? t("vionto.projects.selected") : t("vionto.projects.select")}
         </button>
       )}
 
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="More actions"
+        aria-label={t("vionto.projects.moreActions")}
         className="rounded-lg border border-[var(--color-border-strong)] p-1.5 text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
       >
         <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
@@ -525,47 +600,7 @@ function ActionMenu({ project, onSelect, onEdit, onDelete, onShare, isSelected }
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-1.5 shadow-xl">
-          {!onSelect && (
-            <a
-              href={`/create?projectId=${project.id}`}
-              className={btn + " text-[var(--color-text)]"}
-              onClick={() => setOpen(false)}
-            >
-              <FolderOpen className="h-4 w-4" />
-              Open project
-              <ExternalLink className="ml-auto h-3 w-3 opacity-50" />
-            </a>
-          )}
-          {project.isOwner && (
-            <>
-              <button type="button" className={btn} onClick={() => { setOpen(false); onEdit(project); }}>
-                <Pencil className="h-4 w-4" />
-                Rename / edit
-              </button>
-              <button type="button" className={btn} onClick={() => { setOpen(false); onShare(project); }}>
-                <Share2 className="h-4 w-4" />
-                Manage sharing
-              </button>
-              <div className="my-1 border-t border-[var(--color-border)]" />
-              <button
-                type="button"
-                className={btn + " text-red-400 hover:bg-red-500/10"}
-                onClick={() => { setOpen(false); onDelete(project); }}
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete project
-              </button>
-            </>
-          )}
-          {!project.isOwner && (
-            <p className="px-3 py-2 text-xs text-[var(--color-text-muted)]">
-              Shared with you (view only)
-            </p>
-          )}
-        </div>
-      )}
+      {dropdown && createPortal(dropdown, document.body)}
     </div>
   );
 }
@@ -573,6 +608,7 @@ function ActionMenu({ project, onSelect, onEdit, onDelete, onShare, isSelected }
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
+  const { t, locale } = useTranslation();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
@@ -652,7 +688,7 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
             type="search"
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
-            placeholder="Search projects…"
+            placeholder={t("vionto.projects.searchPlaceholder")}
             className="w-full rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-surface)] py-2.5 pl-9 pr-4 text-sm outline-none ring-[var(--color-primary)] focus:ring-2 placeholder:text-[var(--color-text-muted)]"
           />
         </div>
@@ -662,22 +698,22 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
           className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
         >
           <FilePlus2 className="h-4 w-4" />
-          New project
+          {t("vionto.projects.newProject")}
         </button>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-[var(--color-border-strong)]">
+      <div className="hidden overflow-x-auto rounded-2xl border border-[var(--color-border-strong)] md:block">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)] text-left text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-              <th className="px-4 py-3">Project</th>
-              <th className="px-4 py-3">Mode</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Assets</th>
-              <th className="px-4 py-3">Access</th>
-              <th className="px-4 py-3">Updated</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnProject")}</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnMode")}</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnStatus")}</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnAssets")}</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnAccess")}</th>
+              <th className="px-4 py-3">{t("vionto.projects.columnUpdated")}</th>
+              <th className="px-4 py-3 text-right">{t("vionto.projects.columnActions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -699,12 +735,12 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
                   <div className="mx-auto flex max-w-xs flex-col items-center gap-3">
                     <FilePlus2 className="h-10 w-10 text-[var(--color-text-muted)]" />
                     <p className="font-medium">
-                      {search ? "No projects match your search" : "No projects yet"}
+                      {search ? t("vionto.projects.emptySearchTitle") : t("vionto.projects.emptyTitle")}
                     </p>
                     <p className="text-[var(--color-text-muted)]">
                       {search
-                        ? "Try a different search term."
-                        : "Create your first project to get started."
+                        ? t("vionto.projects.emptySearchDescription")
+                        : t("vionto.projects.emptyDescription")
                       }
                     </p>
                     {!search && (
@@ -713,7 +749,7 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
                         onClick={() => setCreateOpen(true)}
                         className="mt-1 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
                       >
-                        New project
+                        {t("vionto.projects.newProject")}
                       </button>
                     )}
                   </div>
@@ -740,12 +776,12 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
 
                 {/* Mode */}
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {modeBadge(p.mode, p.storyMode)}
+                  {modeBadge(p.mode, p.storyMode, t)}
                 </td>
 
                 {/* Status */}
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {statusBadge(p.status)}
+                  {statusBadge(p.status, t)}
                 </td>
 
                 {/* Assets count */}
@@ -760,13 +796,13 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
                       ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
                       : "border border-[var(--color-border)] text-[var(--color-text-muted)]"
                   }`}>
-                    {p.isOwner ? "Owner" : "Shared"}
+                    {p.isOwner ? t("vionto.projects.owner") : t("vionto.projects.shared")}
                   </span>
                 </td>
 
                 {/* Updated */}
                 <td className="px-4 py-3 whitespace-nowrap text-[var(--color-text-muted)]">
-                  {fmtDate(p.updatedAt)}
+                  {fmtDate(p.updatedAt, locale)}
                 </td>
 
                 {/* Actions */}
@@ -786,11 +822,100 @@ export function ProjectList({ onSelect, selectedProjectId }: ProjectListProps) {
         </table>
       </div>
 
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {loading && Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-4">
+            <div className="h-4 w-2/3 animate-pulse rounded-full bg-[var(--color-border)]" />
+            <div className="mt-3 h-3 w-1/2 animate-pulse rounded-full bg-[var(--color-border)]" />
+            <div className="mt-4 h-9 w-full animate-pulse rounded-xl bg-[var(--color-border)]" />
+          </div>
+        ))}
+
+        {!loading && isEmpty && (
+          <div className="rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-5 py-12 text-center">
+            <div className="mx-auto flex max-w-xs flex-col items-center gap-3">
+              <FilePlus2 className="h-10 w-10 text-[var(--color-text-muted)]" />
+              <p className="font-medium">
+                {search ? t("vionto.projects.emptySearchTitle") : t("vionto.projects.emptyTitle")}
+              </p>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                {search ? t("vionto.projects.emptySearchDescription") : t("vionto.projects.emptyDescription")}
+              </p>
+              {!search && (
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(true)}
+                  className="mt-1 rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  {t("vionto.projects.newProject")}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!loading && projects.map((p) => (
+          <article
+            key={p.id}
+            className={`rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-4 ${
+              selectedProjectId === p.id ? "ring-2 ring-[var(--color-primary)]/40" : ""
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-semibold">{p.title}</h2>
+                {p.description && (
+                  <p className="mt-1 break-words text-xs text-[var(--color-text-muted)]">{p.description}</p>
+                )}
+              </div>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                p.isOwner
+                  ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
+                  : "border border-[var(--color-border)] text-[var(--color-text-muted)]"
+              }`}>
+                {p.isOwner ? t("vionto.projects.owner") : t("vionto.projects.shared")}
+              </span>
+            </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <dt className="text-[var(--color-text-muted)]">{t("vionto.projects.columnMode")}</dt>
+                <dd className="mt-1">{modeBadge(p.mode, p.storyMode, t)}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">{t("vionto.projects.columnStatus")}</dt>
+                <dd className="mt-1">{statusBadge(p.status, t)}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">{t("vionto.projects.columnAssets")}</dt>
+                <dd className="mt-1 font-medium">{p._count.assets}</dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">{t("vionto.projects.columnUpdated")}</dt>
+                <dd className="mt-1 font-medium">{fmtDate(p.updatedAt, locale)}</dd>
+              </div>
+            </dl>
+
+            <div className="mt-4 flex justify-end border-t border-[var(--color-border)] pt-3">
+              <ActionMenu
+                project={p}
+                onSelect={onSelect}
+                onEdit={setEditProject}
+                onDelete={setDeleteProject}
+                onShare={setShareProject}
+                isSelected={selectedProjectId === p.id}
+              />
+            </div>
+          </article>
+        ))}
+      </div>
+
       {/* Pagination */}
       {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-[var(--color-text-muted)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-muted)]">
           <span>
-            {pagination.total} project{pagination.total !== 1 ? "s" : ""}
+            {t(pagination.total === 1 ? "vionto.projects.totalSingular" : "vionto.projects.totalPlural", { count: pagination.total })}
           </span>
           <div className="flex items-center gap-2">
             <button
