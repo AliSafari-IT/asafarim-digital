@@ -901,6 +901,8 @@ h2 {
 .status-grid {
   margin-left: 24px;
   margin-right: 24px;
+  min-width: 0;
+  max-width: calc(100% - 48px);
 }
 
 .creator-grid,
@@ -909,6 +911,7 @@ h2 {
   grid-template-columns: minmax(0, 1fr) minmax(360px, 0.54fr);
   gap: 18px;
   align-items: start;
+  width: calc(100% - 48px);
 }
 
 .upload-panel,
@@ -923,6 +926,8 @@ h2 {
 }
 
 .upload-panel {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   gap: 20px;
   overflow: hidden;
@@ -1184,6 +1189,12 @@ input[type="text"] {
   .pipeline {
     margin-left: 12px;
     margin-right: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .creator-grid,
+  .status-grid {
+    width: calc(100% - 24px);
   }
 
   .upload-panel,
@@ -1246,6 +1257,12 @@ input[type="text"] {
   .pipeline {
     margin-left: 12px;
     margin-right: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .creator-grid,
+  .status-grid {
+    width: calc(100% - 24px);
   }
 
   .main-panel > .px-5 {
@@ -1286,6 +1303,19 @@ input[type="text"] {
 
   .project-assets-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .creator-grid,
+  .status-grid,
+  .pipeline {
+    margin-left: 12px;
+    margin-right: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .creator-grid,
+  .status-grid {
+    width: calc(100% - 24px);
   }
 
   .mode-row,
