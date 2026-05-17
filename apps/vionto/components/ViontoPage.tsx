@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
@@ -161,6 +162,7 @@ type LibraryExport = {
 
 export function ViontoPage() {
   const { t, locale } = useTranslation();
+  const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -236,9 +238,11 @@ export function ViontoPage() {
   const [libraryHasNext, setLibraryHasNext] = useState(false);
   const LIBRARY_PAGE_SIZE = 6;
 
-  // Project state
+  // Project state — pre-select from ?projectId= URL param if present
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    () => searchParams?.get("projectId") ?? null
+  );
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
@@ -1296,7 +1300,16 @@ export function ViontoPage() {
 
               {/* Project picker */}
               <div className="mt-3">
-                <label className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.project.label")}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.project.label")}</label>
+                  <a
+                    href="/projects"
+                    className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
+                  >
+                    Manage projects
+                    <ArrowRight size={11} />
+                  </a>
+                </div>
                 <div className="project-picker-row mt-1">
                   <select
                     className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
@@ -1319,7 +1332,7 @@ export function ViontoPage() {
                   </button>
                 </div>
 
-                {/* Create project modal */}
+                {/* Create project inline form */}
                 {isCreatingProject && (
                   <div className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                     <input

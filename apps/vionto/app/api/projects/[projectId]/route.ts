@@ -1,36 +1,53 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
-import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
+import {
+  getAuthedUser,
+  unauthorized,
+  badRequest,
+  forbidden,
+  notFound,
+  serverError,
+} from "@/lib/server/auth";
 import { updateProjectSchema, formatZodError } from "@/lib/server/validation";
 
 export const runtime = "nodejs";
 
-async function getProject(projectId: string, userId: string) {
+const PROJECT_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  mode: true,
+  storyMode: true,
+  emotionalTone: true,
+  visualStyle: true,
+  musicOption: true,
+  musicTrackId: true,
+  musicMetadata: true,
+  locale: true,
+  aspectRatio: true,
+  resolution: true,
+  status: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { assets: true, scripts: true, exports: true } },
+} as const;
+
+/** Returns the project if the user owns it or has a share record. */
+async function resolveProject(projectId: string, userId: string, email: string) {
   return prisma.viontoProject.findFirst({
-    where: { id: projectId, userId },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      mode: true,
-      storyMode: true,
-      emotionalTone: true,
-      visualStyle: true,
-      musicOption: true,
-      musicTrackId: true,
-      musicMetadata: true,
-      locale: true,
-      aspectRatio: true,
-      resolution: true,
-      status: true,
-      createdAt: true,
-      updatedAt: true,
-      _count: { select: { assets: true, scripts: true, exports: true } },
+    where: {
+      id: projectId,
+      OR: [
+        { userId },
+        { shares: { some: { OR: [{ sharedWithUserId: userId }, { email }] } } },
+      ],
     },
+    select: PROJECT_SELECT,
   });
 }
 
-/** GET /api/projects/[projectId] — get project detail */
+/** GET /api/projects/[projectId] — owners and shared users can view */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ projectId: string }> }
@@ -40,19 +57,17 @@ export async function GET(
     if (!user) return unauthorized();
 
     const { projectId } = await params;
-    const project = await getProject(projectId, user.id);
-    if (!project) {
-      return badRequest("Project not found.");
-    }
+    const project = await resolveProject(projectId, user.id, user.email);
+    if (!project) return notFound();
 
-    return NextResponse.json(project);
+    return NextResponse.json({ ...project, isOwner: project.userId === user.id });
   } catch (error) {
     return serverError("projects/[projectId]", error);
   }
 }
 
-/** PUT /api/projects/[projectId] — update project */
-async function updateProject(
+/** Shared helper — only owners may mutate (PUT / PATCH) */
+async function handleUpdate(
   req: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
@@ -61,9 +76,19 @@ async function updateProject(
     if (!user) return unauthorized();
 
     const { projectId } = await params;
-    const existing = await getProject(projectId, user.id);
+
+    // Check ownership (not just access)
+    const existing = await prisma.viontoProject.findFirst({
+      where: { id: projectId, userId: user.id },
+      select: { id: true },
+    });
     if (!existing) {
-      return badRequest("Project not found.");
+      // Distinguish not-found vs. forbidden
+      const exists = await prisma.viontoProject.findUnique({
+        where: { id: projectId },
+        select: { id: true },
+      });
+      return exists ? forbidden("Only the project owner can edit this project.") : notFound();
     }
 
     let body: unknown;
@@ -81,47 +106,30 @@ async function updateProject(
     const updated = await prisma.viontoProject.update({
       where: { id: projectId },
       data: parsed.data,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        mode: true,
-        storyMode: true,
-        emotionalTone: true,
-        visualStyle: true,
-        musicOption: true,
-        musicTrackId: true,
-        musicMetadata: true,
-        locale: true,
-        aspectRatio: true,
-        resolution: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: PROJECT_SELECT,
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...updated, isOwner: true });
   } catch (error) {
     return serverError("projects/[projectId]", error);
   }
 }
 
-/** DELETE /api/projects/[projectId] — delete project */
 export async function PUT(
   req: Request,
   context: { params: Promise<{ projectId: string }> }
 ) {
-  return updateProject(req, context);
+  return handleUpdate(req, context);
 }
 
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ projectId: string }> }
 ) {
-  return updateProject(req, context);
+  return handleUpdate(req, context);
 }
 
+/** DELETE /api/projects/[projectId] — owner only */
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ projectId: string }> }
@@ -131,13 +139,20 @@ export async function DELETE(
     if (!user) return unauthorized();
 
     const { projectId } = await params;
-    const existing = await getProject(projectId, user.id);
+
+    const existing = await prisma.viontoProject.findFirst({
+      where: { id: projectId, userId: user.id },
+      select: { id: true },
+    });
     if (!existing) {
-      return badRequest("Project not found.");
+      const exists = await prisma.viontoProject.findUnique({
+        where: { id: projectId },
+        select: { id: true },
+      });
+      return exists ? forbidden("Only the project owner can delete this project.") : notFound();
     }
 
     await prisma.viontoProject.delete({ where: { id: projectId } });
-
     return NextResponse.json({ id: projectId, deleted: true });
   } catch (error) {
     return serverError("projects/[projectId]", error);

@@ -77,9 +77,11 @@ model User {
   eduAuditEventsActor    EduAuditEvent[]           @relation("EduAuditActor")
 
   // Vionto
-  viontoProjects       ViontoProject[]
-  viontoAuditEvents    ViontoAuditEvent[]        @relation("ViontoAuditActor")
-  viontoUsageMetrics   ViontoUsageMetric[]
+  viontoProjects         ViontoProject[]
+  viontoAuditEvents      ViontoAuditEvent[]        @relation("ViontoAuditActor")
+  viontoUsageMetrics     ViontoUsageMetric[]
+  viontoSharesSent       ViontoProjectShare[]      @relation("ViontoSharesSent")
+  viontoSharesReceived   ViontoProjectShare[]      @relation("ViontoSharesReceived")
 
   // Generic user locations (home, work, etc.) - reusable across all apps
   locations UserLocation[]
@@ -1291,10 +1293,39 @@ model ViontoProject {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Shares: who else can access this project
+  shares       ViontoProjectShare[]
+
   @@index([userId])
   @@index([tenantId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ─── Vionto Project Sharing ──────────────────────────────────
+
+model ViontoProjectShare {
+  id               String  @id @default(cuid())
+  projectId        String
+  sharedByUserId   String
+  // Null when the invitee is not yet registered
+  sharedWithUserId String?
+  // Email used for the invite (canonical, lowercase)
+  email            String
+
+  // Permission level: viewer can access, editor can rename/upload (future)
+  permission       String  @default("viewer") // viewer, editor
+
+  project        ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sharedBy       User          @relation("ViontoSharesSent",     fields: [sharedByUserId],   references: [id], onDelete: Cascade)
+  sharedWith     User?         @relation("ViontoSharesReceived", fields: [sharedWithUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, email])
+  @@index([projectId])
+  @@index([sharedWithUserId])
+  @@index([email])
 }
 
 model ViontoAsset {

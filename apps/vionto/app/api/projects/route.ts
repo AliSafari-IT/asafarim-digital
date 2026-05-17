@@ -9,7 +9,28 @@ import {
 
 export const runtime = "nodejs";
 
-/** GET /api/projects — list paginated projects for the authenticated user */
+const PROJECT_SELECT = {
+  id: true,
+  title: true,
+  description: true,
+  mode: true,
+  storyMode: true,
+  emotionalTone: true,
+  visualStyle: true,
+  musicOption: true,
+  musicTrackId: true,
+  musicMetadata: true,
+  locale: true,
+  aspectRatio: true,
+  resolution: true,
+  status: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { assets: true, scripts: true, exports: true } },
+} as const;
+
+/** GET /api/projects — list paginated projects the user owns OR has been shared with */
 export async function GET(req: Request) {
   try {
     const user = await getAuthedUser();
@@ -28,8 +49,21 @@ export async function GET(req: Request) {
 
     const { page, pageSize, sortBy, sortOrder } = parsed.data;
     const skip = (page - 1) * pageSize;
+    const search = searchParams.get("search")?.trim() ?? "";
 
-    const where = { userId: user.id };
+    // Match projects the user owns OR has a share record for (by userId or email)
+    const accessWhere = {
+      OR: [
+        { userId: user.id },
+        { shares: { some: { OR: [{ sharedWithUserId: user.id }, { email: user.email }] } } },
+      ],
+    };
+
+    const titleFilter = search
+      ? { title: { contains: search, mode: "insensitive" as const } }
+      : {};
+
+    const where = { ...accessWhere, ...titleFilter };
 
     const [projects, total] = await Promise.all([
       prisma.viontoProject.findMany({
@@ -37,31 +71,19 @@ export async function GET(req: Request) {
         orderBy: sortBy ? { [sortBy]: sortOrder } : { createdAt: sortOrder },
         skip,
         take: pageSize,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          mode: true,
-          storyMode: true,
-          emotionalTone: true,
-          visualStyle: true,
-          musicOption: true,
-          musicTrackId: true,
-          musicMetadata: true,
-          locale: true,
-          aspectRatio: true,
-          resolution: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: { select: { assets: true, scripts: true, exports: true } },
-        },
+        select: PROJECT_SELECT,
       }),
       prisma.viontoProject.count({ where }),
     ]);
 
+    // Tag each project with the caller's relationship to it
+    const enriched = projects.map((p) => ({
+      ...p,
+      isOwner: p.userId === user.id,
+    }));
+
     return NextResponse.json({
-      data: projects,
+      data: enriched,
       pagination: {
         page,
         pageSize,
@@ -98,27 +120,10 @@ export async function POST(req: Request) {
         ...parsed.data,
         status: "draft",
       },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        mode: true,
-        storyMode: true,
-        emotionalTone: true,
-        visualStyle: true,
-        musicOption: true,
-        musicTrackId: true,
-        musicMetadata: true,
-        locale: true,
-        aspectRatio: true,
-        resolution: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: PROJECT_SELECT,
     });
 
-    return NextResponse.json(project, { status: 201 });
+    return NextResponse.json({ ...project, isOwner: true }, { status: 201 });
   } catch (error) {
     return serverError("projects", error);
   }
