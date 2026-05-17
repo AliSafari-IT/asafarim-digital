@@ -120,6 +120,22 @@ export const updateProjectSchema = createProjectSchema.partial();
 
 // ─── Pagination schema ────────────────────────────────────────────────
 
+// ─── Project sharing schemas ──────────────────────────────────
+
+export const addShareSchema = z.object({
+  email: z.string().email("Must be a valid email address").toLowerCase(),
+  permission: z.enum(["viewer", "editor"]).default("viewer"),
+});
+
+export const removeShareSchema = z.object({
+  shareId: z.string().min(1),
+});
+
+export type AddShareInput = z.infer<typeof addShareSchema>;
+export type RemoveShareInput = z.infer<typeof removeShareSchema>;
+
+// ─── Pagination schema ────────────────────────────────────────
+
 export const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
