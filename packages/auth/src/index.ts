@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import { prisma } from "@asafarim/db";
-import { googleProvider, credentialsProvider } from "./providers";
+import { googleProvider, credentialsProvider, emailCodeProvider } from "./providers";
 import "./types";
 
 type AuthUserLike = {
@@ -213,7 +213,7 @@ export const authConfig: NextAuthConfig = {
   // PrismaAdapter removed - using JWT strategy which doesn't need database adapter
   // adapter: PrismaAdapter(prisma),
 
-  providers: [googleProvider, credentialsProvider],
+  providers: [googleProvider, credentialsProvider, emailCodeProvider],
 
   session: {
     strategy: "jwt",
@@ -349,7 +349,10 @@ export const authConfig: NextAuthConfig = {
     },
 
     async signIn({ user, account }) {
-      if (account?.provider !== "credentials") {
+      // Credentials-type providers (email/password and email-code OTP) return
+      // the user directly from authorize(); no need to call ensureAuthUser.
+      // Non-credentials providers (Google OAuth, etc.) need account upsert.
+      if (account?.type !== "credentials") {
         const dbUser = await ensureAuthUser(user, account);
         if (!dbUser) return false;
         user.id = dbUser.id;
@@ -358,7 +361,7 @@ export const authConfig: NextAuthConfig = {
 
       if (!user) return false;
 
-      // Block deactivated credential users
+      // Block deactivated credential users (covers both password and OTP paths)
       if (user.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },

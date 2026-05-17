@@ -240,6 +240,7 @@ export function ViontoPage() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isSubmittingProject, setIsSubmittingProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
@@ -697,8 +698,8 @@ export function ViontoPage() {
   }
 
   async function createProject() {
-    if (!newProjectTitle.trim()) return;
-    setIsCreatingProject(true);
+    if (!newProjectTitle.trim() || isSubmittingProject) return;
+    setIsSubmittingProject(true);
     try {
       const res = await fetch("/api/projects", {
         method: "POST",
@@ -725,11 +726,12 @@ export function ViontoPage() {
       await loadProjects();
       setSelectedProjectId(project.id);
       setNewProjectTitle("");
+      setIsCreatingProject(false);
     } catch (error) {
       console.error("Failed to create project", error);
       alert("Failed to create project");
     } finally {
-      setIsCreatingProject(false);
+      setIsSubmittingProject(false);
     }
   }
 
@@ -1326,13 +1328,15 @@ export function ViontoPage() {
                       placeholder={t("vionto.project.titlePlaceholder")}
                       value={newProjectTitle}
                       onChange={(e) => setNewProjectTitle(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && createProject()}
+                      onKeyDown={(e) => e.key === "Enter" && !isSubmittingProject && createProject()}
+                      disabled={isSubmittingProject}
                       autoFocus
                     />
                     <div className="mt-2 flex justify-end gap-2">
                       <button
                         type="button"
                         onClick={() => { setIsCreatingProject(false); setNewProjectTitle(""); }}
+                        disabled={isSubmittingProject}
                         className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
                       >
                         {t("common.cancel")}
@@ -1340,10 +1344,20 @@ export function ViontoPage() {
                       <button
                         type="button"
                         onClick={createProject}
-                        disabled={!newProjectTitle.trim() || isCreatingProject}
-                        className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                        disabled={!newProjectTitle.trim() || isSubmittingProject}
+                        className="inline-flex min-w-24 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
                       >
-                        {isCreatingProject ? <RefreshCw size={14} className="animate-spin" /> : t("vionto.project.create")}
+                        {isSubmittingProject ? (
+                          <>
+                            <RefreshCw size={14} className="animate-spin" />
+                            {t("vionto.project.create")}
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={14} />
+                            {t("vionto.project.create")}
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>

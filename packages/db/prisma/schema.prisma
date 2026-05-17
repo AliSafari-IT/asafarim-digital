@@ -184,6 +184,29 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ─── Email One-Time Login Code ──────────────────────────────────
+
+/// Short-lived 6-character OTP used for passwordless email-code login.
+/// Codes are single-use and expire after EMAIL_LOGIN_CODE_TTL_MINUTES (default 10).
+/// Rate limits: max 5 requests per email per 15 min; max 5 failed verify attempts.
+model EmailLoginCode {
+  id        String    @id @default(cuid())
+  /// The email address the code was sent to (lowercased)
+  email     String
+  /// SHA-256 hex digest of the uppercased 6-character code
+  codeHash  String
+  /// When this code expires
+  expiresAt DateTime
+  /// Set when the code is successfully consumed
+  usedAt    DateTime?
+  /// Number of failed verification attempts against this code
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+}
+
 // ─── RBAC Models ───────────────────────────────────────────────
 
 model Role {
