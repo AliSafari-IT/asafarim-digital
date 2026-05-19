@@ -44,7 +44,7 @@ function getTargetDimensions(resolution: string, aspectRatio: string): { width: 
   }
 
   if (arW < arH) {
-    return { width: even(res.height * (arW / arH)), height: res.width };
+    return { width: res.height, height: even(res.height * (arH / arW)) };
   }
 
   return { width: res.width, height: even(res.width * (arH / arW)) };

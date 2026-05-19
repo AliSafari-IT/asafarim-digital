@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { pickMotionPreset, pickTransitionPreset, buildRenderCommand, buildConcatListContent } from "../ffmpeg";
-import type { RenderManifest } from "../render-manifest";
+import type { RenderManifest, SubtitleStyle } from "../render-manifest";
+
+const BASE_SUBTITLE_STYLE: SubtitleStyle = {
+  fontName: "Arial",
+  fontSize: 24,
+  fontWeight: "normal",
+  color: "white",
+  outlineColor: "black",
+  outlineWidth: 2,
+  backgroundColor: "transparent",
+  backgroundOpacity: 0,
+  borderRadius: 0,
+  padding: 4,
+  shadow: false,
+  shadowColor: "#000000",
+  shadowOffset: 2,
+  position: "bottom",
+  alignment: "center",
+  marginV: 40,
+  marginH: 40,
+  maxLineWidth: 42,
+  maxLines: 2,
+  textTransform: "preserve",
+};
 
 const BASE_MANIFEST: RenderManifest = {
   projectId: "p1",
@@ -17,7 +40,20 @@ const BASE_MANIFEST: RenderManifest = {
   ],
   audioTracks: [],
   burnSubtitles: false,
-  subtitleStyle: { fontName: "Arial", fontSize: 24, color: "white", outlineColor: "black", outlineWidth: 2, position: "bottom", marginV: 40 },
+  subtitleStyle: BASE_SUBTITLE_STYLE,
+  subtitleTiming: {
+    maxCharsPerSegment: 80,
+    minDisplayMs: 1200,
+    maxDisplayMs: 7000,
+    gapMs: 100,
+    splitOnPunctuation: true,
+    splitLongSentences: true,
+  },
+  subtitleExport: {
+    burnIn: true,
+    exportSrt: false,
+    exportVtt: false,
+  },
   outputFormat: "mp4",
   videoCodec: "libx264",
   audioCodec: "aac",
@@ -99,6 +135,36 @@ describe("buildRenderCommand", () => {
     expect(final).toContain("libx264");
     expect(final).toContain("-b:v");
     expect(final).toContain("5000k");
+  });
+
+  it("renders portrait 1080p as a 9:16 canvas", () => {
+    const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "9:16" };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+    });
+    const firstSegment = steps[0];
+    const final = steps[steps.length - 1];
+    const segmentVf = firstSegment[firstSegment.indexOf("-vf") + 1];
+    const finalVf = final[final.indexOf("-vf") + 1];
+
+    expect(segmentVf).toContain("scale=1080:1920");
+    expect(segmentVf).toContain("pad=1080:1920");
+    expect(segmentVf).toContain("s=1080x1920");
+    expect(finalVf).toContain("scale=1080:1920");
+    expect(finalVf).toContain("pad=1080:1920");
+  });
+
+  it("renders square 1080p as a 1:1 canvas", () => {
+    const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "1:1" };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+    });
+    const firstSegment = steps[0];
+    const segmentVf = firstSegment[firstSegment.indexOf("-vf") + 1];
+
+    expect(segmentVf).toContain("scale=1080:1080");
+    expect(segmentVf).toContain("pad=1080:1080");
+    expect(segmentVf).toContain("s=1080x1080");
   });
 
   it("includes narration and music inputs when both are materialized", () => {

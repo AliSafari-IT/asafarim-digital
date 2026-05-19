@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { aspectLabelForRatio, buildExportFilename, buildExportMetadata, extractStoryKeywords } from "../export-metadata";
-import type { RenderManifest } from "../render-manifest";
+import type { RenderManifest, SubtitleStyle } from "../render-manifest";
+
+const BASE_SUBTITLE_STYLE: SubtitleStyle = {
+  fontName: "Arial",
+  fontSize: 24,
+  fontWeight: "normal",
+  color: "white",
+  outlineColor: "black",
+  outlineWidth: 2,
+  backgroundColor: "transparent",
+  backgroundOpacity: 0,
+  borderRadius: 0,
+  padding: 4,
+  shadow: false,
+  shadowColor: "#000000",
+  shadowOffset: 2,
+  position: "bottom",
+  alignment: "center",
+  marginV: 40,
+  marginH: 40,
+  maxLineWidth: 42,
+  maxLines: 2,
+  textTransform: "preserve",
+};
 
 const BASE_MANIFEST: RenderManifest = {
   projectId: "p1",
@@ -16,7 +39,20 @@ const BASE_MANIFEST: RenderManifest = {
   audioTracks: [],
   narrationText: "Focus on the targets, focus on every small victory, and keep the targets bright.",
   burnSubtitles: true,
-  subtitleStyle: { fontName: "Arial", fontSize: 24, color: "white", outlineColor: "black", outlineWidth: 2, position: "bottom", marginV: 40 },
+  subtitleStyle: BASE_SUBTITLE_STYLE,
+  subtitleTiming: {
+    maxCharsPerSegment: 80,
+    minDisplayMs: 1200,
+    maxDisplayMs: 7000,
+    gapMs: 100,
+    splitOnPunctuation: true,
+    splitLongSentences: true,
+  },
+  subtitleExport: {
+    burnIn: true,
+    exportSrt: false,
+    exportVtt: false,
+  },
   outputFormat: "mp4",
   videoCodec: "libx264",
   audioCodec: "aac",

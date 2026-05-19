@@ -163,6 +163,25 @@ type LibraryExport = {
   createdAt: string;
 };
 
+function cssAspectRatio(aspectRatio: string | null | undefined) {
+  if (aspectRatio === "9:16") return "9 / 16";
+  if (aspectRatio === "1:1") return "1 / 1";
+  if (aspectRatio === "4:3") return "4 / 3";
+  return "16 / 9";
+}
+
+function previewFrameStyle(aspectRatio: string | null | undefined) {
+  if (aspectRatio === "9:16") {
+    return { aspectRatio: cssAspectRatio(aspectRatio), width: "min(100%, 320px)", marginInline: "auto" };
+  }
+
+  if (aspectRatio === "1:1") {
+    return { aspectRatio: cssAspectRatio(aspectRatio), width: "min(100%, 460px)", marginInline: "auto" };
+  }
+
+  return { aspectRatio: cssAspectRatio(aspectRatio), width: "100%" };
+}
+
 export function ViontoPage() {
   const { t, locale } = useTranslation();
   const searchParams = useSearchParams();
@@ -792,6 +811,7 @@ export function ViontoPage() {
   const modes = ["cinematic", "slideshow", "social"] as const;
   const [activeMode, setActiveMode] = useState<UiMode>("cinematic");
   const [activeAspectRatio, setActiveAspectRatio] = useState<AspectRatio>("16:9");
+  const currentPreviewAspectRatio = latestExport?.aspectRatio ?? activeAspectRatio;
 
   const queueItems = [
     ["Captioning", "12 images processed"],
@@ -1803,7 +1823,7 @@ export function ViontoPage() {
                   <span />
                   <span />
                 </div>
-                <div className="video-stage">
+                <div className="video-stage" style={previewFrameStyle(currentPreviewAspectRatio)}>
                   {latestExport?.previewUrl ? (
                     <video
                       key={latestExport.id}
@@ -2095,7 +2115,8 @@ export function ViontoPage() {
                         controls
                         playsInline
                         preload="metadata"
-                        className="aspect-video w-full bg-black object-cover"
+                        className="w-full bg-black object-contain"
+                        style={{ aspectRatio: cssAspectRatio(item.aspectRatio) }}
                       />
                       <div className="flex flex-1 flex-col gap-1 p-3 min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
