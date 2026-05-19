@@ -1947,26 +1947,28 @@ export function ViontoPage() {
                     <ListChecks size={16} />
                     <span className="text-sm">{t("vionto.render.completed")}</span>
                   </div>
-                  {exportId && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {exportId && (
+                      <button
+                        type="button"
+                        onClick={getDownloadUrl}
+                        disabled={!!downloadUrl}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                      >
+                        <Download size={16} />
+                        {downloadUrl ? t("vionto.render.downloading") : t("vionto.render.download")}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={getDownloadUrl}
-                      disabled={!!downloadUrl}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                      onClick={startRender}
+                      disabled={!selectedProjectId || projectAssets.length === 0 || !hasRenderableScript}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-50"
                     >
-                      <Download size={16} />
-                      {downloadUrl ? t("vionto.render.downloading") : t("vionto.render.download")}
+                      <Clapperboard size={16} />
+                      {t("vionto.render.generateVideo")}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={startRender}
-                    disabled={!selectedProjectId || projectAssets.length === 0 || !hasRenderableScript}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-surface-soft)] disabled:opacity-50"
-                  >
-                    <Clapperboard size={16} />
-                    {t("vionto.render.createAnother")}
-                  </button>
+                  </div>
                   {downloadUrl && (
                     <a
                       href={downloadUrl}

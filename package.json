@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "sh": "bash start.sh",
+    "ps1": "powershell -ExecutionPolicy Bypass -File start.ps1 start",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
