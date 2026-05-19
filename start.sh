@@ -459,10 +459,13 @@ cmd_start() {
   show_banner
   assert_dependencies
   stop_app_ports
-  stop_workspace_node_processes
+  log_info "Ports cleared, stopping any existing Node processes..."
+  stop_workspace_node_processes || true
+  log_info "Running install..."
   cmd_install
+  log_info "Running build..."
   cmd_build
-  shift  # Remove 'start' from args
+  log_info "Starting dev servers..."
   cmd_dev "$@"
 }
 
