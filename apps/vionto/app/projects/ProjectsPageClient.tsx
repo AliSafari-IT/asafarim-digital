@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@asafarim/shared-i18n";
+import { ArrowLeft, Clapperboard, Home } from "lucide-react";
 import { ProjectList, type ProjectRow } from "@/components/ProjectList";
 
 export function ProjectsPageClient() {
@@ -38,11 +40,37 @@ export function ProjectsPageClient() {
 
   return (
     <>
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("vionto.projects.title")}</h1>
-        <p className="mt-1 max-w-3xl text-sm text-[var(--color-text-muted)]">
-          {t("vionto.projects.description")}
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("vionto.projects.back")}
+          </button>
+          <Link
+            href="/create"
+            className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary)] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            <Clapperboard className="h-4 w-4" />
+            {t("vionto.projects.createVideo")}
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-panel)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+          >
+            <Home className="h-4 w-4" />
+            {t("vionto.projects.home")}
+          </Link>
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("vionto.projects.title")}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-[var(--color-text-muted)]">
+            {t("vionto.projects.description")}
+          </p>
+        </div>
       </div>
       <ProjectList onSelect={handleSelect} />
     </>

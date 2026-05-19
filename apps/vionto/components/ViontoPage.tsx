@@ -1613,16 +1613,16 @@ export function ViontoPage() {
                   </button>
                 </div>
                 {selectedMusicTracks.length > 0 && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 w-full max-w-full min-w-0 space-y-2">
                     {selectedMusicTracks.map((track, index) => (
-                      <div key={`${track.provider}-${track.trackId}`} className="flex items-center gap-2 rounded-lg border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-2">
+                      <div key={`${track.provider}-${track.trackId}`} className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-[var(--color-accent)] bg-[var(--color-accent)]/10 p-2">
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] text-xs font-semibold text-white">
                           {index + 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => toggleMusicPreview(track)}
-                          className="text-[var(--color-accent)] hover:text-[var(--color-accent)]/80"
+                          className="shrink-0 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80"
                           title={musicPreviewTrackId === track.trackId ? t("vionto.audio.previewing") : t("vionto.audio.preview")}
                         >
                           {musicPreviewTrackId === track.trackId ? (
@@ -1632,13 +1632,13 @@ export function ViontoPage() {
                           )}
                         </button>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[var(--color-text)] truncate">{track.title}</p>
-                          <p className="text-xs text-[var(--color-text-muted)]">{track.artist}</p>
+                          <p className="truncate break-all text-sm font-medium text-[var(--color-text)]" title={track.title}>{track.title}</p>
+                          <p className="truncate text-xs text-[var(--color-text-muted)]" title={track.artist}>{track.artist}</p>
                         </div>
                         <button
                           type="button"
                           onClick={() => removeMusicTrack(track)}
-                          className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                          className="shrink-0 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                           title={t("vionto.music.remove")}
                         >
                           <X className="h-4 w-4" />
@@ -1751,7 +1751,7 @@ export function ViontoPage() {
 
               <div className="mt-3" aria-label={t("vionto.aspect.aria")}>
                 <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.aspect.label")}</p>
-                <div className="mt-1 grid grid-cols-3 gap-2">
+                <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {ASPECT_OPTIONS.map((option) => (
                     <label
                       key={option.value}
