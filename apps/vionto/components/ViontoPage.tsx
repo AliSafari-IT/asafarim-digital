@@ -28,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
+import { SubtitleConfig } from "./SubtitleConfig";
 import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
@@ -1859,6 +1860,19 @@ export function ViontoPage() {
                 isGenerating={isGenerating}
               />
             </div>
+
+            {selectedProjectId && (
+              <div className="job-card" id="subtitles">
+                <div className="section-heading">
+                  <Captions size={20} />
+                  <h2>{t("vionto.subtitles.title", "Subtitles")}</h2>
+                </div>
+                <SubtitleConfig
+                  projectId={selectedProjectId}
+                  aspectRatio={activeAspectRatio}
+                />
+              </div>
+            )}
 
             {selectedProjectId && (
               <div className="job-card" id="audio">

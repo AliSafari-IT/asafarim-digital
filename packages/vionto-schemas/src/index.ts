@@ -192,11 +192,47 @@ export type StoryResponse = z.infer<typeof storyResponseSchema>;
 export const subtitleStyleSchema = z.object({
   fontName: z.string().default("Arial"),
   fontSize: z.number().int().min(8).max(128).default(24),
-  color: z.string().default("white"),
-  outlineColor: z.string().default("black"),
+  fontWeight: z.enum(["normal", "bold"]).default("normal"),
+  color: z.string().default("#ffffff"),
+  outlineColor: z.string().default("#000000"),
   outlineWidth: z.number().int().min(0).max(8).default(2),
+  backgroundColor: z.string().default("transparent"),
+  backgroundOpacity: z.number().min(0).max(1).default(0),
+  borderRadius: z.number().int().min(0).max(20).default(0),
+  padding: z.number().int().min(0).max(40).default(4),
+  shadow: z.boolean().default(false),
+  shadowColor: z.string().default("#000000"),
+  shadowOffset: z.number().int().min(0).max(10).default(2),
   position: z.enum(["bottom", "top", "center"]).default("bottom"),
-  marginV: z.number().int().min(0).default(40),
+  alignment: z.enum(["left", "center", "right"]).default("center"),
+  marginV: z.number().int().min(0).max(300).default(40),
+  marginH: z.number().int().min(0).max(300).default(40),
+  maxLineWidth: z.number().int().min(10).max(80).default(42),
+  maxLines: z.number().int().min(1).max(4).default(2),
+  textTransform: z.enum(["preserve", "uppercase", "lowercase", "sentence"]).default("preserve"),
+});
+
+export const subtitleTimingSchema = z.object({
+  maxCharsPerSegment: z.number().int().min(20).max(200).default(80),
+  minDisplayMs: z.number().int().min(500).max(5000).default(1200),
+  maxDisplayMs: z.number().int().min(2000).max(15000).default(7000),
+  gapMs: z.number().int().min(0).max(2000).default(100),
+  splitOnPunctuation: z.boolean().default(true),
+  splitLongSentences: z.boolean().default(true),
+});
+
+export const subtitleExportSchema = z.object({
+  burnIn: z.boolean().default(true),
+  exportSrt: z.boolean().default(false),
+  exportVtt: z.boolean().default(false),
+});
+
+export const subtitleConfigSchema = z.object({
+  presetId: z.string().default("minimal_clean"),
+  style: subtitleStyleSchema.default({}),
+  timing: subtitleTimingSchema.default({}),
+  export: subtitleExportSchema.default({}),
+  enabled: z.boolean().default(true),
 });
 
 export const motionPresetSchema = z.object({
@@ -263,9 +299,13 @@ export const renderManifestSchema = z.object({
   audioTracks: z.array(audioTrackSchema).max(16).default([]),
 
   narrationText: z.string().optional(),
+  srtText: z.string().optional(),
   srtStorageKey: z.string().optional(),
   burnSubtitles: z.boolean().default(true),
   subtitleStyle: subtitleStyleSchema.default({}),
+  subtitleTiming: subtitleTimingSchema.default({}),
+  subtitleExport: subtitleExportSchema.default({}),
+  subtitlePresetId: z.string().optional(),
 
   outputFormat: OutputFormat,
   videoCodec: VideoCodec,
@@ -301,6 +341,9 @@ export type AudioTrack = z.infer<typeof audioTrackSchema>;
 export type MotionPreset = z.infer<typeof motionPresetSchema>;
 export type TransitionPreset = z.infer<typeof transitionPresetSchema>;
 export type SubtitleStyle = z.infer<typeof subtitleStyleSchema>;
+export type SubtitleTiming = z.infer<typeof subtitleTimingSchema>;
+export type SubtitleExport = z.infer<typeof subtitleExportSchema>;
+export type SubtitleConfig = z.infer<typeof subtitleConfigSchema>;
 export type VisualStyle = z.infer<typeof VisualStyle>;
 export type RenderJobResponse = z.infer<typeof renderJobResponseSchema>;
 

@@ -170,18 +170,67 @@ function escapeFilterPath(path: string): string {
     .replace(/'/g, "\\'");
 }
 
+function hexToASSColor(hex: string): string {
+  const clean = hex.replace("#", "");
+  if (clean.length < 6) return "&H00FFFFFF";
+  const r = clean.substring(0, 2);
+  const g = clean.substring(2, 4);
+  const b = clean.substring(4, 6);
+  return `&H00${b}${g}${r}`.toUpperCase();
+}
+
+function hexToASSColorWithAlpha(hex: string, opacity: number): string {
+  const alpha = Math.round((1 - opacity) * 255).toString(16).padStart(2, "0").toUpperCase();
+  const clean = hex.replace("#", "");
+  if (clean.length < 6) return `&H${alpha}000000`;
+  const r = clean.substring(0, 2);
+  const g = clean.substring(2, 4);
+  const b = clean.substring(4, 6);
+  return `&H${alpha}${b}${g}${r}`.toUpperCase();
+}
+
 /** Build subtitle burn-in filter string (ASS style overlay). */
 function buildSubtitleFilter(style: SubtitleStyle, srtPath: string): string {
   const font = style.fontName.replace(/:/g, "\\:");
-  const color = style.color;
-  const outline = style.outlineColor;
   const size = style.fontSize;
   const outlineW = style.outlineWidth;
+  const isBold = style.fontWeight === "bold" ? 1 : 0;
 
-  const pos = style.position === "top" ? "alignment=8" : style.position === "center" ? "alignment=5" : "alignment=2";
-  const marginV = style.marginV;
+  const primaryColor = hexToASSColor(style.color ?? "#ffffff");
+  const outlineColor = hexToASSColor(style.outlineColor ?? "#000000");
 
-  return `subtitles=filename='${escapeFilterPath(srtPath)}':force_style='FontName=${font},FontSize=${size},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=${outlineW},${pos},MarginV=${marginV}'`;
+  const bgOpacity = style.backgroundOpacity ?? 0;
+  const bgColor = style.backgroundColor && style.backgroundColor !== "transparent" && bgOpacity > 0
+    ? hexToASSColorWithAlpha(style.backgroundColor, bgOpacity)
+    : "&HFF000000";
+
+  const shadowVal = style.shadow ? (style.shadowOffset ?? 2) : 0;
+
+  const alignMap = { bottom: { left: 1, center: 2, right: 3 }, center: { left: 4, center: 5, right: 6 }, top: { left: 7, center: 8, right: 9 } };
+  const vPos = style.position ?? "bottom";
+  const hAlign = style.alignment ?? "center";
+  const alignment = alignMap[vPos]?.[hAlign] ?? 2;
+
+  const marginV = style.marginV ?? 40;
+  const marginH = style.marginH ?? 40;
+
+  const styleParts = [
+    `FontName=${font}`,
+    `FontSize=${size}`,
+    `Bold=${isBold}`,
+    `PrimaryColour=${primaryColor}`,
+    `OutlineColour=${outlineColor}`,
+    `BackColour=${bgColor}`,
+    `Outline=${outlineW}`,
+    `Shadow=${shadowVal}`,
+    `Alignment=${alignment}`,
+    `MarginV=${marginV}`,
+    `MarginL=${marginH}`,
+    `MarginR=${marginH}`,
+    `BorderStyle=${bgOpacity > 0 ? 3 : 1}`,
+  ];
+
+  return `subtitles=filename='${escapeFilterPath(srtPath)}':force_style='${styleParts.join(",")}'`;
 }
 
 /** Build the full FFmpeg pipeline command array for a render manifest. */
