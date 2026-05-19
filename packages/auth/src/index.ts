@@ -353,10 +353,21 @@ export const authConfig: NextAuthConfig = {
       // the user directly from authorize(); no need to call ensureAuthUser.
       // Non-credentials providers (Google OAuth, etc.) need account upsert.
       if (account?.type !== "credentials") {
-        const dbUser = await ensureAuthUser(user, account);
-        if (!dbUser) return false;
-        user.id = dbUser.id;
-        return dbUser.isActive;
+        try {
+          const dbUser = await ensureAuthUser(user, account);
+          if (!dbUser) {
+            console.error("[auth] signIn denied: ensureAuthUser returned null for", user.email);
+            return false;
+          }
+          user.id = dbUser.id;
+          if (!dbUser.isActive) {
+            console.error("[auth] signIn denied: user is inactive", user.email);
+          }
+          return dbUser.isActive;
+        } catch (error) {
+          console.error("[auth] signIn error in ensureAuthUser:", error);
+          return false;
+        }
       }
 
       if (!user) return false;
