@@ -1259,6 +1259,9 @@ model ViontoProject {
   // Visual style: render treatment for filters, captions, framing, and overlays
   visualStyle          String?  @default("clean_modern_slideshow") // film_grain, polaroid_memory, clean_modern_slideshow, travel_map_overlay, vhs_archive, wedding_cinematic, social_vertical_captions
 
+  // Subtitle configuration (JSON): presetId, style, timing, export options
+  subtitleSettings     Json?    // SubtitleConfig object — null means use default preset
+
   // Music selection: soundtrack direction for the video
   musicOption          String?  @default("no_music") // calm_piano, cinematic_strings, travel_upbeat, family_warm_acoustic, no_music, upload_own
   musicTrackId         String?  // Pixabay track ID if a specific track was selected

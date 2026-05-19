@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Sort-Object -Descending)",
+      "Bash(Select-Object -First 3)",
+      "Bash(mkdir -p \"C:\\\\repos\\\\asm\\\\asafarim-digital\\\\.claude\\\\worktrees\\\\priceless-kilby-06ddfe\\\\apps\\\\vionto\\\\app\\\\api\\\\projects\\\\[projectId]\\\\subtitles\")"
+    ]
+  }
+}

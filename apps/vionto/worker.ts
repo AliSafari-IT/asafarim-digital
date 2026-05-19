@@ -20,6 +20,7 @@ import { buildExportMetadata } from "./lib/server/export-metadata";
 import { synthesizeSpeech } from "./lib/server/tts";
 import { buildKey, downloadObjectToLocalFile, uploadLocalFileToStorage, createPresignedDownloadUrl, getStorageStatus } from "./lib/server/storage";
 import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
+import { parseSrt, buildSrt, buildVtt, applyTransformToCues, wrapAllCues, generateSrtFromText } from "./lib/server/srt";
 
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 const WORKER_HEALTH_PORT = Number.parseInt(process.env.WORKER_HEALTH_PORT ?? "3007", 10);
@@ -169,23 +170,67 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     }
     await updateState(jobId, "running", { progressPercent: 15 });
 
-    // --- Store SRT text as local file if provided ---
+    // --- Process subtitles: download/generate, apply transforms, export ---
     let srtPath: string | undefined;
+    let srtContent: string | undefined;
+
     if (manifest.srtStorageKey) {
       srtPath = join(workDir, "subtitles.srt");
       try {
         await downloadObjectToLocalFile(manifest.srtStorageKey, srtPath);
+        const { readFile } = await import("node:fs/promises");
+        srtContent = await readFile(srtPath, "utf-8");
         logLines.push(`Downloaded SRT: ${manifest.srtStorageKey}`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         logLines.push(`Failed to download SRT: ${msg}`);
-        // Continue without subtitles if SRT download fails
         srtPath = undefined;
       }
     } else if (manifest.srtText) {
+      srtContent = manifest.srtText;
+    } else if (manifest.narrationText && manifest.burnSubtitles) {
+      const totalDuration = (manifest.targetDurationSeconds ?? 30) * 1000;
+      const cues = generateSrtFromText(manifest.narrationText, 0, totalDuration, manifest.subtitleTiming);
+      srtContent = buildSrt(cues);
+      logLines.push("Generated SRT from narration text with timing config");
+    }
+
+    if (srtContent) {
+      let cues = parseSrt(srtContent);
+
+      const textTransform = manifest.subtitleStyle?.textTransform ?? "preserve";
+      if (textTransform !== "preserve") {
+        cues = applyTransformToCues(cues, textTransform);
+        logLines.push(`Applied text transform: ${textTransform}`);
+      }
+
+      const maxLineWidth = manifest.subtitleStyle?.maxLineWidth ?? 42;
+      const maxLines = manifest.subtitleStyle?.maxLines ?? 2;
+      cues = wrapAllCues(cues, maxLineWidth, maxLines);
+
+      srtContent = buildSrt(cues);
       srtPath = join(workDir, "subtitles.srt");
-      await writeFile(srtPath, manifest.srtText);
-      logLines.push("Wrote SRT text to local file");
+      await writeFile(srtPath, srtContent);
+      logLines.push("Wrote processed SRT to local file");
+
+      const subtitleExport = manifest.subtitleExport ?? { burnIn: true, exportSrt: false, exportVtt: false };
+      if (subtitleExport.exportSrt) {
+        const srtExportKey = buildKey(manifest.userId, "exports", manifest.projectId, "subtitles.srt");
+        await writeFile(join(workDir, "export_subtitles.srt"), srtContent);
+        await uploadLocalFileToStorage(join(workDir, "export_subtitles.srt"), srtExportKey, "text/plain");
+        logLines.push(`Exported SRT file: ${srtExportKey}`);
+      }
+      if (subtitleExport.exportVtt) {
+        const vttContent = buildVtt(cues);
+        const vttExportKey = buildKey(manifest.userId, "exports", manifest.projectId, "subtitles.vtt");
+        await writeFile(join(workDir, "export_subtitles.vtt"), vttContent);
+        await uploadLocalFileToStorage(join(workDir, "export_subtitles.vtt"), vttExportKey, "text/vtt");
+        logLines.push(`Exported VTT file: ${vttExportKey}`);
+      }
+
+      if (!manifest.burnSubtitles) {
+        srtPath = undefined;
+      }
     }
 
     // --- Audio materialization / TTS ---
