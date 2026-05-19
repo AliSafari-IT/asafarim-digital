@@ -19,6 +19,22 @@ import {
   type SubtitlePresetId,
 } from "@/lib/subtitle-presets";
 
+// Theme-aware style utilities
+const theme = {
+  text: "text-[var(--color-text)]",
+  textMuted: "text-[var(--color-text-muted)]",
+  textSubtle: "text-[var(--color-text-subtle)]",
+  bgSurface: "bg-[var(--color-surface)]",
+  bgSurfaceSoft: "bg-[var(--color-surface-soft)]",
+  bgSurfaceElevated: "bg-[var(--color-surface-elevated)]",
+  border: "border-[var(--color-border)]",
+  borderStrong: "border-[var(--color-border-strong)]",
+  accent: "bg-[var(--color-accent)]",
+  accentText: "text-[var(--color-accent)]",
+  primarySoft: "bg-[var(--color-primary-soft)]",
+  primaryText: "text-[var(--color-primary)]",
+};
+
 type Props = {
   projectId: string | null;
   aspectRatio: string;
@@ -82,11 +98,11 @@ function SubtitlePreview({
 
   return (
     <div
-      className="relative rounded-lg overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10"
-      style={{ width: dims.w, height: dims.h }}
+      className={`relative rounded-lg overflow-hidden ${theme.bgSurfaceElevated} ${theme.border}`}
+      style={{ width: dims.w, height: dims.h, borderWidth: 1 }}
     >
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
-        <Eye className="w-10 h-10 text-white/40" />
+        <Eye className={`w-10 h-10 ${theme.textMuted}`} />
       </div>
       {config.enabled && (
         <div
@@ -98,7 +114,7 @@ function SubtitlePreview({
       )}
       {!config.enabled && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xs text-white/40 italic">Subtitles disabled</span>
+          <span className={`text-xs ${theme.textSubtle} italic`}>Subtitles disabled</span>
         </div>
       )}
     </div>
@@ -225,18 +241,18 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
     <div className="space-y-4">
       {/* Enable/Disable toggle */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-white/80">
-          {t("vionto.subtitles.title", "Subtitles")}
+        <h3 className={`text-sm font-medium ${theme.text}`}>
+          {t("vionto.subtitles.title")}
         </h3>
         <div className="flex items-center gap-2">
-          {isSaving && <span className="text-[10px] text-amber-400/60 animate-pulse">Saving...</span>}
+          {isSaving && <span className={`text-[10px] ${theme.accentText} animate-pulse`}>Saving...</span>}
           <button
             type="button"
             onClick={() => updateConfig({ enabled: !config.enabled })}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${config.enabled ? "bg-amber-500" : "bg-white/20"}`}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${config.enabled ? theme.accent : "bg-[var(--color-text-muted)]/30"}`}
           >
             <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition ${config.enabled ? "translate-x-4" : "translate-x-0"}`}
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--color-surface)] shadow ring-0 transition ${config.enabled ? "translate-x-4" : "translate-x-0"}`}
             />
           </button>
         </div>
@@ -251,8 +267,8 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
 
           {/* Preset selector */}
           <div>
-            <label className="block text-xs text-white/50 mb-1.5">
-              {t("vionto.subtitles.preset", "Preset")}
+            <label className={`block text-xs ${theme.textMuted} mb-1.5`}>
+              {t("vionto.subtitles.preset")}
             </label>
             <div className="grid grid-cols-2 gap-1.5">
               {SUBTITLE_PRESETS.map((preset) => (
@@ -262,13 +278,14 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                   onClick={() => selectPreset(preset.id)}
                   className={`text-left px-2.5 py-2 rounded-md text-xs transition border ${
                     config.presetId === preset.id
-                      ? "border-amber-500/60 bg-amber-500/10 text-white"
-                      : "border-white/10 bg-white/5 text-white/60 hover:bg-white/8 hover:border-white/20"
+                      ? `border-[var(--color-accent)] bg-[var(--color-accent)]/20 ${theme.text} shadow-sm`
+                      : `${theme.border} ${theme.bgSurfaceSoft} ${theme.textMuted} hover:bg-[var(--color-surface-elevated)] hover:${theme.borderStrong}`
                   }`}
+                  style={{ borderWidth: 1 }}
                 >
-                  <div className="font-medium">{t(preset.labelKey, preset.id)}</div>
-                  <div className="text-[10px] text-white/40 mt-0.5 line-clamp-1">
-                    {t(preset.descriptionKey, "")}
+                  <div className="font-medium">{t(preset.labelKey)}</div>
+                  <div className={`text-[10px] ${theme.textSubtle} mt-0.5 line-clamp-1`}>
+                    {t(preset.descriptionKey)}
                   </div>
                 </button>
               ))}
@@ -279,25 +296,25 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/70 transition"
+            className={`flex items-center gap-1.5 text-xs ${theme.textMuted} hover:${theme.text} transition`}
           >
             {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            {t("vionto.subtitles.advanced", "Advanced settings")}
+            {t("vionto.subtitles.advanced")}
           </button>
 
           {showAdvanced && (
-            <div className="space-y-4 border-t border-white/10 pt-4">
+            <div className={`space-y-4 border-t ${theme.border} pt-4`}>
               {/* ── Visual Styling ── */}
-              <SettingsGroup icon={Type} title={t("vionto.subtitles.styling", "Visual Styling")}>
+              <SettingsGroup icon={Type} title={t("vionto.subtitles.styling")}>
                 <div className="grid grid-cols-2 gap-2">
                   <SelectField
-                    label={t("vionto.subtitles.font", "Font")}
+                    label={t("vionto.subtitles.font")}
                     value={config.style.fontName}
                     options={FONT_OPTIONS.map((f) => ({ label: f, value: f }))}
                     onChange={(v) => updateStyle({ fontName: v })}
                   />
                   <NumberField
-                    label={t("vionto.subtitles.fontSize", "Size")}
+                    label={t("vionto.subtitles.fontSize")}
                     value={config.style.fontSize}
                     min={8}
                     max={128}
@@ -306,7 +323,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <SelectField
-                    label={t("vionto.subtitles.fontWeight", "Weight")}
+                    label={t("vionto.subtitles.fontWeight")}
                     value={config.style.fontWeight}
                     options={[
                       { label: "Normal", value: "normal" },
@@ -315,7 +332,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                     onChange={(v) => updateStyle({ fontWeight: v as any })}
                   />
                   <SelectField
-                    label={t("vionto.subtitles.textTransform", "Case")}
+                    label={t("vionto.subtitles.textTransform")}
                     value={config.style.textTransform}
                     options={[
                       { label: "Preserve", value: "preserve" },
@@ -328,18 +345,18 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <ColorField
-                    label={t("vionto.subtitles.textColor", "Text color")}
+                    label={t("vionto.subtitles.textColor")}
                     value={config.style.color}
                     onChange={(v) => updateStyle({ color: v })}
                   />
                   <ColorField
-                    label={t("vionto.subtitles.outlineColor", "Outline color")}
+                    label={t("vionto.subtitles.outlineColor")}
                     value={config.style.outlineColor}
                     onChange={(v) => updateStyle({ outlineColor: v })}
                   />
                 </div>
                 <NumberField
-                  label={t("vionto.subtitles.outlineWidth", "Outline width")}
+                  label={t("vionto.subtitles.outlineWidth")}
                   value={config.style.outlineWidth}
                   min={0}
                   max={8}
@@ -347,12 +364,12 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <ColorField
-                    label={t("vionto.subtitles.bgColor", "Background")}
+                    label={t("vionto.subtitles.bgColor")}
                     value={config.style.backgroundColor === "transparent" ? "#000000" : config.style.backgroundColor}
                     onChange={(v) => updateStyle({ backgroundColor: v })}
                   />
                   <RangeField
-                    label={t("vionto.subtitles.bgOpacity", "BG opacity")}
+                    label={t("vionto.subtitles.bgOpacity")}
                     value={config.style.backgroundOpacity}
                     min={0}
                     max={1}
@@ -362,14 +379,14 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField
-                    label={t("vionto.subtitles.borderRadius", "Corner radius")}
+                    label={t("vionto.subtitles.borderRadius")}
                     value={config.style.borderRadius}
                     min={0}
                     max={20}
                     onChange={(v) => updateStyle({ borderRadius: v })}
                   />
                   <NumberField
-                    label={t("vionto.subtitles.padding", "Padding")}
+                    label={t("vionto.subtitles.padding")}
                     value={config.style.padding}
                     min={0}
                     max={40}
@@ -377,19 +394,19 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                   />
                 </div>
                 <ToggleField
-                  label={t("vionto.subtitles.shadow", "Drop shadow")}
+                  label={t("vionto.subtitles.shadow")}
                   value={config.style.shadow}
                   onChange={(v) => updateStyle({ shadow: v })}
                 />
                 {config.style.shadow && (
                   <div className="grid grid-cols-2 gap-2">
                     <ColorField
-                      label={t("vionto.subtitles.shadowColor", "Shadow color")}
+                      label={t("vionto.subtitles.shadowColor")}
                       value={config.style.shadowColor}
                       onChange={(v) => updateStyle({ shadowColor: v })}
                     />
                     <NumberField
-                      label={t("vionto.subtitles.shadowOffset", "Shadow offset")}
+                      label={t("vionto.subtitles.shadowOffset")}
                       value={config.style.shadowOffset}
                       min={0}
                       max={10}
@@ -400,10 +417,10 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
               </SettingsGroup>
 
               {/* ── Positioning ── */}
-              <SettingsGroup icon={AlignCenter} title={t("vionto.subtitles.positioning", "Positioning")}>
+              <SettingsGroup icon={AlignCenter} title={t("vionto.subtitles.positioning")}>
                 <div className="grid grid-cols-2 gap-2">
                   <SelectField
-                    label={t("vionto.subtitles.position", "Vertical position")}
+                    label={t("vionto.subtitles.position")}
                     value={config.style.position}
                     options={[
                       { label: "Bottom", value: "bottom" },
@@ -413,7 +430,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                     onChange={(v) => updateStyle({ position: v as any })}
                   />
                   <SelectField
-                    label={t("vionto.subtitles.alignment", "Alignment")}
+                    label={t("vionto.subtitles.alignment")}
                     value={config.style.alignment}
                     options={[
                       { label: "Left", value: "left" },
@@ -425,14 +442,14 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField
-                    label={t("vionto.subtitles.marginV", "Vertical margin")}
+                    label={t("vionto.subtitles.marginV")}
                     value={config.style.marginV}
                     min={0}
                     max={300}
                     onChange={(v) => updateStyle({ marginV: v })}
                   />
                   <NumberField
-                    label={t("vionto.subtitles.marginH", "Horizontal margin")}
+                    label={t("vionto.subtitles.marginH")}
                     value={config.style.marginH}
                     min={0}
                     max={300}
@@ -441,14 +458,14 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField
-                    label={t("vionto.subtitles.maxLineWidth", "Max chars/line")}
+                    label={t("vionto.subtitles.maxLineWidth")}
                     value={config.style.maxLineWidth}
                     min={10}
                     max={80}
                     onChange={(v) => updateStyle({ maxLineWidth: v })}
                   />
                   <NumberField
-                    label={t("vionto.subtitles.maxLines", "Max lines")}
+                    label={t("vionto.subtitles.maxLines")}
                     value={config.style.maxLines}
                     min={1}
                     max={4}
@@ -458,9 +475,9 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
               </SettingsGroup>
 
               {/* ── Timing ── */}
-              <SettingsGroup icon={Timer} title={t("vionto.subtitles.timing", "Timing")}>
+              <SettingsGroup icon={Timer} title={t("vionto.subtitles.timing")}>
                 <NumberField
-                  label={t("vionto.subtitles.maxChars", "Max chars/segment")}
+                  label={t("vionto.subtitles.maxChars")}
                   value={config.timing.maxCharsPerSegment}
                   min={20}
                   max={200}
@@ -468,7 +485,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <NumberField
-                    label={t("vionto.subtitles.minDisplay", "Min display (ms)")}
+                    label={t("vionto.subtitles.minDisplay")}
                     value={config.timing.minDisplayMs}
                     min={500}
                     max={5000}
@@ -476,7 +493,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                     onChange={(v) => updateTiming({ minDisplayMs: v })}
                   />
                   <NumberField
-                    label={t("vionto.subtitles.maxDisplay", "Max display (ms)")}
+                    label={t("vionto.subtitles.maxDisplay")}
                     value={config.timing.maxDisplayMs}
                     min={2000}
                     max={15000}
@@ -485,7 +502,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                   />
                 </div>
                 <NumberField
-                  label={t("vionto.subtitles.gap", "Gap between segments (ms)")}
+                  label={t("vionto.subtitles.gap")}
                   value={config.timing.gapMs}
                   min={0}
                   max={2000}
@@ -493,31 +510,31 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
                   onChange={(v) => updateTiming({ gapMs: v })}
                 />
                 <ToggleField
-                  label={t("vionto.subtitles.splitPunctuation", "Split on punctuation")}
+                  label={t("vionto.subtitles.splitPunctuation")}
                   value={config.timing.splitOnPunctuation}
                   onChange={(v) => updateTiming({ splitOnPunctuation: v })}
                 />
                 <ToggleField
-                  label={t("vionto.subtitles.splitLong", "Split long sentences")}
+                  label={t("vionto.subtitles.splitLong")}
                   value={config.timing.splitLongSentences}
                   onChange={(v) => updateTiming({ splitLongSentences: v })}
                 />
               </SettingsGroup>
 
               {/* ── Export ── */}
-              <SettingsGroup icon={Download} title={t("vionto.subtitles.exportOptions", "Export Options")}>
+              <SettingsGroup icon={Download} title={t("vionto.subtitles.exportOptions")}>
                 <ToggleField
-                  label={t("vionto.subtitles.burnIn", "Burn subtitles into video")}
+                  label={t("vionto.subtitles.burnIn")}
                   value={config.export.burnIn}
                   onChange={(v) => updateExport({ burnIn: v })}
                 />
                 <ToggleField
-                  label={t("vionto.subtitles.exportSrt", "Export .srt file")}
+                  label={t("vionto.subtitles.exportSrt")}
                   value={config.export.exportSrt}
                   onChange={(v) => updateExport({ exportSrt: v })}
                 />
                 <ToggleField
-                  label={t("vionto.subtitles.exportVtt", "Export .vtt file")}
+                  label={t("vionto.subtitles.exportVtt")}
                   value={config.export.exportVtt}
                   onChange={(v) => updateExport({ exportVtt: v })}
                 />
@@ -543,8 +560,8 @@ function SettingsGroup({
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1.5 text-xs text-white/60 font-medium">
-        <Icon className="w-3.5 h-3.5" />
+      <div className={`flex items-center gap-1.5 text-xs ${theme.textMuted} font-medium`}>
+        <Icon className={`w-3.5 h-3.5 ${theme.primaryText}`} />
         {title}
       </div>
       <div className="space-y-2 pl-0.5">{children}</div>
@@ -565,11 +582,12 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] text-white/40 mb-0.5">{label}</label>
+      <label className={`block text-[10px] ${theme.textSubtle} mb-0.5`}>{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded bg-white/8 border border-white/10 text-xs text-white/80 px-2 py-1 focus:outline-none focus:border-amber-500/40"
+        className={`w-full rounded ${theme.bgSurfaceSoft} border ${theme.border} text-xs ${theme.text} px-2 py-1 focus:outline-none focus:border-[var(--color-accent)]/40`}
+        style={{ borderWidth: 1 }}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -598,7 +616,7 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] text-white/40 mb-0.5">{label}</label>
+      <label className={`block text-[10px] ${theme.textSubtle} mb-0.5`}>{label}</label>
       <input
         type="number"
         value={value}
@@ -609,7 +627,8 @@ function NumberField({
           const v = Number(e.target.value);
           if (Number.isFinite(v) && v >= min && v <= max) onChange(v);
         }}
-        className="w-full rounded bg-white/8 border border-white/10 text-xs text-white/80 px-2 py-1 focus:outline-none focus:border-amber-500/40"
+        className={`w-full rounded ${theme.bgSurfaceSoft} border ${theme.border} text-xs ${theme.text} px-2 py-1 focus:outline-none focus:border-[var(--color-accent)]/40`}
+        style={{ borderWidth: 1 }}
       />
     </div>
   );
@@ -632,8 +651,8 @@ function RangeField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] text-white/40 mb-0.5">
-        {label} <span className="text-white/30">{Math.round(value * 100)}%</span>
+      <label className={`block text-[10px] ${theme.textSubtle} mb-0.5`}>
+        {label} <span className={theme.textMuted}>{Math.round(value * 100)}%</span>
       </label>
       <input
         type="range"
@@ -642,7 +661,7 @@ function RangeField({
         max={max}
         step={step}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-1 accent-amber-500"
+        className="w-full h-1 accent-[var(--color-accent)]"
       />
     </div>
   );
@@ -659,19 +678,21 @@ function ColorField({
 }) {
   return (
     <div>
-      <label className="block text-[10px] text-white/40 mb-0.5">{label}</label>
+      <label className={`block text-[10px] ${theme.textSubtle} mb-0.5`}>{label}</label>
       <div className="flex items-center gap-1.5">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-6 w-6 rounded border border-white/10 cursor-pointer bg-transparent"
+          className={`h-6 w-6 rounded border ${theme.border} cursor-pointer bg-transparent`}
+          style={{ borderWidth: 1 }}
         />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 rounded bg-white/8 border border-white/10 text-xs text-white/80 px-2 py-1 focus:outline-none focus:border-amber-500/40"
+          className={`flex-1 rounded ${theme.bgSurfaceSoft} border ${theme.border} text-xs ${theme.text} px-2 py-1 focus:outline-none focus:border-[var(--color-accent)]/40`}
+          style={{ borderWidth: 1 }}
         />
       </div>
     </div>
@@ -689,14 +710,14 @@ function ToggleField({
 }) {
   return (
     <div className="flex items-center justify-between py-0.5">
-      <span className="text-xs text-white/60">{label}</span>
+      <span className={`text-xs ${theme.textMuted}`}>{label}</span>
       <button
         type="button"
         onClick={() => onChange(!value)}
-        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${value ? "bg-amber-500" : "bg-white/20"}`}
+        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${value ? theme.accent : "bg-[var(--color-text-muted)]/30"}`}
       >
         <span
-          className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition ${value ? "translate-x-3" : "translate-x-0"}`}
+          className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-[var(--color-surface)] shadow ring-0 transition ${value ? "translate-x-3" : "translate-x-0"}`}
         />
       </button>
     </div>

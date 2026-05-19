@@ -32,7 +32,10 @@ type GenerateBody = {
 export async function POST(req: Request) {
   try {
     const user = await getAuthedUser();
-    if (!user) return unauthorized();
+    if (!user) {
+      console.error("[story/generate] Unauthorized - no user found");
+      return unauthorized();
+    }
 
     let body: GenerateBody;
     try {
@@ -49,12 +52,15 @@ export async function POST(req: Request) {
       return badRequest("userNotes exceeds maximum length.");
     }
 
+    console.log(`[story/generate] Starting generation for project ${projectId}, user ${user.id}`);
+
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
       select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true },
     });
     if (!project) {
+      console.error(`[story/generate] Project ${projectId} not found for user ${user.id}`);
       return badRequest("Project not found.");
     }
 
@@ -82,10 +88,12 @@ export async function POST(req: Request) {
 
     // Generate captions for assets that don't have them (up to 5 at a time to avoid timeout)
     const assetsNeedingCaptions = assets.filter((a): a is typeof a & { storageKey: string } => !a.caption && typeof a.storageKey === "string");
+    console.log(`[story/generate] ${assetsNeedingCaptions.length} assets need captions`);
     if (assetsNeedingCaptions.length > 0) {
       const captionBatch = assetsNeedingCaptions.slice(0, 5);
       for (const asset of captionBatch) {
         try {
+          console.log(`[story/generate] Generating caption for asset ${asset.id}`);
           const captionResult = await generateImageCaption(asset.storageKey, effectiveLocale);
           await prisma.viontoAsset.update({
             where: { id: asset.id },
@@ -133,6 +141,7 @@ export async function POST(req: Request) {
     const effectiveExifSummary = exifSummary || exifSummaryText;
 
     if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      console.error("[story/generate] No AI provider keys configured");
       return NextResponse.json(
         { error: "No AI provider key is configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY." },
         { status: 500 },
@@ -151,23 +160,30 @@ export async function POST(req: Request) {
       exifSummary: effectiveExifSummary,
     });
 
+    console.log(`[story/generate] Starting AI generation with ${effectiveCaptions.length} captions`);
     const startedAt = Date.now();
     const errors: string[] = [];
 
     const openAIResult = await generateWithOpenAI(systemPrompt, userPrompt);
     let success = "output" in openAIResult ? openAIResult : null;
-    if (!success && "error" in openAIResult) errors.push(`OpenAI: ${openAIResult.error}`);
+    if (!success && "error" in openAIResult) {
+      console.error(`[story/generate] OpenAI failed: ${openAIResult.error}`);
+      errors.push(`OpenAI: ${openAIResult.error}`);
+    }
 
     if (!success) {
+      console.log("[story/generate] Falling back to Anthropic");
       const anthropicResult = await generateWithAnthropic(systemPrompt, userPrompt);
       if ("output" in anthropicResult) {
         success = anthropicResult;
       } else {
+        console.error(`[story/generate] Anthropic failed: ${anthropicResult.error}`);
         errors.push(`Anthropic: ${anthropicResult.error}`);
       }
     }
 
     const latencyMs = Date.now() - startedAt;
+    console.log(`[story/generate] AI generation completed in ${latencyMs}ms`);
 
     if (!success) {
       const errorMessage = errors.length > 0 ? errors.join(" | ") : "Failed to generate story from all providers.";
@@ -207,23 +223,31 @@ export async function POST(req: Request) {
     }
 
     // Persist script with provider metadata
-    const script = await prisma.viontoScript.create({
-      data: {
-        projectId,
-        userId: user.id,
-        promptVersion: PROMPT_VERSION,
-        provider: success.provider,
-        model: success.model,
-        narrationText: narration,
-        srtText: srtText,
-        musicOption: project.musicOption || null,
-        promptTokens: success.promptTokens ?? null,
-        completionTokens: success.completionTokens ?? null,
-        totalTokens: success.totalTokens ?? null,
-        latencyMs,
-      },
-    });
+    console.log(`[story/generate] Saving script to database`);
+    let script;
+    try {
+      script = await prisma.viontoScript.create({
+        data: {
+          projectId,
+          userId: user.id,
+          promptVersion: PROMPT_VERSION,
+          provider: success.provider,
+          model: success.model,
+          narrationText: narration,
+          srtText: srtText,
+          musicOption: project.musicOption || null,
+          promptTokens: success.promptTokens ?? null,
+          completionTokens: success.completionTokens ?? null,
+          totalTokens: success.totalTokens ?? null,
+          latencyMs,
+        },
+      });
+    } catch (dbError) {
+      console.error(`[story/generate] Database error saving script:`, dbError);
+      return serverError("story/generate/db", dbError);
+    }
 
+    console.log(`[story/generate] Successfully created script ${script.id}`);
     return NextResponse.json({
       scriptId: script.id,
       narration,
@@ -238,6 +262,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
+    console.error(`[story/generate] Unhandled error:`, error);
     return serverError("story/generate", error);
   }
 }

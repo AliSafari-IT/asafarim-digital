@@ -7,8 +7,10 @@ import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
   Captions,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clapperboard,
   CloudUpload,
   Copy,
@@ -166,6 +168,7 @@ export function ViontoPage() {
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [subtitlesCollapsed, setSubtitlesCollapsed] = useState(false);
 
   useEffect(() => {
     const applyCollapsed = () => {
@@ -955,8 +958,10 @@ export function ViontoPage() {
         }),
       });
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        alert(data.error ?? "Generation failed");
+        const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+        const errorMsg = data.error ?? data.message ?? `Generation failed (status ${res.status})`;
+        console.error("[ViontoPage] Generate failed:", errorMsg, data);
+        alert(errorMsg);
         return;
       }
       const data = (await res.json()) as {
@@ -1863,14 +1868,26 @@ export function ViontoPage() {
 
             {selectedProjectId && (
               <div className="job-card" id="subtitles">
-                <div className="section-heading">
-                  <Captions size={20} />
-                  <h2>{t("vionto.subtitles.title")}</h2>
+                <div className="section-heading flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Captions size={20} />
+                    <h2>{t("vionto.subtitles.title")}</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSubtitlesCollapsed(!subtitlesCollapsed)}
+                    className="inline-flex items-center justify-center rounded-md p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-soft)] transition"
+                    aria-label={subtitlesCollapsed ? "Expand subtitles" : "Collapse subtitles"}
+                  >
+                    {subtitlesCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                  </button>
                 </div>
-                <SubtitleConfig
-                  projectId={selectedProjectId}
-                  aspectRatio={activeAspectRatio}
-                />
+                {!subtitlesCollapsed && (
+                  <SubtitleConfig
+                    projectId={selectedProjectId}
+                    aspectRatio={activeAspectRatio}
+                  />
+                )}
               </div>
             )}
 
