@@ -1865,7 +1865,7 @@ export function ViontoPage() {
               <div className="job-card" id="subtitles">
                 <div className="section-heading">
                   <Captions size={20} />
-                  <h2>{t("vionto.subtitles.title", "Subtitles")}</h2>
+                  <h2>{t("vionto.subtitles.title")}</h2>
                 </div>
                 <SubtitleConfig
                   projectId={selectedProjectId}
