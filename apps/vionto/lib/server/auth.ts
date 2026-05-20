@@ -9,6 +9,90 @@ export type AuthedUser = {
   roles: string[];
 };
 
+// ─── Permission Cache ────────────────────────────────────────────
+// Simple in-memory cache to avoid repeated DB queries per request.
+// In production with serverless, this is per-request; with long-running
+// Node.js, consider TTL or Redis.
+let _permissionCache: Map<string, string[]> = new Map();
+
+/**
+ * Load user permissions from DB by resolving all roles → permissions.
+ * Superadmin bypasses this entirely.
+ */
+export async function getUserPermissions(userId: string): Promise<string[]> {
+  const cached = _permissionCache.get(userId);
+  if (cached) return cached;
+
+  const userWithRoles = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      userRoles: {
+        select: {
+          role: {
+            select: {
+              name: true,
+              rolePermissions: {
+                select: {
+                  permission: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!userWithRoles) return [];
+
+  const roleNames = userWithRoles.userRoles.map((ur) => ur.role.name);
+  if (roleNames.includes("superadmin")) return ["*"];
+
+  const permissions = new Set<string>();
+  for (const ur of userWithRoles.userRoles) {
+    for (const rp of ur.role.rolePermissions) {
+      permissions.add(rp.permission.name);
+    }
+  }
+
+  const result = Array.from(permissions);
+  _permissionCache.set(userId, result);
+  return result;
+}
+
+/**
+ * Check if a user has a specific Vionto permission.
+ * Superadmin (*) always passes.
+ */
+export function hasPermission(permissions: string[], permission: string): boolean {
+  if (permissions.includes("*")) return true;
+  return permissions.includes(permission);
+}
+
+/**
+ * Server-side guard: require auth + specific Vionto permission.
+ * Returns the user if authorized, throws otherwise.
+ */
+export async function requireViontoPermission(permission: string): Promise<AuthedUser> {
+  const user = await getAuthedUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const permissions = await getUserPermissions(user.id);
+  if (!hasPermission(permissions, permission)) {
+    throw new Error(`Forbidden: missing permission '${permission}'`);
+  }
+
+  return user;
+}
+
+/**
+ * Convenience: check if user is a Vionto admin (has any admin permission).
+ */
+export async function isViontoAdmin(userId: string): Promise<boolean> {
+  const permissions = await getUserPermissions(userId);
+  return hasPermission(permissions, "vionto.admin.system_settings");
+}
+
 export async function getAuthedUser(): Promise<AuthedUser | null> {
   const session = await auth();
   const userId = session?.user?.id;

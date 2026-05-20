@@ -149,11 +149,12 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
       .then((data) => {
         if (data) {
           setConfig(data);
+          onChange?.(data);
           setLoaded(true);
         }
       })
       .catch(() => {});
-  }, [projectId]);
+  }, [projectId, onChange]);
 
   const saveConfig = useCallback(
     (newConfig: SubtitleConfigType) => {

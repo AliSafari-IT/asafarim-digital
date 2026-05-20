@@ -123,7 +123,7 @@ describe("buildRenderCommand", () => {
     const final = steps[steps.length - 1];
     const vfIndex = final.indexOf("-vf");
     expect(vfIndex).toBeGreaterThan(-1);
-    expect(final[vfIndex + 1]).toContain("subtitles=filename='C\\:/Users/saal/AppData/Local/Temp/vionto-renders/job/subtitles.srt'");
+    expect(final[vfIndex + 1]).toContain("subtitles=filename='C\\:/Users/saal/AppData/Local/Temp/vionto-renders/job/subtitles.srt':original_size=1920x1080");
   });
 
   it("uses the correct video codec and bitrate", () => {
@@ -152,6 +152,20 @@ describe("buildRenderCommand", () => {
     expect(segmentVf).toContain("s=1080x1920");
     expect(finalVf).toContain("scale=1080:1920");
     expect(finalVf).toContain("pad=1080:1920");
+  });
+
+  it("uses portrait dimensions when burning subtitles into a portrait render", () => {
+    const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "9:16", burnSubtitles: true };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+      srtPath: "/tmp/work/sub.srt",
+    });
+    const final = steps[steps.length - 1];
+    const vfIndex = final.indexOf("-vf");
+
+    expect(vfIndex).toBeGreaterThan(-1);
+    expect(final[vfIndex + 1]).toContain("original_size=1080x1920");
+    expect(final[vfIndex + 1]).toContain("Alignment=2");
   });
 
   it("renders square 1080p as a 1:1 canvas", () => {
