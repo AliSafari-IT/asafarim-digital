@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     });
 
     // Always return generic success to avoid account enumeration.
-    if (!user || !user.password) {
+    if (!user) {
       return NextResponse.json({ message: GENERIC_SUCCESS_MESSAGE });
     }
 

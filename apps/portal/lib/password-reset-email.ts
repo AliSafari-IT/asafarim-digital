@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { createTransport } from "./mailer";
 
 type PasswordResetEmailInput = {
   to: string;
@@ -6,51 +6,10 @@ type PasswordResetEmailInput = {
   resetUrl: string;
 };
 
-function parseBoolean(value: string | undefined, defaultValue = false): boolean {
-  if (value == null || value.trim() === "") return defaultValue;
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
-}
-
-function getSmtpConfig() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? "465");
-  const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD;
-  const from = process.env.SMTP_FROM;
-
-  if (!host || !user || !password || !from) {
-    throw new Error("SMTP configuration is incomplete. Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM.");
-  }
-
-  return {
-    host,
-    port,
-    user,
-    password,
-    from,
-    secure: parseBoolean(process.env.SMTP_SECURE, true),
-    requireTls: parseBoolean(process.env.SMTP_REQUIRE_TLS, false),
-    debug: parseBoolean(process.env.SMTP_DEBUG, false),
-    logging: parseBoolean(process.env.SMTP_LOGGING, false),
-    bcc: process.env.SMTP_TO,
-  };
-}
-
 export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Promise<void> {
-  const config = getSmtpConfig();
-
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: {
-      user: config.user,
-      pass: config.password,
-    },
-    requireTLS: config.requireTls,
-    debug: config.debug,
-    logger: config.logging,
-  });
+  console.log("[password-reset] Creating transport...");
+  const { transporter, from, bcc } = createTransport();
+  console.log("[password-reset] Sending to:", input.to, "from:", from, "bcc:", bcc || "(none)");
 
   const greetingName = input.name?.trim() || "there";
   const subject = "Reset your ASafariM Digital password";
@@ -78,12 +37,13 @@ export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Pr
     </div>
   `;
 
-  await transporter.sendMail({
-    from: config.from,
+  console.log("[password-reset] Calling sendMail...");
+  const info = await transporter.sendMail({
+    from,
     to: input.to,
-    bcc: config.bcc || undefined,
     subject,
     text,
     html,
   });
+  console.log("[password-reset] sendMail accepted:", info.messageId, "response:", info.response);
 }
