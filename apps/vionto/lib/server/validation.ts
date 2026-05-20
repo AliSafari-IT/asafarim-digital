@@ -105,10 +105,10 @@ export function formatZodError(err: z.ZodError): string {
 const targetDurationSecondsSchema = z
   .number()
   .int()
-  .min(10)
+  .min(15)
   .max(90)
   .refine((v) => v % 5 === 0, { message: "targetDurationSeconds must be a multiple of 5" })
-  .default(30);
+  .default(20);
 
 export const createProjectSchema = z.object({
   title: z.string().min(1).max(120),

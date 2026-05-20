@@ -29,6 +29,7 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.audio.defaultVoice": "Default voice",
     "vionto.audio.preview": "Preview voice",
     "vionto.audio.previewing": "Previewing...",
+    "vionto.audio.previewText": "This is a preview of the selected narration voice for your Vionto story.",
     "vionto.audio.noVoices": "No voices are available for this locale.",
     "vionto.audio.render": "Render narration",
 
@@ -317,6 +318,72 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.more": "More music",
     "vionto.music.remove": "Remove music",
     "vionto.music.removeAll": "Remove all music",
+
+    // ARIA labels
+    "vionto.aria.workspaceNav": "Vionto workspace navigation",
+    "vionto.aria.home": "Vionto home",
+    "vionto.aria.collapseSidebar": "Collapse sidebar",
+    "vionto.aria.expandSidebar": "Expand sidebar",
+    "vionto.aria.primaryNav": "Primary",
+    "vionto.aria.closeMenu": "Close menu",
+    "vionto.aria.openMenu": "Open menu",
+    "vionto.aria.retry": "Retry",
+    "vionto.aria.deleteAsset": "Delete asset",
+    "vionto.aria.videoModePresets": "Video mode presets",
+    "vionto.aria.videoLength": "Video length",
+    "vionto.aria.targetDuration": "Target video duration in seconds",
+    "vionto.aria.productionPipeline": "Vionto production pipeline",
+    "vionto.aria.expandSubtitles": "Expand subtitles",
+    "vionto.aria.collapseSubtitles": "Collapse subtitles",
+
+    // Video length
+    "vionto.videoLength.label": "Video length",
+    "vionto.videoLength.seconds": "{seconds} seconds",
+    "vionto.videoLength.min": "15s",
+    "vionto.videoLength.max": "90s",
+    "vionto.videoLength.description": "Used to time the story, voiceover, subtitles, and image pacing.",
+    "vionto.videoLength.staleWarning": "Duration changed — regenerate the story to keep subtitles and pacing in sync.",
+
+    // Queue / pipeline
+    "vionto.queue.captioning": "Captioning",
+    "vionto.queue.captioningDetail": "{count} images processed",
+    "vionto.queue.script": "Script",
+    "vionto.queue.scriptDetail": "Narrative draft ready",
+    "vionto.queue.voice": "Voice",
+    "vionto.queue.voiceDetail": "Voice selected",
+    "vionto.queue.render": "Render",
+    "vionto.queue.renderDetail": "Preview MP4 queued",
+
+    // Alert messages
+    "vionto.alert.selectProjectFirst": "Please select or create a project first",
+    "vionto.alert.uploadImagesFirst": "Please upload images before rendering",
+    "vionto.alert.generateScriptFirst": "Please generate a script before rendering",
+    "vionto.alert.saveSettingsFailed": "Failed to save project settings before rendering",
+    "vionto.alert.saveSubtitlesFailed": "Failed to save subtitle settings before rendering",
+    "vionto.alert.startRenderFailed": "Failed to start render",
+    "vionto.alert.previewAudioFailed": "Failed to preview audio",
+    "vionto.alert.deleteAssetFailed": "Failed to delete asset",
+    "vionto.alert.getDownloadUrlFailed": "Failed to get download URL",
+    "vionto.alert.createProjectFailed": "Failed to create project",
+    "vionto.alert.uploadSessionFailed": "Failed to create upload session",
+    "vionto.alert.noFilesUploaded": "No files uploaded successfully. Check the failed file rows and retry.",
+    "vionto.alert.uploadFailed": "Upload failed",
+    "vionto.alert.saveFailed": "Save failed",
+    "vionto.alert.musicUploadFailed": "Music upload failed",
+    "vionto.alert.musicUploadPrepareFailed": "Failed to prepare music upload",
+    "vionto.alert.renderFailed": "Render failed",
+    "vionto.alert.unknownError": "Unknown error",
+
+    // Render errors
+    "vionto.render.error.noScript": "Generate or save a narration script before rendering.",
+    "vionto.render.error.saveSettingsFailed": "Failed to save project settings before rendering.",
+    "vionto.render.error.saveSubtitlesFailed": "Failed to save subtitle settings before rendering.",
+    "vionto.render.error.startFailed": "Failed to start render",
+    "vionto.render.error.pollFailed": "Failed to poll render status",
+
+    // Units
+    "vionto.unit.seconds": "s",
+    "vionto.unit.mb": "MB",
   },
   nl: {
     "vionto.upload.eyebrow": "Uploads",
@@ -339,6 +406,7 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.audio.defaultVoice": "Standaardstem",
     "vionto.audio.preview": "Stem preview",
     "vionto.audio.previewing": "Preview wordt geladen...",
+    "vionto.audio.previewText": "Dit is een voorbeeld van de gekozen vertelstem voor je Vionto verhaal.",
     "vionto.audio.noVoices": "Geen stemmen beschikbaar voor deze taal.",
     "vionto.audio.render": "Stem genereren",
 
@@ -571,6 +639,75 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.music.more": "Meer muziek",
     "vionto.music.remove": "Muziek verwijderen",
     "vionto.music.removeAll": "Alle muziek verwijderen",
+
+    // ARIA labels
+    "vionto.aria.workspaceNav": "Vionto werkruimte navigatie",
+    "vionto.aria.home": "Vionto home",
+    "vionto.aria.collapseSidebar": "Zijbalk inklappen",
+    "vionto.aria.expandSidebar": "Zijbalk uitklappen",
+    "vionto.aria.primaryNav": "Primair",
+    "vionto.aria.closeMenu": "Menu sluiten",
+    "vionto.aria.openMenu": "Menu openen",
+    "vionto.aria.retry": "Opnieuw proberen",
+    "vionto.aria.deleteAsset": "Asset verwijderen",
+    "vionto.aria.videoModePresets": "Video modus voorinstellingen",
+    "vionto.aria.videoLength": "Videolengte",
+    "vionto.aria.targetDuration": "Doel videoduur in seconden",
+    "vionto.aria.productionPipeline": "Vionto productiepipeline",
+    "vionto.aria.expandSubtitles": "Ondertitels uitklappen",
+    "vionto.aria.collapseSubtitles": "Ondertitels inklappen",
+
+    // Video length
+    "vionto.videoLength.label": "Videolengte",
+    "vionto.videoLength.seconds": "{seconds} seconden",
+    "vionto.videoLength.min": "15s",
+    "vionto.videoLength.max": "90s",
+    "vionto.videoLength.description": "Gebruikt om het verhaal, voice-over, ondertitels en beeldpassing te timen.",
+    "vionto.videoLength.staleWarning": "Duur gewijzigd — genereer het verhaal opnieuw om ondertitels en pacing gesynchroniseerd te houden.",
+
+    // Queue / pipeline
+    "vionto.queue.captioning": "Bijschriften",
+    "vionto.queue.captioningDetail": "{count} afbeeldingen verwerkt",
+    "vionto.queue.script": "Script",
+    "vionto.queue.scriptDetail": "Verhaalconcept klaar",
+    "vionto.queue.voice": "Stem",
+    "vionto.queue.voiceDetail": "Stem geselecteerd",
+    "vionto.queue.render": "Renderen",
+    "vionto.queue.renderDetail": "Preview MP4 in wachtrij",
+
+    // Alert messages
+    "vionto.alert.selectProjectFirst": "Selecteer of maak eerst een project",
+    "vionto.alert.uploadImagesFirst": "Upload eerst afbeeldingen voordat je rendert",
+    "vionto.alert.generateScriptFirst": "Genereer eerst een script voordat je rendert",
+    "vionto.alert.saveSettingsFailed": "Opslaan projectinstellingen mislukt voor rendering",
+    "vionto.alert.saveSubtitlesFailed": "Opslaan ondertitelinstellingen mislukt voor rendering",
+    "vionto.alert.startRenderFailed": "Starten render mislukt",
+    "vionto.alert.previewAudioFailed": "Voorbeeld audio mislukt",
+    "vionto.alert.deleteAssetFailed": "Verwijderen asset mislukt",
+    "vionto.alert.getDownloadUrlFailed": "Ophalen download-URL mislukt",
+    "vionto.alert.createProjectFailed": "Aanmaken project mislukt",
+    "vionto.alert.uploadSessionFailed": "Aanmaken uploadsessie mislukt",
+    "vionto.alert.noFilesUploaded": "Geen bestanden succesvol geüpload. Controleer de mislukte rijen en probeer opnieuw.",
+    "vionto.alert.uploadFailed": "Upload mislukt",
+    "vionto.alert.saveFailed": "Opslaan mislukt",
+    "vionto.alert.musicUploadFailed": "Muziek upload mislukt",
+    "vionto.alert.musicUploadPrepareFailed": "Muziek upload voorbereiden mislukt",
+    "vionto.alert.renderFailed": "Render mislukt",
+    "vionto.alert.unknownError": "Onbekende fout",
+
+    // Render errors
+    "vionto.render.error.noScript": "Genereer of sla een voice-over script op voordat je rendert.",
+    "vionto.render.error.saveSettingsFailed": "Opslaan projectinstellingen mislukt voor rendering.",
+    "vionto.render.error.saveSubtitlesFailed": "Opslaan ondertitelinstellingen mislukt voor rendering.",
+    "vionto.render.error.startFailed": "Starten render mislukt",
+    "vionto.render.error.pollFailed": "Ophalen renderstatus mislukt",
+
+    // Units
+    "vionto.unit.seconds": "s",
+    "vionto.unit.mb": "MB",
+
+    "vionto.asset.more": "meer",
+    "vionto.music.uploadArtist": "Geüpload",
   },
   fr: {
     "vionto.upload.eyebrow": "Uploads",
