@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type ProfileData = {
   id: string;
@@ -32,6 +33,7 @@ function resolvePortalAvatarSrc(src?: string | null) {
 
 export function ProfileForm({ user }: { user: ProfileData }) {
   const { update } = useSession();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name: user.name ?? "",
     username: user.username ?? "",
@@ -65,14 +67,14 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setVerifyStatus("error");
-        setVerifyMessage(data.error || "Could not send verification email.");
+        setVerifyMessage(data.error || t("portal.profile.error.verification"));
         return;
       }
       setVerifyStatus("sent");
-      setVerifyMessage(data.message || "Verification email sent. Check your inbox.");
+      setVerifyMessage(data.message || t("portal.profile.verificationSent"));
     } catch {
       setVerifyStatus("error");
-      setVerifyMessage("Network error while sending verification email.");
+      setVerifyMessage(t("portal.profile.error.verificationNetwork"));
     }
   }
 
@@ -84,31 +86,31 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setResetPasswordStatus("error");
-        setResetPasswordMessage(data.error || "Could not send password reset email.");
+        setResetPasswordMessage(data.error || t("portal.profile.error.reset"));
         return;
       }
       setResetPasswordStatus("sent");
-      setResetPasswordMessage(data.message || "Password reset email sent. Check your inbox.");
+      setResetPasswordMessage(data.message || t("portal.profile.resetSent"));
     } catch {
       setResetPasswordStatus("error");
-      setResetPasswordMessage("Network error while sending password reset email.");
+      setResetPasswordMessage(t("portal.profile.error.resetNetwork"));
     }
   }
 
   async function uploadAvatarFile(file: File) {
     if (!isVerified) {
       setUploadStatus("error");
-      setUploadMessage("Verify your email before uploading an avatar.");
+      setUploadMessage(t("portal.profile.error.verifyBeforeUpload"));
       return;
     }
     if (!file.type.startsWith("image/")) {
       setUploadStatus("error");
-      setUploadMessage("Only image files are allowed.");
+      setUploadMessage(t("portal.profile.error.fileType"));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
       setUploadStatus("error");
-      setUploadMessage("Image exceeds the 2MB limit.");
+      setUploadMessage(t("portal.profile.error.fileSize"));
       return;
     }
 
@@ -122,7 +124,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setUploadStatus("error");
-        setUploadMessage(data.error || "Could not upload image.");
+        setUploadMessage(data.error || t("portal.profile.error.upload"));
         return;
       }
       setField("image", data.image);
@@ -131,7 +133,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       await update({ image: data.image });
     } catch {
       setUploadStatus("error");
-      setUploadMessage("Network error while uploading.");
+      setUploadMessage(t("portal.profile.error.uploadNetwork"));
     }
   }
 
@@ -150,7 +152,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         setUploadStatus("error");
-        setUploadMessage(data.error || "Could not remove image.");
+        setUploadMessage(data.error || t("portal.profile.error.remove"));
         return;
       }
       setField("image", "");
@@ -158,7 +160,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       await update({ image: null });
     } catch {
       setUploadStatus("error");
-      setUploadMessage("Network error while removing image.");
+      setUploadMessage(t("portal.profile.error.removeNetwork"));
     }
   }
 
@@ -203,7 +205,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
       if (!response.ok) {
         setStatus("error");
-        setErrorMessage(data.error || "Unable to update your profile");
+        setErrorMessage(data.error || t("portal.profile.error.update"));
         return;
       }
 
@@ -222,7 +224,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       window.setTimeout(() => setStatus("idle"), 2400);
     } catch {
       setStatus("error");
-      setErrorMessage("Something went wrong while saving");
+      setErrorMessage(t("portal.profile.error.save"));
     }
   }
 
@@ -235,8 +237,8 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       <aside className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-8 shadow-[var(--shadow-card)] xl:sticky xl:top-28 xl:h-fit">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Profile Control</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em]">Your account profile</h1>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">{t("portal.profile.control")}</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em]">{t("portal.profile.title")}</h1>
           </div>
           <span className="rounded-full border border-[var(--color-border)] px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
             {user.roles?.join(", ") || "—"}
@@ -253,20 +255,20 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               </div>
             )}
             <div>
-              <h2 className="text-xl font-semibold">{form.name || "Unnamed profile"}</h2>
-              <p className="mt-1 text-sm text-[var(--color-text-muted)]">@{form.username || "claim-your-name"}</p>
+              <h2 className="text-xl font-semibold">{form.name || t("portal.profile.unnamed")}</h2>
+              <p className="mt-1 text-sm text-[var(--color-text-muted)]">@{form.username || t("portal.profile.claimUsername")}</p>
             </div>
           </div>
 
           <div className="mt-6 grid gap-3">
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Email</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.email")}</p>
               <p className="mt-2 text-sm">{user.email}</p>
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Verification</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.verification")}</p>
               <p className={`mt-2 text-sm ${isVerified ? "text-emerald-300" : "text-amber-300"}`}>
-                {isVerified ? "Email verified. Profile edits are enabled." : "Verify your email before changing profile details."}
+                {isVerified ? t("portal.profile.verified") : t("portal.profile.unverified")}
               </p>
               {!isVerified && (
                 <div className="mt-3 flex flex-col gap-2">
@@ -277,10 +279,10 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                     className="inline-flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {verifyStatus === "sending"
-                      ? "Sending..."
+                      ? t("portal.profile.sending")
                       : verifyStatus === "sent"
-                        ? "Verification email sent"
-                        : "Send verification email"}
+                        ? t("portal.profile.verificationSent")
+                        : t("portal.profile.sendVerification")}
                   </button>
                   {verifyMessage && (
                     <p
@@ -295,9 +297,9 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               )}
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Username policy</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.usernamePolicy")}</p>
               <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                Usernames are unique platform identifiers and become read-only once claimed.
+                {t("portal.profile.usernamePolicyDesc")}
               </p>
             </div>
             <button
@@ -306,7 +308,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               className="group flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-left transition hover:border-[var(--color-primary)]/50"
             >
               <div>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">User ID</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.userId")}</p>
                 <p className="mt-2 text-xs font-mono text-[var(--color-text-muted)]">{user.id}</p>
               </div>
               {copyStatus === "copied" ? (
@@ -320,9 +322,9 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               )}
             </button>
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Password</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.password")}</p>
               <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                Request a password reset link to be sent to your email.
+                {t("portal.profile.passwordDesc")}
               </p>
               <button
                 type="button"
@@ -331,10 +333,10 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                 className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {resetPasswordStatus === "sending"
-                  ? "Sending..."
+                  ? t("portal.profile.sending")
                   : resetPasswordStatus === "sent"
-                    ? "Reset email sent"
-                    : "Send password reset email"}
+                    ? t("portal.profile.resetSent")
+                    : t("portal.profile.sendReset")}
               </button>
               {resetPasswordMessage && (
                 <p
@@ -349,7 +351,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
           </div>
 
           <div className="mt-8 space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Quick Links</p>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.quickLinks")}</p>
             <a
               href={process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005"}
               className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
@@ -393,7 +395,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Sign out
+              {t("portal.profile.signOut")}
             </a>
           </div>
         </div>
@@ -402,22 +404,22 @@ export function ProfileForm({ user }: { user: ProfileData }) {
       <section className="rounded-[2rem] border border-[var(--color-border-strong)] bg-[var(--color-panel)] p-8 shadow-[var(--shadow-card)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">Profile Settings</p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">Update your public and operational details</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">{t("portal.profile.settings")}</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">{t("portal.profile.settingsDesc")}</h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-text-muted)]">
-              This form is structured so future sections like password management, connected accounts, notification settings, and tenant preferences can be added cleanly.
+              {t("portal.profile.settingsSubtext")}
             </p>
           </div>
 
           <div className="text-sm">
-            {status === "saved" && <span className="text-emerald-300">Profile saved</span>}
+            {status === "saved" && <span className="text-emerald-300">{t("portal.profile.saved")}</span>}
             {status === "error" && <span className="text-rose-300">{errorMessage}</span>}
           </div>
         </div>
 
         {!isVerified && (
           <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-            Email verification is required before profile details can be changed. This guard is enforced on the server, not just in the UI.
+            {t("portal.profile.verificationRequired")}
           </div>
         )}
 
@@ -425,7 +427,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
           <div className="grid gap-5 lg:grid-cols-2">
             <div>
               <label htmlFor="name" className="mb-2 block text-sm font-medium">
-                Full name
+                {t("portal.profile.fullName")}
               </label>
               <input
                 id="name"
@@ -438,7 +440,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
             <div>
               <label htmlFor="username" className="mb-2 block text-sm font-medium">
-                Username
+                {t("portal.profile.username")}
               </label>
               <input
                 id="username"
@@ -448,13 +450,13 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                 className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
               />
               <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                {usernameLocked ? "This username is locked after registration." : "For legacy accounts without a username, you can claim one once."}
+                {usernameLocked ? t("portal.profile.usernameLocked") : t("portal.profile.usernameClaim")}
               </p>
             </div>
 
             <div>
               <label htmlFor="jobTitle" className="mb-2 block text-sm font-medium">
-                Job title
+                {t("portal.profile.jobTitle")}
               </label>
               <input
                 id="jobTitle"
@@ -467,7 +469,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
             <div>
               <label htmlFor="company" className="mb-2 block text-sm font-medium">
-                Company
+                {t("portal.profile.company")}
               </label>
               <input
                 id="company"
@@ -480,7 +482,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
             <div>
               <label htmlFor="location" className="mb-2 block text-sm font-medium">
-                Location
+                {t("portal.profile.location")}
               </label>
               <input
                 id="location"
@@ -493,21 +495,21 @@ export function ProfileForm({ user }: { user: ProfileData }) {
 
             <div>
               <label htmlFor="website" className="mb-2 block text-sm font-medium">
-                Website
+                {t("portal.profile.website")}
               </label>
               <input
                 id="website"
                 value={form.website}
                 onChange={(event) => setField("website", event.target.value)}
                 disabled={!isVerified}
-                placeholder="https://example.com"
+                placeholder={t("portal.profile.websitePlaceholder")}
                 className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">Avatar</label>
+            <label className="mb-2 block text-sm font-medium">{t("portal.profile.avatar")}</label>
             <div
               onDragOver={(event) => {
                 event.preventDefault();
@@ -524,7 +526,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               {form.image ? (
                 <img
                   src={resolvePortalAvatarSrc(form.image) ?? undefined}
-                  alt="Avatar preview"
+                  alt={t("portal.profile.avatar")}
                   className="h-20 w-20 rounded-2xl object-cover"
                 />
               ) : (
@@ -533,7 +535,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                 </div>
               )}
               <p className="text-sm text-[var(--color-text-muted)]">
-                Drag and drop an image here, or pick a file. PNG, JPEG, WEBP, GIF, SVG up to 2MB.
+                {t("portal.profile.avatarDragDrop")}
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
@@ -542,7 +544,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                   disabled={!isVerified || uploadStatus === "uploading"}
                   className="rounded-full bg-[var(--color-primary)] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {uploadStatus === "uploading" ? "Uploading..." : "Choose image"}
+                  {uploadStatus === "uploading" ? t("portal.profile.uploading") : t("portal.profile.chooseImage")}
                 </button>
                 {form.image && (
                   <button
@@ -551,7 +553,7 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                     disabled={!isVerified || uploadStatus === "uploading"}
                     className="rounded-full border border-[var(--color-border-strong)] px-5 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Remove
+                    {t("portal.profile.remove")}
                   </button>
                 )}
               </div>
@@ -575,24 +577,24 @@ export function ProfileForm({ user }: { user: ProfileData }) {
             </div>
 
             <label htmlFor="image" className="mt-4 mb-2 block text-sm font-medium">
-              Avatar URL
+              {t("portal.profile.avatarUrl")}
             </label>
             <input
               id="image"
               value={form.image}
               onChange={(event) => setField("image", event.target.value)}
               disabled={!isVerified}
-              placeholder="https://... or /api/uploads/avatars/..."
+              placeholder={t("portal.profile.avatarUrlPlaceholder")}
               className="w-full rounded-2xl border border-[var(--color-border-strong)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
             />
             <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-              You can still paste an external URL. Uploading a file replaces this value automatically.
+              {t("portal.profile.avatarUrlHint")}
             </p>
           </div>
 
           <div>
             <label htmlFor="bio" className="mb-2 block text-sm font-medium">
-              Bio
+              {t("portal.profile.bio")}
             </label>
             <textarea
               id="bio"
@@ -610,10 +612,10 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               disabled={!isVerified || status === "saving"}
               className="rounded-full bg-[var(--color-primary)] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {status === "saving" ? "Saving..." : "Save profile"}
+              {status === "saving" ? t("portal.profile.saving") : t("portal.profile.saveProfile")}
             </button>
             <div className="rounded-full border border-[var(--color-border-strong)] px-5 py-3 text-sm text-[var(--color-text-muted)]">
-              Email changes should ship as a separate verified flow, not as an unguarded text field.
+              {t("portal.profile.emailChangeNote")}
             </div>
           </div>
         </form>
