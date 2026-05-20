@@ -7,7 +7,9 @@ type PasswordResetEmailInput = {
 };
 
 export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Promise<void> {
-  const { transporter, from } = createTransport();
+  console.log("[password-reset] Creating transport...");
+  const { transporter, from, bcc } = createTransport();
+  console.log("[password-reset] Sending to:", input.to, "from:", from, "bcc:", bcc || "(none)");
 
   const greetingName = input.name?.trim() || "there";
   const subject = "Reset your ASafariM Digital password";
@@ -35,11 +37,13 @@ export async function sendPasswordResetEmail(input: PasswordResetEmailInput): Pr
     </div>
   `;
 
-  await transporter.sendMail({
+  console.log("[password-reset] Calling sendMail...");
+  const info = await transporter.sendMail({
     from,
     to: input.to,
     subject,
     text,
     html,
   });
+  console.log("[password-reset] sendMail accepted:", info.messageId, "response:", info.response);
 }
