@@ -9,7 +9,11 @@
 import { Queue } from "bullmq";
 import Redis from "ioredis";
 
-const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
+const REDIS_URL = process.env.REDIS_URL;
+
+if (!REDIS_URL) {
+  throw new Error("REDIS_URL environment variable is required for Vionto. Please set it to redis://localhost:6380 or your Redis instance URL.");
+}
 
 const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 

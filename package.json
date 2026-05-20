@@ -21,6 +21,7 @@
     "onVPS:deployVionto": "docker compose up -d --build vionto vionto-worker && sh scripts/docker-post-deploy-prune.sh",
     "db:generate": "pnpm --filter @asafarim/db prisma generate",
     "db:migrate": "pnpm --filter @asafarim/db prisma migrate dev",
+    "db:migrate:deploy": "npx dotenv-cli -e .env -- pnpm --filter @asafarim/db exec prisma migrate deploy",
     "db:studio": "pnpm --filter @asafarim/db prisma studio",
     "db:push": "pnpm --filter @asafarim/db prisma db push",
     "db:reset": "pnpm --filter @asafarim/db prisma db reset",

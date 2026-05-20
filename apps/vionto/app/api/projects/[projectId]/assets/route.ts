@@ -5,6 +5,25 @@ import { formatZodError, promoteSessionSchema } from "@/lib/server/validation";
 import { getSessionForUser, deleteSession } from "@/lib/server/upload-session";
 import { createPresignedDownloadUrl, deleteObject } from "@/lib/server/storage";
 
+/**
+ * Lazily ensures a project has a base album and returns its id.
+ * Creates the base album if it does not exist yet (handles projects created
+ * before the album feature was rolled out).
+ */
+async function ensureBaseAlbum(projectId: string, userId: string): Promise<string> {
+  const existing = await prisma.viontoAlbum.findFirst({
+    where: { projectId, isBase: true },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const created = await prisma.viontoAlbum.create({
+    data: { projectId, userId, name: "Base album", isBase: true },
+    select: { id: true },
+  });
+  return created.id;
+}
+
 export const runtime = "nodejs";
 
 async function getProject(projectId: string, userId: string) {
@@ -131,6 +150,13 @@ export async function POST(
       return badRequest("No assets in session to promote");
     }
 
+    // Determine the current max orderIndex in the project so new assets are appended.
+    const maxOrderResult = await prisma.viontoAsset.aggregate({
+      where: { projectId },
+      _max: { orderIndex: true },
+    });
+    const baseOrderIndex = (maxOrderResult._max.orderIndex ?? -1) + 1;
+
     // Create ViontoAsset records
     const createdAssets = await prisma.viontoAsset.createMany({
       data: orderedAssets.map((asset, idx) => ({
@@ -144,7 +170,7 @@ export async function POST(
         width: asset.width,
         height: asset.height,
         fileSizeBytes: asset.sizeBytes,
-        orderIndex: idx,
+        orderIndex: baseOrderIndex + idx,
         metadata: asset.exif ? ({ exif: asset.exif } as Prisma.InputJsonObject) : Prisma.JsonNull,
       })),
     });
@@ -156,6 +182,35 @@ export async function POST(
 
     // Fetch the created assets to return full objects
     const assets = await listProjectAssets(projectId);
+
+    // Add newly promoted assets to the base album.
+    // We look up the assets we just created by key so we have their IDs.
+    const promotedKeys = orderedAssets.map((a) => a.key);
+    const promotedAssetRows = await prisma.viontoAsset.findMany({
+      where: { projectId, storageKey: { in: promotedKeys } },
+      orderBy: { orderIndex: "asc" },
+      select: { id: true, orderIndex: true },
+    });
+
+    if (promotedAssetRows.length > 0) {
+      const baseAlbumId = await ensureBaseAlbum(projectId, user.id);
+
+      // Find the current highest orderIndex in the base album so we append correctly.
+      const maxAlbumOrder = await prisma.viontoAlbumItem.aggregate({
+        where: { albumId: baseAlbumId },
+        _max: { orderIndex: true },
+      });
+      const baseAlbumOrderStart = (maxAlbumOrder._max.orderIndex ?? -1) + 1;
+
+      await prisma.viontoAlbumItem.createMany({
+        data: promotedAssetRows.map((asset, idx) => ({
+          albumId: baseAlbumId,
+          assetId: asset.id,
+          orderIndex: baseAlbumOrderStart + idx,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json({
       promotedCount: createdAssets.count,

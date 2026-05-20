@@ -1283,6 +1283,7 @@ model ViontoProject {
 
   // Relations
   assets       ViontoAsset[]
+  albums       ViontoAlbum[]
   scripts      ViontoScript[]
   audioTracks  ViontoAudioTrack[]
   renderJobs   ViontoRenderJob[]
@@ -1369,7 +1370,8 @@ model ViontoAsset {
   moderatedAt         DateTime?
 
   // Ownership
-  project ViontoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     ViontoProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  albumItems  ViontoAlbumItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1579,4 +1581,76 @@ model ViontoAuditEvent {
   @@index([entityId])
   @@index([action])
   @@index([createdAt])
+}
+
+// ─── Vionto Album Management ──────────────────────────────────
+//
+// ViontoAlbum is a logical collection/ordering of ViontoAssets.
+// Every project has exactly one base album (isBase = true) created automatically.
+// Users may create additional derived albums referencing subsets of the base images.
+// No image files are duplicated — albums are pure metadata/reference layers.
+
+model ViontoAlbum {
+  id           String   @id @default(cuid())
+  projectId    String
+  userId       String
+
+  name         String
+  description  String?  @db.Text
+
+  /// true for the system-managed "Base album" that mirrors all project assets.
+  isBase       Boolean  @default(false)
+
+  /// Optional cover image — references a ViontoAsset id.
+  coverAssetId String?
+
+  /// Album-level metadata (arbitrary JSON, e.g. tags, notes, theme).
+  metadata     Json?
+
+  project ViontoProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   ViontoAlbumItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Enforce at most one base album per project at the DB level.
+  // Partial-index semantics are not available in all DBs via Prisma; we enforce
+  // uniqueness on (projectId, isBase) only when isBase is true via app logic.
+  @@index([projectId])
+  @@index([userId])
+  @@index([projectId, isBase])
+}
+
+/// A single image reference inside an album.
+/// orderIndex controls display/render order independently per album.
+model ViontoAlbumItem {
+  id         String  @id @default(cuid())
+  albumId    String
+  assetId    String
+
+  /// Display/render position within this album (0-based, lower = earlier).
+  orderIndex Int     @default(0)
+
+  /// Album-specific semantic metadata for this image.
+  /// Flexible JSON — field names vary per image and per album.
+  /// Examples: { "place": "Bern", "personName": "Sara", "occasion": "graduation" }
+  /// Max validated size: 8 KB.
+  metadata   Json?
+
+  /// Soft-hide from this album without removing the reference.
+  hidden     Boolean @default(false)
+
+  /// User-marked favourite within this album.
+  favorite   Boolean @default(false)
+
+  album ViontoAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  asset ViontoAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Each image may appear at most once per album.
+  @@unique([albumId, assetId])
+  @@index([albumId, orderIndex])
+  @@index([assetId])
 }

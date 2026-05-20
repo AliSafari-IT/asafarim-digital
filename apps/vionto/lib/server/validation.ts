@@ -156,3 +156,73 @@ export const paginationQuerySchema = z.object({
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+// ─── Album schemas ────────────────────────────────────────────────────────────
+
+/** Max byte-size allowed for album-item metadata JSON (serialised). */
+export const MAX_ALBUM_ITEM_METADATA_BYTES = 8 * 1024; // 8 KB
+
+export const createAlbumSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(2000).optional(),
+  /** If true, seed the new album with every image currently in the base album. */
+  fromBase: z.boolean().default(false),
+  /** Seed the new album with a specific subset of asset IDs. */
+  assetIds: z.array(z.string().cuid()).max(200).optional(),
+  coverAssetId: z.string().cuid().optional(),
+  metadata: z.any().optional(),
+});
+
+export const updateAlbumSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  coverAssetId: z.string().cuid().nullable().optional(),
+  metadata: z.any().optional(),
+});
+
+/** Item metadata must be a plain object and serialise to ≤ MAX_ALBUM_ITEM_METADATA_BYTES. */
+const albumItemMetadataSchema = z
+  .record(z.unknown())
+  .nullable()
+  .optional()
+  .superRefine((val, ctx) => {
+    if (val == null) return;
+    const json = JSON.stringify(val);
+    if (json.length > MAX_ALBUM_ITEM_METADATA_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `metadata must not exceed ${MAX_ALBUM_ITEM_METADATA_BYTES} bytes when serialised as JSON`,
+      });
+    }
+  });
+
+export const addAlbumItemSchema = z.object({
+  assetId: z.string().cuid(),
+  orderIndex: z.number().int().min(0).optional(),
+  metadata: albumItemMetadataSchema,
+  hidden: z.boolean().optional(),
+  favorite: z.boolean().optional(),
+});
+
+export const addAlbumItemsBulkSchema = z.object({
+  assetIds: z.array(z.string().cuid()).min(1).max(200),
+});
+
+export const updateAlbumItemSchema = z.object({
+  orderIndex: z.number().int().min(0).optional(),
+  metadata: albumItemMetadataSchema,
+  hidden: z.boolean().optional(),
+  favorite: z.boolean().optional(),
+});
+
+export const reorderAlbumItemsSchema = z.object({
+  /** Ordered array of album-item IDs. All IDs must belong to this album. */
+  orderedItemIds: z.array(z.string().cuid()).min(1).max(200),
+});
+
+export type CreateAlbumInput = z.infer<typeof createAlbumSchema>;
+export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>;
+export type AddAlbumItemInput = z.infer<typeof addAlbumItemSchema>;
+export type AddAlbumItemsBulkInput = z.infer<typeof addAlbumItemsBulkSchema>;
+export type UpdateAlbumItemInput = z.infer<typeof updateAlbumItemSchema>;
+export type ReorderAlbumItemsInput = z.infer<typeof reorderAlbumItemsSchema>;

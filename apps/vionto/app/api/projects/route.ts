@@ -115,13 +115,27 @@ export async function POST(req: Request) {
       return badRequest(formatZodError(parsed.error));
     }
 
-    const project = await prisma.viontoProject.create({
-      data: {
-        userId: user.id,
-        ...parsed.data,
-        status: "draft",
-      },
-      select: PROJECT_SELECT,
+    // Create project + base album atomically.
+    const [project] = await prisma.$transaction(async (tx) => {
+      const created = await tx.viontoProject.create({
+        data: {
+          userId: user.id,
+          ...parsed.data,
+          status: "draft",
+        },
+        select: PROJECT_SELECT,
+      });
+
+      await tx.viontoAlbum.create({
+        data: {
+          projectId: created.id,
+          userId: user.id,
+          name: "Base album",
+          isBase: true,
+        },
+      });
+
+      return [created];
     });
 
     return NextResponse.json({ ...project, isOwner: true }, { status: 201 });
