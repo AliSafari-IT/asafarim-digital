@@ -18,6 +18,8 @@ const PROMPT_VERSION = "vionto-story-v1";
 
 type GenerateBody = {
   projectId: string;
+  /** Optional album to use for image subset, order, and per-image metadata. */
+  albumId?: string;
   locale?: string;
   mode?: "story" | "slideshow" | "documentary";
   storyMode?: string;
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
       return badRequest("Invalid JSON body.");
     }
 
-    const { projectId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary } = body;
+    const { projectId, albumId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary } = body;
     if (!projectId || typeof projectId !== "string") {
       return badRequest("projectId is required.");
     }
@@ -76,21 +78,81 @@ export async function POST(req: Request) {
     const effectiveTargetDurationSeconds = project.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
     const totalDurationMs = effectiveTargetDurationSeconds * 1_000;
 
-    // Query project assets server-side to get captions and build EXIF summary
-    const assets = await prisma.viontoAsset.findMany({
-      where: { projectId, type: "source_image" },
-      select: {
-        id: true,
-        storageKey: true,
-        caption: true,
-        captionProvider: true,
-        captionModel: true,
-        captionGeneratedAt: true,
-        metadata: true,
-        orderIndex: true,
-      },
-      orderBy: { orderIndex: "asc" },
-    });
+    // Query assets — if an albumId is supplied, use album item order/subset/metadata.
+    // Otherwise fall back to the full project asset list ordered by orderIndex.
+    type AssetRow = {
+      id: string;
+      storageKey: string | null;
+      caption: string | null;
+      captionProvider: string | null;
+      captionModel: string | null;
+      captionGeneratedAt: Date | null;
+      metadata: unknown;
+      orderIndex: number;
+      /** Album-specific semantic metadata (populated when albumId is used). */
+      albumItemMetadata?: unknown;
+    };
+
+    let assets: AssetRow[];
+
+    if (albumId && typeof albumId === "string") {
+      // Verify the album belongs to this project.
+      const album = await prisma.viontoAlbum.findFirst({
+        where: { id: albumId, projectId },
+        select: { id: true },
+      });
+      if (!album) return badRequest("Album not found.");
+
+      const albumItems = await prisma.viontoAlbumItem.findMany({
+        where: { albumId, hidden: false },
+        orderBy: { orderIndex: "asc" },
+        select: {
+          orderIndex: true,
+          metadata: true,
+          asset: {
+            select: {
+              id: true,
+              storageKey: true,
+              caption: true,
+              captionProvider: true,
+              captionModel: true,
+              captionGeneratedAt: true,
+              metadata: true,
+              type: true,
+            },
+          },
+        },
+      });
+
+      assets = albumItems
+        .filter((item) => item.asset.type === "source_image")
+        .map((item) => ({
+          id: item.asset.id,
+          storageKey: item.asset.storageKey,
+          caption: item.asset.caption,
+          captionProvider: item.asset.captionProvider,
+          captionModel: item.asset.captionModel,
+          captionGeneratedAt: item.asset.captionGeneratedAt,
+          metadata: item.asset.metadata,
+          orderIndex: item.orderIndex,
+          albumItemMetadata: item.metadata,
+        }));
+    } else {
+      assets = await prisma.viontoAsset.findMany({
+        where: { projectId, type: "source_image" },
+        select: {
+          id: true,
+          storageKey: true,
+          caption: true,
+          captionProvider: true,
+          captionModel: true,
+          captionGeneratedAt: true,
+          metadata: true,
+          orderIndex: true,
+        },
+        orderBy: { orderIndex: "asc" },
+      });
+    }
 
     // Generate captions for assets that don't have them (up to 5 at a time to avoid timeout)
     const assetsNeedingCaptions = assets.filter((a): a is typeof a & { storageKey: string } => !a.caption && typeof a.storageKey === "string");
@@ -132,11 +194,21 @@ export async function POST(req: Request) {
       });
     }
 
-    // Extract captions from assets
+    // Extract captions from assets.
+    // When album-item metadata is present, append it to the caption for richer context.
     const assetCaptions = assets
       .filter((a): a is typeof a & { caption: string } => typeof a.caption === "string" && a.caption.length > 0)
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map(a => a.caption);
+      .map((a) => {
+        let caption = a.caption;
+        if (a.albumItemMetadata && typeof a.albumItemMetadata === "object") {
+          const metaStr = Object.entries(a.albumItemMetadata as Record<string, unknown>)
+            .map(([k, v]) => `${k}: ${String(v)}`)
+            .join(", ");
+          if (metaStr) caption = `${caption} [${metaStr}]`;
+        }
+        return caption;
+      });
 
     // Build EXIF summary
     const exifSummaryData = await buildExifSummary(projectId);
@@ -247,6 +319,9 @@ export async function POST(req: Request) {
           completionTokens: success.completionTokens ?? null,
           totalTokens: success.totalTokens ?? null,
           latencyMs,
+          // Store the album context so future lookups can reference which album
+          // this narration was generated from.
+          ...(albumId ? { metadata: { albumId } } : {}),
         },
       });
     } catch (dbError) {

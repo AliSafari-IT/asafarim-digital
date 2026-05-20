@@ -301,6 +301,66 @@ export function ViontoPage() {
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  // ─── Album management state ─────────────────────────────────────────────
+  type Album = {
+    id: string;
+    name: string;
+    description: string | null;
+    isBase: boolean;
+    coverAssetId: string | null;
+    _count: { items: number };
+  };
+  type AlbumItem = {
+    id: string;
+    assetId: string;
+    orderIndex: number;
+    metadata: Record<string, unknown> | null;
+    hidden: boolean;
+    favorite: boolean;
+    asset: {
+      id: string;
+      originalUrl: string | null;
+      thumbnailUrl: string | null;
+      width: number | null;
+      height: number | null;
+      caption: string | null;
+      orderIndex: number;
+    };
+  };
+
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [albumItems, setAlbumItems] = useState<AlbumItem[]>([]);
+  const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
+  const [isLoadingAlbumItems, setIsLoadingAlbumItems] = useState(false);
+
+  // Create album modal
+  const [showCreateAlbum, setShowCreateAlbum] = useState(false);
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [newAlbumDesc, setNewAlbumDesc] = useState("");
+  const [newAlbumFromBase, setNewAlbumFromBase] = useState(true);
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+
+  // Rename album inline
+  const [renamingAlbumId, setRenamingAlbumId] = useState<string | null>(null);
+  const [renameAlbumValue, setRenameAlbumValue] = useState("");
+
+  // Per-image metadata editor
+  const [metaEditorItemId, setMetaEditorItemId] = useState<string | null>(null);
+  const [metaEditorValue, setMetaEditorValue] = useState("");
+  const [metaEditorError, setMetaEditorError] = useState<string | null>(null);
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
+
+  // Add images to derived album panel
+  const [showAddImages, setShowAddImages] = useState(false);
+  const [addImageSelection, setAddImageSelection] = useState<Set<string>>(new Set());
+
+  // Drag-reorder inside album
+  const dragAlbumItemId = useRef<string | null>(null);
+  const dragOverAlbumItemId = useRef<string | null>(null);
+  const [dragAlbumActiveId, setDragAlbumActiveId] = useState<string | null>(null);
+  const [dragAlbumOverId, setDragAlbumOverId] = useState<string | null>(null);
+
   const ACCEPTED = [".jpg", ".jpeg", ".png", ".heic", ".webp", ".zip"];
   const acceptedMime = "image/jpeg,image/png,image/heic,image/webp,application/zip,.heic,.zip";
 
@@ -331,6 +391,7 @@ export function ViontoPage() {
       loadVoices(locale.split("-")[0] ?? "en");
       loadProjectExports(selectedProjectId);
       loadExportLibrary({ projectId: selectedProjectId });
+      loadProjectAlbums(selectedProjectId);
     } else {
       setProjectAssets([]);
       setVersions([]);
@@ -345,6 +406,9 @@ export function ViontoPage() {
       setRenderError(null);
       setExportId(null);
       setDownloadUrl(null);
+      setAlbums([]);
+      setSelectedAlbumId(null);
+      setAlbumItems([]);
       loadExportLibrary();
     }
   }, [selectedProjectId, locale, projects]);
@@ -396,6 +460,249 @@ export function ViontoPage() {
       setIsLoadingAssets(false);
     }
   }
+
+  // ─── Album management functions ────────────────────────────────────────────
+
+  async function loadProjectAlbums(projectId: string) {
+    setIsLoadingAlbums(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/albums`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const loadedAlbums: Album[] = data.albums || [];
+      setAlbums(loadedAlbums);
+      // Auto-select base album on first load, or keep existing selection.
+      setSelectedAlbumId((current) => {
+        if (current && loadedAlbums.some((a) => a.id === current)) return current;
+        return loadedAlbums.find((a) => a.isBase)?.id ?? loadedAlbums[0]?.id ?? null;
+      });
+    } catch (error) {
+      console.error("Failed to load albums", error);
+    } finally {
+      setIsLoadingAlbums(false);
+    }
+  }
+
+  async function loadAlbumItems(projectId: string, albumId: string) {
+    setIsLoadingAlbumItems(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/albums/${albumId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setAlbumItems(data.items || []);
+    } catch (error) {
+      console.error("Failed to load album items", error);
+    } finally {
+      setIsLoadingAlbumItems(false);
+    }
+  }
+
+  useEffect(() => {
+    if (selectedProjectId && selectedAlbumId) {
+      loadAlbumItems(selectedProjectId, selectedAlbumId);
+    } else {
+      setAlbumItems([]);
+    }
+  }, [selectedProjectId, selectedAlbumId]);
+
+  async function handleCreateAlbum() {
+    if (!selectedProjectId || !newAlbumName.trim() || isCreatingAlbum) return;
+    setIsCreatingAlbum(true);
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/albums`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newAlbumName.trim(),
+          description: newAlbumDesc.trim() || undefined,
+          fromBase: newAlbumFromBase,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to create album" }));
+        alert(data.error ?? "Failed to create album");
+        return;
+      }
+      const created = await res.json();
+      setShowCreateAlbum(false);
+      setNewAlbumName("");
+      setNewAlbumDesc("");
+      setNewAlbumFromBase(true);
+      await loadProjectAlbums(selectedProjectId);
+      setSelectedAlbumId(created.id);
+    } catch (error) {
+      console.error("Failed to create album", error);
+      alert("Failed to create album");
+    } finally {
+      setIsCreatingAlbum(false);
+    }
+  }
+
+  async function handleDeleteAlbum(albumId: string, albumName: string) {
+    if (!selectedProjectId) return;
+    if (!confirm(`Delete album "${albumName}"? Images will not be deleted.`)) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/albums/${albumId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to delete album" }));
+        alert(data.error ?? "Failed to delete album");
+        return;
+      }
+      await loadProjectAlbums(selectedProjectId);
+    } catch (error) {
+      console.error("Failed to delete album", error);
+      alert("Failed to delete album");
+    }
+  }
+
+  async function handleRenameAlbum(albumId: string) {
+    if (!selectedProjectId || !renameAlbumValue.trim()) {
+      setRenamingAlbumId(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/albums/${albumId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: renameAlbumValue.trim() }),
+      });
+      if (!res.ok) {
+        alert("Failed to rename album");
+        return;
+      }
+      setAlbums((prev) =>
+        prev.map((a) => (a.id === albumId ? { ...a, name: renameAlbumValue.trim() } : a))
+      );
+    } catch (error) {
+      console.error("Failed to rename album", error);
+    } finally {
+      setRenamingAlbumId(null);
+      setRenameAlbumValue("");
+    }
+  }
+
+  async function handleRemoveFromAlbum(itemId: string) {
+    if (!selectedProjectId || !selectedAlbumId) return;
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProjectId}/albums/${selectedAlbumId}/items/${itemId}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to remove image" }));
+        alert(data.error ?? "Failed to remove image");
+        return;
+      }
+      setAlbumItems((prev) => prev.filter((i) => i.id !== itemId));
+      setAlbums((prev) =>
+        prev.map((a) => a.id === selectedAlbumId ? { ...a, _count: { items: a._count.items - 1 } } : a)
+      );
+    } catch (error) {
+      console.error("Failed to remove from album", error);
+    }
+  }
+
+  async function handleAddImagesToAlbum() {
+    if (!selectedProjectId || !selectedAlbumId || addImageSelection.size === 0) return;
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProjectId}/albums/${selectedAlbumId}/items`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ assetIds: Array.from(addImageSelection) }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to add images" }));
+        alert(data.error ?? "Failed to add images");
+        return;
+      }
+      setShowAddImages(false);
+      setAddImageSelection(new Set());
+      await loadAlbumItems(selectedProjectId, selectedAlbumId);
+      await loadProjectAlbums(selectedProjectId);
+    } catch (error) {
+      console.error("Failed to add images", error);
+    }
+  }
+
+  async function reorderAlbumItems(newItems: AlbumItem[]) {
+    if (!selectedProjectId || !selectedAlbumId) return;
+    setAlbumItems(newItems);
+    try {
+      await fetch(
+        `/api/projects/${selectedProjectId}/albums/${selectedAlbumId}/items/reorder`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedItemIds: newItems.map((i) => i.id) }),
+        }
+      );
+    } catch (error) {
+      console.error("Failed to persist album item order", error);
+    }
+  }
+
+  function openMetaEditor(item: AlbumItem) {
+    setMetaEditorItemId(item.id);
+    setMetaEditorValue(
+      item.metadata ? JSON.stringify(item.metadata, null, 2) : ""
+    );
+    setMetaEditorError(null);
+  }
+
+  async function saveItemMetadata() {
+    if (!selectedProjectId || !selectedAlbumId || !metaEditorItemId) return;
+    let parsed: Record<string, unknown> | null = null;
+    if (metaEditorValue.trim()) {
+      try {
+        parsed = JSON.parse(metaEditorValue) as Record<string, unknown>;
+        if (typeof parsed !== "object" || Array.isArray(parsed)) {
+          setMetaEditorError("Metadata must be a JSON object { ... }");
+          return;
+        }
+      } catch {
+        setMetaEditorError("Invalid JSON — please fix the syntax before saving.");
+        return;
+      }
+    }
+    setIsSavingMeta(true);
+    setMetaEditorError(null);
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProjectId}/albums/${selectedAlbumId}/items/${metaEditorItemId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ metadata: parsed }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to save metadata" }));
+        setMetaEditorError(data.error ?? "Failed to save metadata");
+        return;
+      }
+      setAlbumItems((prev) =>
+        prev.map((i) => (i.id === metaEditorItemId ? { ...i, metadata: parsed } : i))
+      );
+      setMetaEditorItemId(null);
+    } catch (error) {
+      console.error("Failed to save metadata", error);
+      setMetaEditorError("Unexpected error — please try again.");
+    } finally {
+      setIsSavingMeta(false);
+    }
+  }
+
+  const selectedAlbum = albums.find((a) => a.id === selectedAlbumId) ?? null;
+  const isBaseAlbumSelected = selectedAlbum?.isBase ?? true;
+  const metaEditorItem = albumItems.find((i) => i.id === metaEditorItemId) ?? null;
+  const metaEditorAssetUrl = metaEditorItem?.asset.thumbnailUrl ?? metaEditorItem?.asset.originalUrl ?? null;
+
+  // ─── End album management functions ────────────────────────────────────────
 
   async function loadProjectScripts(projectId: string) {
     try {
@@ -675,7 +982,10 @@ export function ViontoPage() {
       const res = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: selectedProjectId }),
+        body: JSON.stringify({
+          projectId: selectedProjectId,
+          albumId: selectedAlbumId ?? undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: t("vionto.alert.startRenderFailed") }));
@@ -1009,6 +1319,7 @@ export function ViontoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: selectedProjectId,
+          albumId: selectedAlbumId ?? undefined,
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
           visualStyle: selectedVisualStyle,
@@ -1048,7 +1359,7 @@ export function ViontoPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId, targetDurationSeconds]);
+  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId, targetDurationSeconds, selectedAlbumId]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -1588,6 +1899,362 @@ export function ViontoPage() {
                   </ul>
                 </div>
               )}
+
+              {/* ─── Album Management ──────────────────────────────────────── */}
+              {selectedProjectId && (
+                <div className="mt-4" aria-label="Album management">
+                  {/* Album selector bar */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-[var(--color-text-muted)]">Albums</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateAlbum(true)}
+                      className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+                    >
+                      <Plus size={12} />
+                      New album
+                    </button>
+                  </div>
+
+                  {isLoadingAlbums ? (
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)]">Loading albums…</p>
+                  ) : (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {albums.map((album) => (
+                        <div key={album.id} className="group relative flex items-center gap-1">
+                          {renamingAlbumId === album.id ? (
+                            <input
+                              type="text"
+                              value={renameAlbumValue}
+                              autoFocus
+                              onChange={(e) => setRenameAlbumValue(e.target.value)}
+                              onBlur={() => handleRenameAlbum(album.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleRenameAlbum(album.id);
+                                if (e.key === "Escape") { setRenamingAlbumId(null); setRenameAlbumValue(""); }
+                              }}
+                              className="w-32 rounded-md border border-[var(--color-accent)] bg-[var(--color-surface)] px-2 py-0.5 text-xs text-[var(--color-text)] outline-none"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAlbumId(album.id)}
+                              onDoubleClick={() => {
+                                if (!album.isBase) {
+                                  setRenamingAlbumId(album.id);
+                                  setRenameAlbumValue(album.name);
+                                }
+                              }}
+                              className={`flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                selectedAlbumId === album.id
+                                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                  : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
+                              }`}
+                            >
+                              {album.isBase && <span className="mr-0.5 text-[10px] opacity-60">★</span>}
+                              {album.name}
+                              <span className="ml-1 rounded bg-[var(--color-surface)] px-1 text-[10px] text-[var(--color-text-muted)]">{album._count.items}</span>
+                            </button>
+                          )}
+                          {!album.isBase && selectedAlbumId !== album.id && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAlbum(album.id, album.name)}
+                              className="absolute -right-1.5 -top-1.5 hidden h-4 w-4 items-center justify-center rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-red-500 group-hover:flex"
+                              aria-label={`Delete ${album.name}`}
+                            >
+                              <X size={9} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Create album modal */}
+                  {showCreateAlbum && (
+                    <div className="mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                      <p className="mb-2 text-xs font-semibold text-[var(--color-text)]">New album</p>
+                      <input
+                        type="text"
+                        placeholder="Album name"
+                        value={newAlbumName}
+                        autoFocus
+                        onChange={(e) => setNewAlbumName(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleCreateAlbum()}
+                        className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description (optional)"
+                        value={newAlbumDesc}
+                        onChange={(e) => setNewAlbumDesc(e.target.value)}
+                        className="mt-1.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                      <label className="mt-2 flex items-center gap-2 text-xs text-[var(--color-text)]">
+                        <input
+                          type="checkbox"
+                          checked={newAlbumFromBase}
+                          onChange={(e) => setNewAlbumFromBase(e.target.checked)}
+                          className="h-3.5 w-3.5 rounded border-[var(--color-border)] accent-[var(--color-accent)]"
+                        />
+                        Start with all images from base album
+                      </label>
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setShowCreateAlbum(false); setNewAlbumName(""); setNewAlbumDesc(""); }}
+                          className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-xs text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateAlbum}
+                          disabled={!newAlbumName.trim() || isCreatingAlbum}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                        >
+                          {isCreatingAlbum ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={12} />}
+                          Create
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected album image grid */}
+                  {selectedAlbumId && (
+                    <div className="mt-3">
+                      {/* Toolbar for non-base albums */}
+                      {!isBaseAlbumSelected && (
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-xs text-[var(--color-text-muted)]">
+                            {selectedAlbum?.name} · {albumItems.length} images · drag to reorder
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddImages(true);
+                              setAddImageSelection(new Set());
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                          >
+                            <ImagePlus size={12} />
+                            Add images
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Add images panel */}
+                      {showAddImages && !isBaseAlbumSelected && (
+                        <div className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[var(--color-text)]">
+                            Select images to add (from base album)
+                          </p>
+                          <ul className="project-assets-grid">
+                            {projectAssets
+                              .filter((a) => !albumItems.some((i) => i.assetId === a.id))
+                              .map((a) => (
+                                <li
+                                  key={a.id}
+                                  onClick={() =>
+                                    setAddImageSelection((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(a.id)) next.delete(a.id);
+                                      else next.add(a.id);
+                                      return next;
+                                    })
+                                  }
+                                  className={`asset-tile relative cursor-pointer rounded-lg border overflow-hidden transition-all ${
+                                    addImageSelection.has(a.id)
+                                      ? "border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/50"
+                                      : "border-[var(--line)] hover:border-[var(--color-accent)]"
+                                  }`}
+                                >
+                                  <img src={a.thumbnailUrl ?? a.originalUrl} alt="" className="pointer-events-none" />
+                                  {addImageSelection.has(a.id) && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-accent)]/20">
+                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-accent)] text-white text-xs font-bold">✓</span>
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                          </ul>
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => { setShowAddImages(false); setAddImageSelection(new Set()); }}
+                              className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-xs text-[var(--color-text)] transition hover:bg-[var(--color-surface)]"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleAddImagesToAlbum}
+                              disabled={addImageSelection.size === 0}
+                              className="inline-flex items-center gap-1 rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                            >
+                              Add {addImageSelection.size > 0 ? `${addImageSelection.size} ` : ""}image{addImageSelection.size !== 1 ? "s" : ""}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {isLoadingAlbumItems ? (
+                        <p className="text-xs text-[var(--color-text-muted)]">Loading…</p>
+                      ) : albumItems.length === 0 ? (
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {isBaseAlbumSelected ? "No images yet — upload some above." : "No images in this album yet."}
+                        </p>
+                      ) : (
+                        <ul className="project-assets-grid">
+                          {albumItems.map((item, idx) => (
+                            <li
+                              key={item.id}
+                              draggable
+                              onDragStart={() => {
+                                dragAlbumItemId.current = item.id;
+                                setDragAlbumActiveId(item.id);
+                              }}
+                              onDragEnter={() => {
+                                dragOverAlbumItemId.current = item.id;
+                                setDragAlbumOverId(item.id);
+                              }}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDragEnd={() => {
+                                const fromId = dragAlbumItemId.current;
+                                const toId = dragOverAlbumItemId.current;
+                                dragAlbumItemId.current = null;
+                                dragOverAlbumItemId.current = null;
+                                setDragAlbumActiveId(null);
+                                setDragAlbumOverId(null);
+                                if (!fromId || !toId || fromId === toId) return;
+                                const from = albumItems.findIndex((x) => x.id === fromId);
+                                const to = albumItems.findIndex((x) => x.id === toId);
+                                if (from === -1 || to === -1) return;
+                                const next = [...albumItems];
+                                const [moved] = next.splice(from, 1);
+                                next.splice(to, 0, moved);
+                                reorderAlbumItems(next.map((x, i) => ({ ...x, orderIndex: i })));
+                              }}
+                              className={`asset-tile rounded-lg bg-[var(--color-surface-soft)] border overflow-hidden relative group cursor-grab active:cursor-grabbing transition-all ${
+                                dragAlbumActiveId === item.id
+                                  ? "opacity-40 scale-95 border-[var(--color-accent)]"
+                                  : dragAlbumOverId === item.id
+                                  ? "border-[var(--color-accent)] ring-2 ring-[var(--color-accent)]/50 scale-105"
+                                  : "border-[var(--line)]"
+                              }`}
+                            >
+                              <span className="absolute top-1 right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-[9px] font-bold text-white">{idx + 1}</span>
+                              <img
+                                src={item.asset.thumbnailUrl ?? item.asset.originalUrl ?? ""}
+                                alt=""
+                                className="pointer-events-none"
+                              />
+                              {item.metadata && Object.keys(item.metadata).length > 0 && (
+                                <span className="absolute bottom-1 left-1 z-10 rounded bg-[var(--color-accent)]/80 px-1 py-0.5 text-[8px] font-semibold text-white">meta</span>
+                              )}
+                              <div className="absolute top-1 left-1 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  type="button"
+                                  onClick={() => openMetaEditor(item)}
+                                  className="p-1 rounded-md bg-black/50 hover:bg-[var(--color-accent)]/80 text-white"
+                                  aria-label="Edit metadata"
+                                  title="Edit metadata"
+                                >
+                                  <ListChecks size={13} />
+                                </button>
+                                {!isBaseAlbumSelected && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFromAlbum(item.id)}
+                                    className="p-1 rounded-md bg-black/50 hover:bg-red-500/80 text-white"
+                                    aria-label="Remove from album"
+                                    title="Remove from album"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ─── Per-image metadata editor modal ───────────────────────── */}
+              {metaEditorItemId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                  <div className="w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {metaEditorAssetUrl && (
+                          <img
+                            src={metaEditorAssetUrl}
+                            alt=""
+                            className="h-12 w-12 rounded-md border border-[var(--color-border)] object-cover"
+                          />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-[var(--color-text)]">Image metadata</p>
+                          <p className="text-xs text-[var(--color-text-muted)]">
+                            Album: {selectedAlbum?.name} · stored per-album, not globally
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMetaEditorItemId(null)}
+                        className="shrink-0 rounded-full p-1 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <p className="mb-1.5 text-xs text-[var(--color-text-muted)]">
+                      Enter flexible JSON metadata for this image in this album. Examples: place, personName, occasion, mood, people, dateLabel, captionHint.
+                    </p>
+                    <textarea
+                      value={metaEditorValue}
+                      onChange={(e) => { setMetaEditorValue(e.target.value); setMetaEditorError(null); }}
+                      rows={8}
+                      spellCheck={false}
+                      className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 font-mono text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      placeholder={'{\n  "place": "Bern",\n  "personName": "Sara",\n  "occasion": "graduation"\n}'}
+                    />
+                    {metaEditorError && (
+                      <p className="mt-1.5 text-xs text-red-500">{metaEditorError}</p>
+                    )}
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMetaEditorItemId(null)}
+                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-xs text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setMetaEditorValue(""); setMetaEditorError(null); }}
+                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-xs text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveItemMetadata}
+                        disabled={isSavingMeta}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50"
+                      >
+                        {isSavingMeta ? <RefreshCw size={12} className="animate-spin" /> : null}
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* ─── End Album Management ───────────────────────────────────── */}
 
               <div className="mode-row" aria-label={t("vionto.aria.videoModePresets")}>
                 {modes.map((mode) => (

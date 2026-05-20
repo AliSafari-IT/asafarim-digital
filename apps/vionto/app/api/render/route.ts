@@ -99,6 +99,10 @@ export async function POST(req: Request) {
       return badRequest("projectId is required.");
     }
 
+    // Optional: render using a specific album's image subset and order.
+    const albumId = (body as Record<string, unknown>)?.albumId;
+    const effectiveAlbumId = typeof albumId === "string" && albumId ? albumId : null;
+
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
       select: { id: true, locale: true, mode: true, aspectRatio: true, resolution: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true, subtitleSettings: true, targetDurationSeconds: true },
@@ -137,12 +141,47 @@ export async function POST(req: Request) {
     });
 
     if (!manifest) {
-      const [assets, scripts, audioTracks] = await Promise.all([
-        prisma.viontoAsset.findMany({
+      // If an albumId was provided, validate it belongs to this project.
+      if (effectiveAlbumId) {
+        const albumExists = await prisma.viontoAlbum.findFirst({
+          where: { id: effectiveAlbumId, projectId: project.id },
+          select: { id: true },
+        });
+        if (!albumExists) {
+          await prisma.viontoRenderJob.delete({ where: { id: job.id } }).catch(() => null);
+          return badRequest("Album not found.");
+        }
+      }
+
+      // Fetch assets — ordered by album item orderIndex when albumId is provided,
+      // otherwise by the canonical project asset orderIndex.
+      type AssetForRender = { id: string; storageKey: string | null; width: number | null; height: number | null };
+
+      let rawAssets: AssetForRender[];
+
+      if (effectiveAlbumId) {
+        const albumItems = await prisma.viontoAlbumItem.findMany({
+          where: { albumId: effectiveAlbumId, hidden: false },
+          orderBy: { orderIndex: "asc" },
+          select: {
+            asset: {
+              select: { id: true, storageKey: true, width: true, height: true, type: true },
+            },
+          },
+        });
+        rawAssets = albumItems
+          .filter((item) => item.asset.type === "source_image" && item.asset.storageKey)
+          .map((item) => item.asset);
+      } else {
+        rawAssets = await prisma.viontoAsset.findMany({
           where: { projectId: project.id, type: "source_image", storageKey: { not: null } },
           orderBy: { orderIndex: "asc" },
           select: { id: true, storageKey: true, width: true, height: true },
-        }),
+        });
+      }
+
+      const [assets, scripts, audioTracks] = await Promise.all([
+        Promise.resolve(rawAssets),
         prisma.viontoScript.findMany({
           where: { projectId: project.id, userId: user.id },
           orderBy: { updatedAt: "desc" },
@@ -290,6 +329,7 @@ export async function POST(req: Request) {
         projectId: project.id,
         userId: user.id,
         jobId: job.id,
+        ...(effectiveAlbumId ? { albumId: effectiveAlbumId } : {}),
         mode: toRenderMode(project.mode),
         visualStyle: normalizeVisualStyle(project.visualStyle ?? DEFAULT_VISUAL_STYLE),
         targetDurationSeconds: targetDurationSeconds,

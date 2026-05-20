@@ -22,7 +22,10 @@ import { buildKey, downloadObjectToLocalFile, uploadLocalFileToStorage, createPr
 import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
 import { parseSrt, buildSrt, buildVtt, applyTransformToCues, wrapAllCues, generateSrtFromText } from "./lib/server/srt";
 
-const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
+const REDIS_URL = process.env.REDIS_URL;
+if (!REDIS_URL) {
+  throw new Error("REDIS_URL environment variable is required. Please set it to redis://localhost:6380 or your Redis instance URL.");
+}
 const WORKER_HEALTH_PORT = Number.parseInt(process.env.WORKER_HEALTH_PORT ?? "3007", 10);
 const FFMPEG_BIN = process.env.FFMPEG_PATH ?? "ffmpeg";
 const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
