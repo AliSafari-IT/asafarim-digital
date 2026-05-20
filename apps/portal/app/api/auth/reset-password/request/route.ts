@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { auth } from "@asafarim/auth";
 import { prisma } from "@asafarim/db";
 import { sendPasswordResetEmail } from "@/lib/password-reset-email";
 
 const GENERIC_SUCCESS_MESSAGE =
-  "If that email exists in our system and has a password, a reset link has been sent. OAuth users should sign in with their provider.";
+  "If your account has a password, a reset link has been sent to your email.";
 
 function getBaseUrl(): string {
   return (
@@ -27,18 +28,19 @@ function createResetToken(): { raw: string; hashed: string } {
   return { raw, hashed };
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = (await request.json()) as { email?: string };
-    const normalizedEmail = body.email?.toLowerCase().trim();
+    const session = await auth();
 
-    if (!normalizedEmail || !normalizedEmail.includes("@")) {
-      return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const normalizedEmail = session.user.email.toLowerCase().trim();
 
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
-      select: { id: true, email: true, name: true, password: true },
+      select: { id: true, email: true, name: true },
     });
 
     // Always return generic success to avoid account enumeration.
@@ -70,9 +72,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message: GENERIC_SUCCESS_MESSAGE });
   } catch (error) {
-    console.error("Forgot password request failed", error);
+    console.error("Reset password request from profile failed", error);
     return NextResponse.json(
-      { error: "Unable to process forgot-password request right now." },
+      { error: "Unable to process reset-password request right now." },
       { status: 500 },
     );
   }
