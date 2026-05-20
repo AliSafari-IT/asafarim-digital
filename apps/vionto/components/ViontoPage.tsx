@@ -1653,7 +1653,7 @@ export function ViontoPage() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                   >
                     <Plus className="h-4 w-4" />
-                    {t("vionto.music.more")}
+                    {t(selectedMusicTracks.length === 0 ? "vionto.music.add" : "vionto.music.more")}
                   </button>
                   <button
                     type="button"
