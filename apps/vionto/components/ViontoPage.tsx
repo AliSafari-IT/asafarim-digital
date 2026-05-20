@@ -115,6 +115,7 @@ type ProjectSummary = {
   musicTrackId?: string | null;
   musicMetadata?: unknown;
   aspectRatio: AspectRatio | "4:3";
+  targetDurationSeconds?: number | null;
   createdAt: string;
 };
 
@@ -321,6 +322,8 @@ export function ViontoPage() {
         setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
+        setTargetDurationSeconds(selected.targetDurationSeconds ?? 30);
+        setScriptStale(false);
       }
       loadProjectAssets(selectedProjectId);
       loadProjectScripts(selectedProjectId);
@@ -334,6 +337,8 @@ export function ViontoPage() {
       setSelectedVoice(null);
       setSelectedMusicTracks([]);
       setSelectedVisualStyle(DEFAULT_VISUAL_STYLE);
+      setTargetDurationSeconds(30);
+      setScriptStale(false);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
@@ -500,6 +505,7 @@ export function ViontoPage() {
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
+          targetDurationSeconds,
         }),
       });
       if (!res.ok) {
@@ -509,7 +515,7 @@ export function ViontoPage() {
       setProjects((prev) =>
         prev.map((project) =>
           project.id === selectedProjectId
-            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio, targetDurationSeconds }
             : project
         )
       );
@@ -769,6 +775,7 @@ export function ViontoPage() {
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
+          targetDurationSeconds,
           locale: locale.split("-")[0] ?? "en",
         }),
       });
@@ -839,6 +846,8 @@ export function ViontoPage() {
   const modes = ["cinematic", "slideshow", "social"] as const;
   const [activeMode, setActiveMode] = useState<UiMode>("cinematic");
   const [activeAspectRatio, setActiveAspectRatio] = useState<AspectRatio>("16:9");
+  const [targetDurationSeconds, setTargetDurationSeconds] = useState<number>(30);
+  const [scriptStale, setScriptStale] = useState(false);
   const currentPreviewAspectRatio = latestExport?.aspectRatio ?? activeAspectRatio;
 
   const queueItems = [
@@ -992,6 +1001,7 @@ export function ViontoPage() {
     }
     setIsGenerating(true);
     try {
+      // Persist settings (including targetDurationSeconds) before generation
       await saveProjectSettings();
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch("/api/story/generate", {
@@ -1003,6 +1013,8 @@ export function ViontoPage() {
           mode: apiMode,
           visualStyle: selectedVisualStyle,
           userNotes: userNotes.trim() || undefined,
+          // Hint to the server in case the saved value isn't available yet
+          totalDurationMs: targetDurationSeconds * 1_000,
         }),
       });
       if (!res.ok) {
@@ -1032,10 +1044,11 @@ export function ViontoPage() {
         },
         ...prev,
       ]);
+      setScriptStale(false);
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId]);
+  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId, targetDurationSeconds]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -1826,6 +1839,43 @@ export function ViontoPage() {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* ── Video length slider ── */}
+              <div className="mt-3" aria-label="Video length">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">Video length</p>
+                  <span className="text-xs font-semibold tabular-nums text-[var(--color-text)]">
+                    {targetDurationSeconds} seconds
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={10}
+                  max={90}
+                  step={5}
+                  value={targetDurationSeconds}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setTargetDurationSeconds(val);
+                    // Mark existing script as stale so the user knows to regenerate
+                    if (versions.length > 0) setScriptStale(true);
+                  }}
+                  className="mt-1 w-full accent-[var(--color-accent)]"
+                  aria-label="Target video duration in seconds"
+                />
+                <div className="mt-0.5 flex justify-between text-[10px] text-[var(--color-text-muted)]">
+                  <span>10s</span>
+                  <span>90s</span>
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  Used to time the story, voiceover, subtitles, and image pacing.
+                </p>
+                {scriptStale && versions.length > 0 && (
+                  <p className="mt-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400">
+                    Duration changed — regenerate the story to keep subtitles and pacing in sync.
+                  </p>
+                )}
               </div>
 
               <div className="mt-3">

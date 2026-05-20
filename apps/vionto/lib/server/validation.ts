@@ -101,6 +101,15 @@ export function formatZodError(err: z.ZodError): string {
 
 // ─── Project schemas ──────────────────────────────────────────────────
 
+/** Target video duration in seconds — must be 10–90 and a multiple of 5. */
+const targetDurationSecondsSchema = z
+  .number()
+  .int()
+  .min(10)
+  .max(90)
+  .refine((v) => v % 5 === 0, { message: "targetDurationSeconds must be a multiple of 5" })
+  .default(30);
+
 export const createProjectSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(2000).optional(),
@@ -114,6 +123,7 @@ export const createProjectSchema = z.object({
   locale: z.string().min(2).max(10).default("en"),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
+  targetDurationSeconds: targetDurationSecondsSchema.optional(),
 });
 
 export const updateProjectSchema = createProjectSchema.partial();

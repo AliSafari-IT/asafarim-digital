@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return badRequest("Invalid JSON body.");
     }
 
-    const { projectId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary, totalDurationMs = 30_000 } = body;
+    const { projectId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary } = body;
     if (!projectId || typeof projectId !== "string") {
       return badRequest("projectId is required.");
     }
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
-      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true },
+      select: { id: true, locale: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true, targetDurationSeconds: true },
     });
     if (!project) {
       console.error(`[story/generate] Project ${projectId} not found for user ${user.id}`);
@@ -69,6 +69,12 @@ export async function POST(req: Request) {
     const effectiveStoryMode = storyMode || project.storyMode || "memory_film";
     const effectiveEmotionalTone = emotionalTone || project.emotionalTone || "nostalgic";
     const effectiveVisualStyle = visualStyle || project.visualStyle || "clean_modern_slideshow";
+
+    // Derive total duration from the project's persisted target (authoritative source).
+    // Fall back to 30 s if the field has never been set.
+    const DEFAULT_DURATION_SECONDS = 30;
+    const effectiveTargetDurationSeconds = project.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
+    const totalDurationMs = effectiveTargetDurationSeconds * 1_000;
 
     // Query project assets server-side to get captions and build EXIF summary
     const assets = await prisma.viontoAsset.findMany({
@@ -158,6 +164,7 @@ export async function POST(req: Request) {
       userNotes,
       captions: effectiveCaptions,
       exifSummary: effectiveExifSummary,
+      targetDurationSeconds: effectiveTargetDurationSeconds,
     });
 
     console.log(`[story/generate] Starting AI generation with ${effectiveCaptions.length} captions`);
