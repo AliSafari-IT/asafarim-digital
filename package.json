@@ -33,8 +33,8 @@
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
-    "turbo": "^2.4.0",
-    "kill-port": "^2.0.1"
+    "kill-port": "^2.0.1",
+    "turbo": "^2.9.14"
   },
   "packageManager": "pnpm@11.2.0+sha512.cdd7e34ea0d237bed3fa89e633185027e3ecdad98ce7453032f4d4d83c10cb7b85b9afe8534048ab0a3cc10228bdd5e32f5f622d05d66e58f46177fe5601eab1",
   "engines": {
