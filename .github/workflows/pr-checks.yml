@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Check PR Title Format
         uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           types: |
             feat
