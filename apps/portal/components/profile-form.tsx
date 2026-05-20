@@ -50,6 +50,8 @@ export function ProfileForm({ user }: { user: ProfileData }) {
   const [uploadMessage, setUploadMessage] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied">("idle");
+  const [resetPasswordStatus, setResetPasswordStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [resetPasswordMessage, setResetPasswordMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isVerified = Boolean(user.emailVerified);
@@ -71,6 +73,25 @@ export function ProfileForm({ user }: { user: ProfileData }) {
     } catch {
       setVerifyStatus("error");
       setVerifyMessage("Network error while sending verification email.");
+    }
+  }
+
+  async function handleSendPasswordReset() {
+    setResetPasswordStatus("sending");
+    setResetPasswordMessage("");
+    try {
+      const response = await fetch("/api/auth/reset-password/request", { method: "POST" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setResetPasswordStatus("error");
+        setResetPasswordMessage(data.error || "Could not send password reset email.");
+        return;
+      }
+      setResetPasswordStatus("sent");
+      setResetPasswordMessage(data.message || "Password reset email sent. Check your inbox.");
+    } catch {
+      setResetPasswordStatus("error");
+      setResetPasswordMessage("Network error while sending password reset email.");
     }
   }
 
@@ -298,6 +319,33 @@ export function ProfileForm({ user }: { user: ProfileData }) {
                 </svg>
               )}
             </button>
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Password</p>
+              <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                Request a password reset link to be sent to your email.
+              </p>
+              <button
+                type="button"
+                onClick={handleSendPasswordReset}
+                disabled={resetPasswordStatus === "sending" || resetPasswordStatus === "sent"}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {resetPasswordStatus === "sending"
+                  ? "Sending..."
+                  : resetPasswordStatus === "sent"
+                    ? "Reset email sent"
+                    : "Send password reset email"}
+              </button>
+              {resetPasswordMessage && (
+                <p
+                  className={`mt-2 text-xs ${
+                    resetPasswordStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  {resetPasswordMessage}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mt-8 space-y-2">
