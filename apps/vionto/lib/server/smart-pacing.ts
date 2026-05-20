@@ -164,14 +164,13 @@ export async function analyzeProjectForPacing(
  * Apply pacing plan to render assets.
  */
 export function applyPacingToAssets(
-  assets: Array<{ storageKey: string; width?: number; height?: number }>,
+  assets: Array<{ id: string; storageKey: string; width?: number; height?: number }>,
   pacingPlan: PacingPlan[]
 ): RenderAsset[] {
-  const assetMap = new Map(assets.map((a, i) => [i, a]));
+  return assets.map((asset) => {
+    // Match by Prisma asset ID (primary) or storageKey (fallback)
+    const plan = pacingPlan.find((p) => p.assetId === asset.id || p.assetId === asset.storageKey);
 
-  return assets.map((asset, index) => {
-    const plan = pacingPlan.find((p) => p.assetId === asset.storageKey);
-    
     if (!plan) {
       // Default if no plan found
       return {

@@ -115,6 +115,7 @@ type ProjectSummary = {
   musicTrackId?: string | null;
   musicMetadata?: unknown;
   aspectRatio: AspectRatio | "4:3";
+  targetDurationSeconds?: number | null;
   createdAt: string;
 };
 
@@ -321,6 +322,8 @@ export function ViontoPage() {
         setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
         const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
         setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
+        setTargetDurationSeconds(selected.targetDurationSeconds ?? 20);
+        setScriptStale(false);
       }
       loadProjectAssets(selectedProjectId);
       loadProjectScripts(selectedProjectId);
@@ -334,6 +337,8 @@ export function ViontoPage() {
       setSelectedVoice(null);
       setSelectedMusicTracks([]);
       setSelectedVisualStyle(DEFAULT_VISUAL_STYLE);
+      setTargetDurationSeconds(20);
+      setScriptStale(false);
       setRenderJobId(null);
       setRenderState("idle");
       setRenderProgress(0);
@@ -445,7 +450,7 @@ export function ViontoPage() {
   }
 
   async function removeLibraryExport(exportId: string) {
-    if (!confirm("Remove this video from the library?")) return;
+    if (!confirm(t("vionto.library.removeConfirm"))) return;
     try {
       const res = await fetch(`/api/exports/${exportId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
@@ -500,6 +505,7 @@ export function ViontoPage() {
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
+          targetDurationSeconds,
         }),
       });
       if (!res.ok) {
@@ -509,7 +515,7 @@ export function ViontoPage() {
       setProjects((prev) =>
         prev.map((project) =>
           project.id === selectedProjectId
-            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio }
+            ? { ...project, mode: apiMode, storyMode: selectedStoryMode, emotionalTone: selectedEmotionalTone, visualStyle: selectedVisualStyle, musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music", aspectRatio: activeAspectRatio, targetDurationSeconds }
             : project
         )
       );
@@ -585,7 +591,7 @@ export function ViontoPage() {
     if (language === "es") return "Esta es una vista previa de la voz narradora elegida para tu historia de Vionto.";
     if (language === "it") return "Questa è un'anteprima della voce narrante scelta per la tua storia Vionto.";
     if (language === "pt") return "Esta é uma prévia da voz de narração escolhida para a sua história Vionto.";
-    return "This is a preview of the selected narration voice for your Vionto story.";
+    return t("vionto.audio.previewText");
   }
 
   async function previewSelectedVoice() {
@@ -602,14 +608,14 @@ export function ViontoPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.audioBase64) {
-        alert(data.error ?? "Failed to preview audio");
+        alert(data.error ?? t("vionto.alert.previewAudioFailed"));
         return;
       }
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
       await audio.play();
     } catch (error) {
       console.error("Failed to preview audio", error);
-      alert("Failed to preview audio");
+      alert(t("vionto.alert.previewAudioFailed"));
     } finally {
       setIsPreviewing(false);
     }
@@ -622,40 +628,40 @@ export function ViontoPage() {
         method: "DELETE",
       });
       if (!res.ok) {
-        alert("Failed to delete asset");
+        alert(t("vionto.alert.deleteAssetFailed"));
         return;
       }
       await loadProjectAssets(selectedProjectId);
     } catch (error) {
       console.error("Failed to delete asset", error);
-      alert("Failed to delete asset");
+      alert(t("vionto.alert.deleteAssetFailed"));
     }
   }
 
   async function startRender() {
     if (!selectedProjectId) {
-      alert("Please select or create a project first");
+      alert(t("vionto.alert.selectProjectFirst"));
       return;
     }
     if (projectAssets.length === 0) {
-      alert("Please upload images before rendering");
+      alert(t("vionto.alert.uploadImagesFirst"));
       return;
     }
     if (!hasRenderableScript) {
-      alert("Please generate a script before rendering");
-      setRenderError("Generate or save a narration script before rendering.");
+      alert(t("vionto.alert.generateScriptFirst"));
+      setRenderError(t("vionto.render.error.noScript"));
       return;
     }
     const savedSettings = await saveProjectSettings();
     if (!savedSettings) {
-      alert("Failed to save project settings before rendering");
-      setRenderError("Failed to save project settings before rendering.");
+      alert(t("vionto.alert.saveSettingsFailed"));
+      setRenderError(t("vionto.render.error.saveSettingsFailed"));
       return;
     }
     const savedSubtitleSettings = await saveSubtitleSettingsNow();
     if (!savedSubtitleSettings) {
-      alert("Failed to save subtitle settings before rendering");
-      setRenderError("Failed to save subtitle settings before rendering.");
+      alert(t("vionto.alert.saveSubtitlesFailed"));
+      setRenderError(t("vionto.render.error.saveSubtitlesFailed"));
       return;
     }
 
@@ -672,8 +678,8 @@ export function ViontoPage() {
         body: JSON.stringify({ projectId: selectedProjectId }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Failed to start render" }));
-        const message = data.error ?? "Failed to start render";
+        const data = await res.json().catch(() => ({ error: t("vionto.alert.startRenderFailed") }));
+        const message = data.error ?? t("vionto.alert.startRenderFailed");
         alert(message);
         setRenderError(message);
         setRenderState("idle");
@@ -684,8 +690,8 @@ export function ViontoPage() {
       pollRenderStatus(data.jobId);
     } catch (error) {
       console.error("Failed to start render", error);
-      alert("Failed to start render");
-      setRenderError("Failed to start render");
+      alert(t("vionto.alert.startRenderFailed"));
+      setRenderError(t("vionto.render.error.startFailed"));
       setRenderState("idle");
     }
   }
@@ -695,7 +701,7 @@ export function ViontoPage() {
       const res = await fetch(`/api/render/${jobId}`);
       if (!res.ok) {
         setRenderState("failed");
-        setRenderError("Failed to poll render status");
+        setRenderError(t("vionto.render.error.pollFailed"));
         return;
       }
       const data = await res.json();
@@ -715,16 +721,16 @@ export function ViontoPage() {
         }
         await loadExportLibrary({ projectId: selectedProjectId });
       } else if (data.state === "failed") {
-        const message = data.errorSummary || "Unknown error";
+        const message = data.errorSummary || t("vionto.alert.unknownError");
         setRenderError(message);
-        alert(`Render failed: ${message}`);
+        alert(`${t("vionto.alert.renderFailed")}: ${message}`);
       } else if (data.state === "queued" || data.state === "running") {
         // Continue polling
         setTimeout(() => pollRenderStatus(jobId), 2000);
       }
     } catch (error) {
       console.error("Failed to poll render status", error);
-      setRenderError("Failed to poll render status");
+      setRenderError(t("vionto.render.error.pollFailed"));
       setRenderState("failed");
     }
   }
@@ -734,7 +740,7 @@ export function ViontoPage() {
     try {
       const res = await fetch(`/api/exports/${exportId}/download`);
       if (!res.ok) {
-        alert("Failed to get download URL");
+        alert(t("vionto.alert.getDownloadUrlFailed"));
         return;
       }
       const data = await res.json();
@@ -742,7 +748,7 @@ export function ViontoPage() {
       setShowDownloadDialog(true);
     } catch (error) {
       console.error("Failed to get download URL", error);
-      alert("Failed to get download URL");
+      alert(t("vionto.alert.getDownloadUrlFailed"));
     }
   }
 
@@ -769,11 +775,12 @@ export function ViontoPage() {
           musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
           musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
           aspectRatio: activeAspectRatio,
+          targetDurationSeconds,
           locale: locale.split("-")[0] ?? "en",
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Failed to create project" }));
+        const data = await res.json().catch(() => ({ error: t("vionto.alert.createProjectFailed") }));
         alert(data.error);
         return;
       }
@@ -784,7 +791,7 @@ export function ViontoPage() {
       setIsCreatingProject(false);
     } catch (error) {
       console.error("Failed to create project", error);
-      alert("Failed to create project");
+      alert(t("vionto.alert.createProjectFailed"));
     } finally {
       setIsSubmittingProject(false);
     }
@@ -839,19 +846,21 @@ export function ViontoPage() {
   const modes = ["cinematic", "slideshow", "social"] as const;
   const [activeMode, setActiveMode] = useState<UiMode>("cinematic");
   const [activeAspectRatio, setActiveAspectRatio] = useState<AspectRatio>("16:9");
+  const [targetDurationSeconds, setTargetDurationSeconds] = useState<number>(20);
+  const [scriptStale, setScriptStale] = useState(false);
   const currentPreviewAspectRatio = latestExport?.aspectRatio ?? activeAspectRatio;
 
   const queueItems = [
-    ["Captioning", "12 images processed"],
-    ["Script", "Narrative draft ready"],
-    ["Voice", "Warm alto selected"],
-    ["Render", "Preview MP4 queued"],
+    [t("vionto.queue.captioning"), t("vionto.queue.captioningDetail", { count: 12 })],
+    [t("vionto.queue.script"), t("vionto.queue.scriptDetail")],
+    [t("vionto.queue.voice"), t("vionto.queue.voiceDetail")],
+    [t("vionto.queue.render"), t("vionto.queue.renderDetail")],
   ];
   const hasRenderableScript = versions.some((version) => version.narrationText?.trim());
 
   async function startUploads() {
     if (!selectedProjectId) {
-      alert("Please select or create a project first");
+      alert(t("vionto.alert.selectProjectFirst"));
       return;
     }
     if (uploadingFiles.length === 0) return;
@@ -862,7 +871,7 @@ export function ViontoPage() {
     try {
       const sessionRes = await fetch("/api/uploads/session", { method: "POST" });
       if (!sessionRes.ok) {
-        alert("Failed to create upload session");
+        alert(t("vionto.alert.uploadSessionFailed"));
         setIsUploading(false);
         return;
       }
@@ -943,14 +952,14 @@ export function ViontoPage() {
           console.error("Upload failed", error);
           setUploadingFiles((prev) => {
             const updated = [...prev];
-            updated[i] = { ...updated[i], status: "error", error: error instanceof Error ? error.message : "Upload failed" };
+            updated[i] = { ...updated[i], status: "error", error: error instanceof Error ? error.message : t("vionto.alert.uploadFailed") };
             return updated;
           });
         }
       }
 
       if (completedUploads === 0) {
-        alert("No files uploaded successfully. Check the failed file rows and retry.");
+        alert(t("vionto.alert.noFilesUploaded"));
         return;
       }
 
@@ -967,7 +976,7 @@ export function ViontoPage() {
       }
     } catch (error) {
       console.error("Upload flow failed", error);
-      alert("Upload failed");
+      alert(t("vionto.alert.uploadFailed"));
     } finally {
       setIsUploading(false);
     }
@@ -987,11 +996,12 @@ export function ViontoPage() {
 
   const handleGenerate = useCallback(async () => {
     if (!selectedProjectId) {
-      alert("Please select or create a project first");
+      alert(t("vionto.alert.selectProjectFirst"));
       return;
     }
     setIsGenerating(true);
     try {
+      // Persist settings (including targetDurationSeconds) before generation
       await saveProjectSettings();
       const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
       const res = await fetch("/api/story/generate", {
@@ -1003,6 +1013,8 @@ export function ViontoPage() {
           mode: apiMode,
           visualStyle: selectedVisualStyle,
           userNotes: userNotes.trim() || undefined,
+          // Hint to the server in case the saved value isn't available yet
+          totalDurationMs: targetDurationSeconds * 1_000,
         }),
       });
       if (!res.ok) {
@@ -1032,10 +1044,11 @@ export function ViontoPage() {
         },
         ...prev,
       ]);
+      setScriptStale(false);
     } finally {
       setIsGenerating(false);
     }
-  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId]);
+  }, [locale, activeMode, selectedVisualStyle, userNotes, selectedProjectId, targetDurationSeconds]);
 
   const handleSave = useCallback(async (scriptId: string, narration: string, srt: string) => {
     const res = await fetch(`/api/story/${scriptId}`, {
@@ -1045,7 +1058,7 @@ export function ViontoPage() {
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      alert(data.error ?? "Save failed");
+      alert(data.error ?? t("vionto.alert.saveFailed"));
       return;
     }
     setVersions((prev) =>
@@ -1089,7 +1102,7 @@ export function ViontoPage() {
 
     if (!presignRes.ok) {
       const message = await presignRes.text().catch(() => "");
-      throw new Error(message || "Failed to prepare music upload");
+      throw new Error(message || t("vionto.alert.musicUploadPrepareFailed"));
     }
 
     const presignData = (await presignRes.json()) as { key: string };
@@ -1104,7 +1117,7 @@ export function ViontoPage() {
 
     if (!uploadRes.ok) {
       const message = await uploadRes.text().catch(() => "");
-      throw new Error(message || "Music upload failed");
+      throw new Error(message || t("vionto.alert.musicUploadFailed"));
     }
 
     const uploadData = (await uploadRes.json()) as { key: string; publicUrl?: string };
@@ -1202,7 +1215,7 @@ export function ViontoPage() {
       <section className="workspace-shell m-0">
         {/* ─── Sidebar ─────────────────────────────────────────────── */}
         <aside
-          aria-label="Vionto workspace navigation"
+          aria-label={t("vionto.aria.workspaceNav")}
           className={`sticky top-0 h-screen flex-shrink-0 flex flex-col border-r border-[var(--line)] backdrop-blur-[18px] transition-all duration-200 ${
             collapsed ? "w-[72px]" : "w-64"
           }`}
@@ -1212,7 +1225,7 @@ export function ViontoPage() {
           <div className={`flex h-14 items-center border-b border-[var(--line)] ${
             collapsed ? "justify-center px-2" : "justify-between px-4"
           }`}>
-            <a href="/" className="flex items-center gap-2.5 overflow-hidden" aria-label="Vionto home">
+            <a href="/" className="flex items-center gap-2.5 overflow-hidden" aria-label={t("vionto.aria.home")}>
               <ViontoMark className="h-8 w-8 shrink-0" />
               {!collapsed && (
                 <div className="brand-text flex flex-col leading-tight max-sm:hidden">
@@ -1225,8 +1238,8 @@ export function ViontoPage() {
               <button
                 type="button"
                 onClick={() => { window.localStorage.setItem("vionto:sidebar", "collapsed"); setCollapsed(true); }}
-                title="Collapse sidebar"
-                aria-label="Collapse sidebar"
+                title={t("vionto.aria.collapseSidebar")}
+                aria-label={t("vionto.aria.collapseSidebar")}
                 className="collapse-toggle h-7 w-7 flex items-center justify-center rounded-md transition-colors max-sm:hidden"
                 style={{ color: "var(--muted)" }}
               >
@@ -1239,8 +1252,8 @@ export function ViontoPage() {
               <button
                 type="button"
                 onClick={() => { window.localStorage.setItem("vionto:sidebar", "expanded"); setCollapsed(false); }}
-                title="Expand sidebar"
-                aria-label="Expand sidebar"
+                title={t("vionto.aria.expandSidebar")}
+                aria-label={t("vionto.aria.expandSidebar")}
                 className="collapse-toggle mt-1 h-7 w-7 flex items-center justify-center rounded-md transition-colors max-sm:hidden"
                 style={{ color: "var(--muted)" }}
               >
@@ -1252,7 +1265,7 @@ export function ViontoPage() {
           </div>
 
           {/* Nav */}
-          <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Primary">
+          <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label={t("vionto.aria.primaryNav")}>
             <ul className="space-y-0.5">
               {NAV_ITEMS.map(({ href, labelKey, Icon }, idx) => (
                 <li key={href}>
@@ -1305,7 +1318,7 @@ export function ViontoPage() {
             {/* Hamburger — visible below portrait tablet */}
             <button
               type="button"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-label={mobileMenuOpen ? t("vionto.aria.closeMenu") : t("vionto.aria.openMenu")}
               aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen((o) => !o)}
               className="md:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--line)] transition hover:bg-white/[0.06]"
@@ -1475,7 +1488,7 @@ export function ViontoPage() {
                             type="button"
                             onClick={() => retryUpload(i)}
                             className="text-[var(--muted)] hover:text-[var(--text)]"
-                            aria-label="Retry"
+                            aria-label={t("vionto.aria.retry")}
                           >
                             <RefreshCw size={14} />
                           </button>
@@ -1569,14 +1582,14 @@ export function ViontoPage() {
                     ))}
                     {false && projectAssets.length > 8 && (
                       <li className="flex items-center justify-center aspect-square rounded-lg bg-[var(--color-surface-soft)] border border-[var(--line)] text-xs text-[var(--muted)]">
-                        +{projectAssets.length - 8} more
+                        +{projectAssets.length - 8} {t("vionto.asset.more")}
                       </li>
                     )}
                   </ul>
                 </div>
               )}
 
-              <div className="mode-row" aria-label="Video mode presets">
+              <div className="mode-row" aria-label={t("vionto.aria.videoModePresets")}>
                 {modes.map((mode) => (
                   <button
                     key={mode}
@@ -1744,7 +1757,7 @@ export function ViontoPage() {
                                     provider: "upload",
                                     trackId: `upload_${Date.now()}_${index}`,
                                     title: file.name.replace(/\.[^/.]+$/, ""),
-                                    artist: "Uploaded",
+                                    artist: t("vionto.music.uploadArtist"),
                                     artistId: "upload",
                                     duration: undefined,
                                     tags: ["uploaded"],
@@ -1767,7 +1780,7 @@ export function ViontoPage() {
                                 setShowMusicSelector(false);
                               } catch (error) {
                                 console.error("Failed to upload music", error);
-                                alert(error instanceof Error ? error.message : "Music upload failed");
+                                alert(error instanceof Error ? error.message : t("vionto.alert.musicUploadFailed"));
                               } finally {
                                 setIsMusicUploading(false);
                                 // Reset input value to allow selecting the same file again
@@ -1826,6 +1839,43 @@ export function ViontoPage() {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* ── Video length slider ── */}
+              <div className="mt-3" aria-label={t("vionto.aria.videoLength")}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-[var(--color-text-muted)]">{t("vionto.videoLength.label")}</p>
+                  <span className="text-xs font-semibold tabular-nums text-[var(--color-text)]">
+                    {t("vionto.videoLength.seconds", { seconds: targetDurationSeconds })}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={15}
+                  max={90}
+                  step={5}
+                  value={targetDurationSeconds}
+                  aria-label={t("vionto.aria.targetDuration")}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setTargetDurationSeconds(val);
+                    // Mark existing script as stale so the user knows to regenerate
+                    if (versions.length > 0) setScriptStale(true);
+                  }}
+                  className="mt-1 w-full accent-[var(--color-accent)]"
+                />
+                <div className="mt-0.5 flex justify-between text-[10px] text-[var(--color-text-muted)]">
+                  <span>{t("vionto.videoLength.min")}</span>
+                  <span>{t("vionto.videoLength.max")}</span>
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  {t("vionto.videoLength.description")}
+                </p>
+                {scriptStale && versions.length > 0 && (
+                  <p className="mt-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400">
+                    {t("vionto.videoLength.staleWarning")}
+                  </p>
+                )}
               </div>
 
               <div className="mt-3">
@@ -1890,7 +1940,7 @@ export function ViontoPage() {
             </section>
           </div>
 
-          <section className="pipeline" aria-label="Vionto production pipeline">
+          <section className="pipeline" aria-label={t("vionto.aria.productionPipeline")}>
             {pipelineSteps.map((step) => {
               const Icon = step.icon;
               return (
@@ -1925,7 +1975,7 @@ export function ViontoPage() {
                     type="button"
                     onClick={() => setSubtitlesCollapsed(!subtitlesCollapsed)}
                     className="inline-flex items-center justify-center rounded-md p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-soft)] transition"
-                    aria-label={subtitlesCollapsed ? "Expand subtitles" : "Collapse subtitles"}
+                    aria-label={subtitlesCollapsed ? t("vionto.aria.expandSubtitles") : t("vionto.aria.collapseSubtitles")}
                   >
                     {subtitlesCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
                   </button>

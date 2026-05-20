@@ -26,6 +26,7 @@ const PROJECT_SELECT = {
   locale: true,
   aspectRatio: true,
   resolution: true,
+  targetDurationSeconds: true,
   status: true,
   userId: true,
   createdAt: true,

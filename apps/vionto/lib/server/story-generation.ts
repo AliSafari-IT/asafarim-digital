@@ -170,6 +170,8 @@ export type StoryPromptContext = {
   userNotes?: string;
   captions?: string[];
   exifSummary?: string;
+  /** Target video duration in seconds (10–90, multiple of 5). Drives narration length. */
+  targetDurationSeconds?: number;
 };
 
 export function buildStorySystemPrompt(locale: string): string {
@@ -258,7 +260,11 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
     lines.push("- Favor elegant, intimate phrasing that works with a cinematic wedding treatment.");
   }
   
-  lines.push("- The SRT output should have one cue per sentence, with reasonable timing spaced roughly 3-6 seconds per cue for a ~30-60 second total duration.");
+  // Duration-aware narration and SRT instructions
+  const targetSec = ctx.targetDurationSeconds ?? 30;
+  const approxWords = Math.round(targetSec * 2.5); // ~150 wpm speaking rate
+  lines.push(`- Target video duration: ${targetSec} seconds. Write narration of approximately ${approxWords} words so the spoken voiceover fits within that duration.`);
+  lines.push(`- The SRT output should have one cue per sentence, with timing that spans the full ${targetSec} seconds. Do not exceed ${targetSec} seconds in total SRT duration.`);
   lines.push("- Escape angle brackets in SRT text as &lt; and &gt;.");
   lines.push("- Do not include empty lines inside a cue text block.");
   lines.push("- Output JSON only.");
