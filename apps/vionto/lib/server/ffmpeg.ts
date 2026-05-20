@@ -190,7 +190,7 @@ function hexToASSColorWithAlpha(hex: string, opacity: number): string {
 }
 
 /** Build subtitle burn-in filter string (ASS style overlay). */
-function buildSubtitleFilter(style: SubtitleStyle, srtPath: string): string {
+function buildSubtitleFilter(style: SubtitleStyle, srtPath: string, dimensions: { width: number; height: number }): string {
   const font = style.fontName.replace(/:/g, "\\:");
   const size = style.fontSize;
   const outlineW = style.outlineWidth;
@@ -230,7 +230,7 @@ function buildSubtitleFilter(style: SubtitleStyle, srtPath: string): string {
     `BorderStyle=${bgOpacity > 0 ? 3 : 1}`,
   ];
 
-  return `subtitles=filename='${escapeFilterPath(srtPath)}':force_style='${styleParts.join(",")}'`;
+  return `subtitles=filename='${escapeFilterPath(srtPath)}':original_size=${dimensions.width}x${dimensions.height}:force_style='${styleParts.join(",")}'`;
 }
 
 /** Build the full FFmpeg pipeline command array for a render manifest. */
@@ -280,7 +280,7 @@ export function buildRenderCommand(
   // Video filter: visual style treatment and subtitles burn-in if requested
   let videoFilter = "";
   if (manifest.burnSubtitles && opts.srtPath) {
-    videoFilter = buildSubtitleFilter(manifest.subtitleStyle, opts.srtPath);
+    videoFilter = buildSubtitleFilter(manifest.subtitleStyle, opts.srtPath, res);
   }
 
   const narrationInputIndex = opts.narrationWavPath ? 1 : null;

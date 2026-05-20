@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
+import type { SubtitleConfig as SubtitleConfigType } from "@/lib/server/render-manifest";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
@@ -188,6 +189,7 @@ export function ViontoPage() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [subtitlesCollapsed, setSubtitlesCollapsed] = useState(false);
+  const [subtitleConfig, setSubtitleConfig] = useState<SubtitleConfigType | null>(null);
 
   useEffect(() => {
     const applyCollapsed = () => {
@@ -518,6 +520,26 @@ export function ViontoPage() {
     }
   }
 
+  async function saveSubtitleSettingsNow(): Promise<boolean> {
+    if (!selectedProjectId || !subtitleConfig) return true;
+
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/subtitles`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subtitleConfig),
+      });
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to save subtitle settings");
+      }
+      return true;
+    } catch (error) {
+      console.error("Failed to save subtitle settings", error);
+      return false;
+    }
+  }
+
   async function loadVoices(locale: string) {
     try {
       const res = await fetch(`/api/audio/voices?locale=${locale}`);
@@ -628,6 +650,12 @@ export function ViontoPage() {
     if (!savedSettings) {
       alert("Failed to save project settings before rendering");
       setRenderError("Failed to save project settings before rendering.");
+      return;
+    }
+    const savedSubtitleSettings = await saveSubtitleSettingsNow();
+    if (!savedSubtitleSettings) {
+      alert("Failed to save subtitle settings before rendering");
+      setRenderError("Failed to save subtitle settings before rendering.");
       return;
     }
 
@@ -1625,7 +1653,7 @@ export function ViontoPage() {
                     className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                   >
                     <Plus className="h-4 w-4" />
-                    {t("vionto.music.more")}
+                    {t(selectedMusicTracks.length === 0 ? "vionto.music.add" : "vionto.music.more")}
                   </button>
                   <button
                     type="button"
@@ -1906,6 +1934,7 @@ export function ViontoPage() {
                   <SubtitleConfig
                     projectId={selectedProjectId}
                     aspectRatio={activeAspectRatio}
+                    onChange={setSubtitleConfig}
                   />
                 )}
               </div>
