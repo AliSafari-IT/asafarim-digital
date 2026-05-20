@@ -28,7 +28,7 @@ export function getSmtpConfig() {
     requireTls: parseBoolean(process.env.SMTP_REQUIRE_TLS, false),
     debug: parseBoolean(process.env.SMTP_DEBUG, false),
     logging: parseBoolean(process.env.SMTP_LOGGING, false),
-    bcc: process.env.SMTP_TO,
+    bcc: process.env.SMTP_BCC,
   };
 }
 
