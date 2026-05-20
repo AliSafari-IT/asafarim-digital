@@ -306,17 +306,54 @@ export function generatePacingPlan(
   // Adjust total duration if target is specified
   if (options.targetTotalDurationSeconds) {
     const currentTotal = plans.reduce((sum, p) => sum + p.durationSeconds, 0);
-    const ratio = options.targetTotalDurationSeconds / currentTotal;
+    const targetTotal = options.targetTotalDurationSeconds;
     
-    // Scale all durations proportionally (with clamping)
+    // First pass: scale all durations without clamping to preserve total
+    const ratio = targetTotal / currentTotal;
     for (const plan of plans) {
-      const scaledDuration = plan.durationSeconds * ratio;
-      plan.durationSeconds = Math.max(
-        config.minDurationSeconds,
-        Math.min(config.maxDurationSeconds, scaledDuration)
+      plan.durationSeconds = plan.durationSeconds * ratio;
+    }
+    
+    // Second pass: only clamp extreme values, then redistribute the difference
+    let totalAfterScaling = plans.reduce((sum, p) => sum + p.durationSeconds, 0);
+    let adjustmentNeeded = targetTotal - totalAfterScaling;
+    
+    // Clamp only extreme outliers (more than 50% outside min/max range)
+    const extremeMin = config.minDurationSeconds * 0.5;
+    const extremeMax = config.maxDurationSeconds * 1.5;
+    
+    for (const plan of plans) {
+      if (plan.durationSeconds < extremeMin) {
+        const oldDuration = plan.durationSeconds;
+        plan.durationSeconds = config.minDurationSeconds;
+        adjustmentNeeded -= (plan.durationSeconds - oldDuration);
+      } else if (plan.durationSeconds > extremeMax) {
+        const oldDuration = plan.durationSeconds;
+        plan.durationSeconds = config.maxDurationSeconds;
+        adjustmentNeeded -= (plan.durationSeconds - oldDuration);
+      }
+    }
+    
+    // If we still need adjustment, distribute proportionally across non-clamped assets
+    if (Math.abs(adjustmentNeeded) > 0.1) {
+      const adjustablePlans = plans.filter(p => 
+        p.durationSeconds >= config.minDurationSeconds && 
+        p.durationSeconds <= config.maxDurationSeconds
       );
       
-      // Update motion duration to match new image duration
+      if (adjustablePlans.length > 0) {
+        const adjustmentPerAsset = adjustmentNeeded / adjustablePlans.length;
+        for (const plan of adjustablePlans) {
+          plan.durationSeconds = Math.max(
+            config.minDurationSeconds,
+            Math.min(config.maxDurationSeconds, plan.durationSeconds + adjustmentPerAsset)
+          );
+        }
+      }
+    }
+    
+    // Final check: update motion durations to match new image durations
+    for (const plan of plans) {
       plan.motion.durationSeconds = Math.min(plan.durationSeconds, plan.motion.durationSeconds || 5);
     }
   }

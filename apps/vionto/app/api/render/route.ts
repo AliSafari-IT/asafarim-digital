@@ -141,7 +141,7 @@ export async function POST(req: Request) {
         prisma.viontoAsset.findMany({
           where: { projectId: project.id, type: "source_image", storageKey: { not: null } },
           orderBy: { orderIndex: "asc" },
-          select: { storageKey: true, width: true, height: true },
+          select: { id: true, storageKey: true, width: true, height: true },
         }),
         prisma.viontoScript.findMany({
           where: { projectId: project.id, userId: user.id },
@@ -206,7 +206,7 @@ export async function POST(req: Request) {
         // Apply pacing to assets; keep targetDurationSeconds as the project-level
         // contract even if the pacing plan's sum differs slightly.
         pacingAssets = applyPacingToAssets(
-          assets.map((a) => ({ storageKey: a.storageKey!, width: a.width ?? undefined, height: a.height ?? undefined })),
+          assets.map((a) => ({ id: a.id, storageKey: a.storageKey!, width: a.width ?? undefined, height: a.height ?? undefined })),
           pacingResult.pacingPlan
         );
 
