@@ -21,3 +21,4 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@asafarim/envage@0.1.0'
   - '@asafarim/envage@0.2.0'
+  - '@asafarim/envage@0.3.0'
