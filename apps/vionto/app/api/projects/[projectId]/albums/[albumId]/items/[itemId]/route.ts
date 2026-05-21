@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
+import { Prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { updateAlbumItemSchema, formatZodError } from "@/lib/server/validation";
 
@@ -50,7 +51,7 @@ export async function PATCH(req: Request, { params }: Params) {
       where: { id: itemId },
       data: {
         ...(parsed.data.orderIndex !== undefined && { orderIndex: parsed.data.orderIndex }),
-        ...(parsed.data.metadata !== undefined && { metadata: parsed.data.metadata ?? null }),
+        ...(parsed.data.metadata !== undefined && { metadata: parsed.data.metadata === null ? Prisma.DbNull : parsed.data.metadata }),
         ...(parsed.data.hidden !== undefined && { hidden: parsed.data.hidden }),
         ...(parsed.data.favorite !== undefined && { favorite: parsed.data.favorite }),
       },
