@@ -200,7 +200,7 @@ function applyDbUserToToken(
 ) {
   if (!dbUser) return;
   token.sub = dbUser.id;
-  token.roles = dbUser.userRoles.map((ur) => ur.role.name);
+  token.roles = dbUser.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
   token.tenantId = dbUser.tenantId;
   token.name = dbUser.name;
   token.picture = dbUser.image;
@@ -209,9 +209,21 @@ function applyDbUserToToken(
   token.isActive = dbUser.isActive;
 }
 
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[auth] AUTH_SECRET not set, using dev-only fallback. Set AUTH_SECRET env var for production.");
+    return "dev-secret-not-for-production-32-chars-min";
+  }
+  throw new Error("AUTH_SECRET environment variable is required in production");
+}
+
 export const authConfig: NextAuthConfig = {
   // PrismaAdapter removed - using JWT strategy which doesn't need database adapter
   // adapter: PrismaAdapter(prisma),
+
+  secret: getAuthSecret(),
 
   providers: [googleProvider, credentialsProvider, emailCodeProvider],
 
@@ -315,7 +327,7 @@ export const authConfig: NextAuthConfig = {
         });
 
         if (dbUser) {
-          token.roles = dbUser.userRoles.map((ur) => ur.role.name);
+          token.roles = dbUser.userRoles.map((ur: { role: { name: string } }) => ur.role.name);
           token.tenantId = dbUser.tenantId;
           token.name = dbUser.name;
           token.picture = dbUser.image;
