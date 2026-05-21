@@ -19,7 +19,7 @@ import { buildRenderCommand, buildConcatListContent, pickMotionPreset } from "./
 import { buildExportMetadata } from "./lib/server/export-metadata";
 import { synthesizeSpeech } from "./lib/server/tts";
 import { buildKey, downloadObjectToLocalFile, uploadLocalFileToStorage, createPresignedDownloadUrl, getStorageStatus } from "./lib/server/storage";
-import { QUEUE_NAME, renderQueue } from "./lib/server/queue";
+import { QUEUE_NAME, getRenderQueue } from "./lib/server/queue";
 import { parseSrt, buildSrt, buildVtt, applyTransformToCues, wrapAllCues, generateSrtFromText } from "./lib/server/srt";
 
 const REDIS_URL = process.env.REDIS_URL;
@@ -423,7 +423,7 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     if (retryable && retries <= maxRetries) {
       await updateState(jobId, "queued", { errorSummary: `${category}: ${errorMsg}`, retryCount: retries });
       // Re-queue the same job with a delay
-      await renderQueue.add(QUEUE_NAME, { jobId, manifest: manifestRaw }, { jobId: `${jobId}-retry-${retries}`, delay: 5000 * retries });
+      await getRenderQueue().add(QUEUE_NAME, { jobId, manifest: manifestRaw }, { jobId: `${jobId}-retry-${retries}`, delay: 5000 * retries });
       logLines.push(`Re-queued (retry ${retries}/${maxRetries})`);
       await setLog(jobId, logLines);
     } else {

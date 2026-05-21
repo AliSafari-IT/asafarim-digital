@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
-import { renderQueue } from "@/lib/server/queue";
+import { getRenderQueue } from "@/lib/server/queue";
 
 export const runtime = "nodejs";
 
@@ -57,7 +57,7 @@ export async function POST(
       },
     });
 
-    await renderQueue.add("vionto-render", {
+    await getRenderQueue().add("vionto-render", {
       jobId: newJob.id,
       manifest,
       previousJobId: jobId,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
-import { renderQueue } from "@/lib/server/queue";
+import { getRenderQueue } from "@/lib/server/queue";
 import { safeParseManifest, subtitleConfigSchema, type RenderAsset, type SubtitleStyle, type SubtitleConfig } from "@/lib/server/render-manifest";
 import { fetchPixabayMusicByCategory, selectTrackByDuration } from "@/lib/server/pixabay-music";
 import { analyzeProjectForPacing, applyPacingToAssets } from "@/lib/server/smart-pacing";
@@ -381,7 +381,7 @@ export async function POST(req: Request) {
     }
 
     // Queue in BullMQ
-    await renderQueue.add("vionto-render", {
+    await getRenderQueue().add("vionto-render", {
       jobId: job.id,
       manifest,
     });
