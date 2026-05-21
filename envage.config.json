@@ -1,5 +1,6 @@
 {
   "apps": [
+    ".",
     "apps/content-generator",
     "apps/portal",
     "apps/ops-hub",
