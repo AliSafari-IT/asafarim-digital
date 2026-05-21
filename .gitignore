@@ -72,3 +72,13 @@ uptime-kuma/
 apps/portal/public/uploads/avatars/
 apps/vionto/.local-storage/uploads/
 client_secret_2_558292079005-e7i3r9e44fq4nipir6iq0oq2n2od3c6j.apps.googleusercontent.com.json
+
+# --- envage managed ---
+# Decrypted env files — never commit
+.env*
+!.env*.age
+!.env.example
+!.env.template
+# Age private key
+.age/key.txt
+# --- end envage ---

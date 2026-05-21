@@ -53,6 +53,7 @@
     ]
   },
   "dependencies": {
+    "@asafarim/envage": "^0.2.0",
     "secure-env": "^1.2.0"
   }
 }

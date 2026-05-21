@@ -1,0 +1,12 @@
+{
+  "apps": [
+    "apps/content-generator",
+    "apps/portal",
+    "apps/ops-hub",
+    "apps/marketing-content",
+    "apps/edumatch",
+    "apps/vionto"
+  ],
+  "envs": ["dev", "staging", "prod", "root"],
+  "keyFile": ".age/key.txt"
+}
