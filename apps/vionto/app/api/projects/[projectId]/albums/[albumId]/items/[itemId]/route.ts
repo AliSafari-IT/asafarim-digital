@@ -51,7 +51,7 @@ export async function PATCH(req: Request, { params }: Params) {
       where: { id: itemId },
       data: {
         ...(parsed.data.orderIndex !== undefined && { orderIndex: parsed.data.orderIndex }),
-        ...(parsed.data.metadata !== undefined && { metadata: parsed.data.metadata === null ? Prisma.DbNull : parsed.data.metadata }),
+        ...(parsed.data.metadata !== undefined && { metadata: parsed.data.metadata === null ? Prisma.DbNull : (parsed.data.metadata as Prisma.InputJsonValue) }),
         ...(parsed.data.hidden !== undefined && { hidden: parsed.data.hidden }),
         ...(parsed.data.favorite !== undefined && { favorite: parsed.data.favorite }),
       },

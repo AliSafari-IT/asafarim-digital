@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { prisma, Prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import {
   addAlbumItemSchema,
@@ -111,7 +111,7 @@ export async function POST(req: Request, { params }: Params) {
         albumId,
         assetId,
         orderIndex: resolvedOrderIndex,
-        metadata: metadata ?? undefined,
+        metadata: (metadata ?? undefined) as Prisma.InputJsonValue | undefined,
         hidden: hidden ?? false,
         favorite: favorite ?? false,
       },
