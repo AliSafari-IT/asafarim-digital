@@ -85,10 +85,19 @@ export async function generateWithOpenAI(
     }),
   });
 
-  const payload = (await upstream.json()) as unknown;
   if (!upstream.ok) {
-    return { error: getProviderError(payload) ?? "OpenAI request failed." };
+    const errorText = await upstream.text().catch(() => "OpenAI request failed.");
+    const errorPayload = (() => {
+      try {
+        return JSON.parse(errorText) as unknown;
+      } catch {
+        return undefined;
+      }
+    })();
+    return { error: (errorPayload ? getProviderError(errorPayload) : undefined) ?? errorText.slice(0, 500) ?? "OpenAI request failed." };
   }
+
+  const payload = (await upstream.json()) as unknown;
   const output = extractOpenAIText(payload);
   if (!output) return { error: "OpenAI returned an empty response." };
 
@@ -133,10 +142,19 @@ export async function generateWithAnthropic(
     }),
   });
 
-  const payload = (await upstream.json()) as unknown;
   if (!upstream.ok) {
-    return { error: getProviderError(payload) ?? "Anthropic request failed." };
+    const errorText = await upstream.text().catch(() => "Anthropic request failed.");
+    const errorPayload = (() => {
+      try {
+        return JSON.parse(errorText) as unknown;
+      } catch {
+        return undefined;
+      }
+    })();
+    return { error: (errorPayload ? getProviderError(errorPayload) : undefined) ?? errorText.slice(0, 500) ?? "Anthropic request failed." };
   }
+
+  const payload = (await upstream.json()) as unknown;
   const output = extractAnthropicText(payload);
   if (!output) return { error: "Anthropic returned an empty response." };
 

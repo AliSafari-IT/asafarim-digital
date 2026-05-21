@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      secure-env:
+        specifier: ^1.2.0
+        version: 1.2.0
     devDependencies:
       '@smithy/types':
         specifier: ^4.14.1
@@ -4800,6 +4804,10 @@ packages:
 
   scheduler@0.27.0:
     resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
+
+  secure-env@1.2.0:
+    resolution: {integrity: sha512-BNi4AlHP6sMZv3ybFWD5/eieFGcqt93VRLzceUdt3+PftgVnxN7eRY7POtFm5PQqaQn5aoRoxG3A4HH9kUmeKw==}
+    hasBin: true
 
   selderee@0.11.0:
     resolution: {integrity: sha512-5TF+l7p4+OsnP8BCCvSyZiSPc4x4//p5uPwK8TCnVPJYRmU2aYKMpOXvw8zM5a5JvuuCGN1jmsMwuU2W02ukfA==}
@@ -10244,6 +10252,10 @@ snapshots:
       is-regex: 1.2.1
 
   scheduler@0.27.0: {}
+
+  secure-env@1.2.0:
+    dependencies:
+      minimist: 1.2.8
 
   selderee@0.11.0:
     dependencies:

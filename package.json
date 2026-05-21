@@ -51,5 +51,8 @@
       "@prisma/engines",
       "prisma"
     ]
+  },
+  "dependencies": {
+    "secure-env": "^1.2.0"
   }
 }
