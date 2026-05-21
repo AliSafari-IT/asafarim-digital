@@ -1,7 +1,7 @@
 FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN npm install -g pnpm@11.1.1
+RUN npm install -g pnpm@11.2.2
 
 FROM base AS builder
 WORKDIR /repo

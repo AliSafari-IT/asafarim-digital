@@ -18,7 +18,4 @@ allowBuilds:
   tree-sitter: false
   tree-sitter-json: false
   unrs-resolver: false
-minimumReleaseAgeExclude:
-  - '@asafarim/envage@0.1.0'
-  - '@asafarim/envage@0.2.0'
-  - '@asafarim/envage@0.3.0'
+minimumReleaseAge: 0s
