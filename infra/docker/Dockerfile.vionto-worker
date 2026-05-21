@@ -10,7 +10,7 @@ RUN apk add --no-cache ffmpeg fontconfig ttf-liberation
 FROM base AS builder
 WORKDIR /repo
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json .npmrc ./
 COPY apps/vionto ./apps/vionto
 COPY packages/auth ./packages/auth
 COPY packages/db ./packages/db

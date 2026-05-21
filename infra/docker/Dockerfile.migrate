@@ -9,7 +9,7 @@ RUN npm install -g pnpm@11.1.1
 WORKDIR /app
 
 # Copy workspace config
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages/db/package.json ./packages/db/package.json
 COPY packages/db/prisma/ ./packages/db/prisma/
 COPY packages/db/prisma/migrations/ ./packages/db/prisma/migrations/
