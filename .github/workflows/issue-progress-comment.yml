@@ -1,0 +1,89 @@
+name: "Issue Progress Update Comment"
+
+on:
+  push:
+    branches: ['**']
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  comment-progress:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve related issue numbers
+        id: resolve
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          # 1. Extract explicit refs from commit message: fixes #N, closes #N, #N, refs #N
+          ISSUES=$(printf '%s' "$COMMIT_MESSAGE" | grep -oiE '(fixes|closes|refs|resolves)?\s*#[0-9]+' | grep -oE '[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
+
+          # 2. Fallback: leading number in branch name (e.g. "12-feature-name" → 12)
+          if [ -z "$ISSUES" ]; then
+            BRANCH_ISSUE=$(printf '%s' "$BRANCH_NAME" | grep -oE '^[0-9]+' | head -n1)
+            if [ -n "$BRANCH_ISSUE" ]; then
+              ISSUES="$BRANCH_ISSUE"
+              echo "Inferred issue #$BRANCH_ISSUE from branch '$BRANCH_NAME'"
+            fi
+          fi
+
+          echo "issues=$ISSUES" >> "$GITHUB_OUTPUT"
+          echo "Found issue numbers: $ISSUES"
+
+      - name: Post progress comment on each issue
+        if: steps.resolve.outputs.issues != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUES: ${{ steps.resolve.outputs.issues }}
+          COMMIT_SHA: ${{ github.event.head_commit.id }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          NOW=$(date -u '+%Y-%m-%d %H:%M UTC')
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          SUBJECT=$(printf '%s' "$COMMIT_MESSAGE" | head -n1 | cut -c1-120)
+          BODY_LINES=$(printf '%s' "$COMMIT_MESSAGE" | tail -n +2 | sed '/^$/d' | head -20)
+
+          IFS=',' read -ra ISSUE_ARRAY <<< "$ISSUES"
+          for ISSUE_NUM in "${ISSUE_ARRAY[@]}"; do
+            ISSUE_NUM="${ISSUE_NUM// /}"
+            [ -z "$ISSUE_NUM" ] && continue
+
+            if ! gh issue view "$ISSUE_NUM" --repo "$REPO" --json number --jq '.number' > /dev/null 2>&1; then
+              echo "Issue #$ISSUE_NUM not found in $REPO, skipping"
+              continue
+            fi
+
+            TMPFILE=$(mktemp /tmp/progress-comment-XXXXXX.md)
+
+            {
+              printf '## Progress Update (%s)\n\n' "$NOW"
+              printf '| Field | Value |\n'
+              printf '|---|---|\n'
+              printf '| **Commit** | [`%s`](%s) |\n' "$SHORT_SHA" "$COMMIT_URL"
+              printf '| **Branch** | `%s` |\n' "$BRANCH_NAME"
+              printf '| **Author** | %s |\n' "$AUTHOR_NAME"
+              printf '| **Subject** | %s |\n' "$SUBJECT"
+              if [ -n "$BODY_LINES" ]; then
+                printf '\n**Details:**\n```\n%s\n```\n' "$BODY_LINES"
+              fi
+              printf '\n> *Automated update via [CI run](%s)*\n' "$RUN_URL"
+            } > "$TMPFILE"
+
+            gh issue comment "$ISSUE_NUM" --repo "$REPO" --body-file "$TMPFILE"
+            rm -f "$TMPFILE"
+            echo "Commented on issue #$ISSUE_NUM"
+          done
