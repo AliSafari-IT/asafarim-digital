@@ -69,6 +69,7 @@ export async function POST(req: Request) {
       return badRequest("Project not found.");
     }
 
+    const versionId = typeof body.versionId === "string" ? body.versionId : null;
     const type = String(body.type ?? "narration");
     const source = String(body.source ?? "upload");
     const storageKey = typeof body.storageKey === "string" ? body.storageKey : null;
@@ -79,7 +80,14 @@ export async function POST(req: Request) {
 
     const existingPreference = voiceId
       ? await prisma.viontoAudioTrack.findFirst({
-          where: { projectId, userId: user.id, type: "narration", source: "tts", storageKey: null },
+          where: {
+            projectId,
+            userId: user.id,
+            type: "narration",
+            source: "tts",
+            storageKey: null,
+            ...(versionId ? { versionId } : {}),
+          },
           orderBy: { updatedAt: "desc" },
         })
       : null;
@@ -92,6 +100,7 @@ export async function POST(req: Request) {
       : await prisma.viontoAudioTrack.create({
           data: {
             projectId,
+            versionId,
             userId: user.id,
             type,
             source,

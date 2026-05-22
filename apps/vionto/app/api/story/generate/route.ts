@@ -18,6 +18,8 @@ const PROMPT_VERSION = "vionto-story-v1";
 
 type GenerateBody = {
   projectId: string;
+  /** Optional video version — when provided, creative settings come from the version. */
+  versionId?: string;
   /** Optional album to use for image subset, order, and per-image metadata. */
   albumId?: string;
   locale?: string;
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
       return badRequest("Invalid JSON body.");
     }
 
-    const { projectId, albumId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary } = body;
+    const { projectId, versionId, albumId, locale = "en", mode = "story", storyMode, emotionalTone, visualStyle, userNotes, captions, exifSummary } = body;
     if (!projectId || typeof projectId !== "string") {
       return badRequest("projectId is required.");
     }
@@ -54,7 +56,7 @@ export async function POST(req: Request) {
       return badRequest("userNotes exceeds maximum length.");
     }
 
-    console.log(`[story/generate] Starting generation for project ${projectId}, user ${user.id}`);
+    console.log(`[story/generate] Starting generation for project ${projectId}, version ${versionId ?? "none"}, user ${user.id}`);
 
     // Verify project ownership
     const project = await prisma.viontoProject.findFirst({
@@ -66,16 +68,31 @@ export async function POST(req: Request) {
       return badRequest("Project not found.");
     }
 
-    const effectiveLocale = locale || project.locale || "en";
-    const effectiveMode = (mode || project.mode || "story") as "story" | "slideshow" | "documentary";
-    const effectiveStoryMode = storyMode || project.storyMode || "memory_film";
-    const effectiveEmotionalTone = emotionalTone || project.emotionalTone || "nostalgic";
-    const effectiveVisualStyle = visualStyle || project.visualStyle || "clean_modern_slideshow";
+    // If a versionId is provided, load creative settings from the version.
+    // Otherwise fall back to project-level settings (backward compat).
+    let versionRecord: { id: string; albumId: string | null; mode: string; storyMode: string | null; emotionalTone: string | null; visualStyle: string | null; musicOption: string | null; targetDurationSeconds: number | null } | null = null;
+    if (versionId && typeof versionId === "string") {
+      versionRecord = await prisma.viontoVideoVersion.findFirst({
+        where: { id: versionId, projectId },
+        select: { id: true, albumId: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true, targetDurationSeconds: true },
+      });
+      if (!versionRecord) return badRequest("Video version not found.");
+    }
 
-    // Derive total duration from the project's persisted target (authoritative source).
-    // Fall back to 30 s if the field has never been set.
+    // Resolve effective settings: request body > version > project
+    const settingsSource = versionRecord ?? project;
+    const effectiveLocale = locale || project.locale || "en";
+    const effectiveMode = (mode || settingsSource.mode || "story") as "story" | "slideshow" | "documentary";
+    const effectiveStoryMode = storyMode || settingsSource.storyMode || "memory_film";
+    const effectiveEmotionalTone = emotionalTone || settingsSource.emotionalTone || "nostalgic";
+    const effectiveVisualStyle = visualStyle || settingsSource.visualStyle || "clean_modern_slideshow";
+
+    // Use version's album if no explicit albumId provided
+    const effectiveAlbumId = albumId ?? versionRecord?.albumId ?? null;
+
+    // Derive total duration from the version/project's persisted target.
     const DEFAULT_DURATION_SECONDS = 30;
-    const effectiveTargetDurationSeconds = project.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
+    const effectiveTargetDurationSeconds = settingsSource.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
     const totalDurationMs = effectiveTargetDurationSeconds * 1_000;
 
     // Query assets — if an albumId is supplied, use album item order/subset/metadata.
@@ -95,16 +112,16 @@ export async function POST(req: Request) {
 
     let assets: AssetRow[];
 
-    if (albumId && typeof albumId === "string") {
+    if (effectiveAlbumId && typeof effectiveAlbumId === "string") {
       // Verify the album belongs to this project.
       const album = await prisma.viontoAlbum.findFirst({
-        where: { id: albumId, projectId },
+        where: { id: effectiveAlbumId, projectId },
         select: { id: true },
       });
       if (!album) return badRequest("Album not found.");
 
       const albumItems = await prisma.viontoAlbumItem.findMany({
-        where: { albumId, hidden: false },
+        where: { albumId: effectiveAlbumId, hidden: false },
         orderBy: { orderIndex: "asc" },
         select: {
           orderIndex: true,
@@ -308,20 +325,18 @@ export async function POST(req: Request) {
       script = await prisma.viontoScript.create({
         data: {
           projectId,
+          versionId: versionRecord?.id ?? null,
           userId: user.id,
           promptVersion: PROMPT_VERSION,
           provider: success.provider,
           model: success.model,
           narrationText: narration,
           srtText: srtText,
-          musicOption: project.musicOption || null,
+          musicOption: settingsSource.musicOption || null,
           promptTokens: success.promptTokens ?? null,
           completionTokens: success.completionTokens ?? null,
           totalTokens: success.totalTokens ?? null,
           latencyMs,
-          // Store the album context so future lookups can reference which album
-          // this narration was generated from.
-          ...(albumId ? { metadata: { albumId } } : {}),
         },
       });
     } catch (dbError) {

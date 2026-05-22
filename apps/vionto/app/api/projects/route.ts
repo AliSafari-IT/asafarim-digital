@@ -28,7 +28,7 @@ const PROJECT_SELECT = {
   userId: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { assets: true, scripts: true, exports: true } },
+  _count: { select: { assets: true, scripts: true, exports: true, videoVersions: true } },
 } as const;
 
 /** GET /api/projects — list paginated projects the user owns OR has been shared with */
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       return badRequest(formatZodError(parsed.error));
     }
 
-    // Create project + base album atomically.
+    // Create project + base album + default video version atomically.
     const [project] = await prisma.$transaction(async (tx) => {
       const created = await tx.viontoProject.create({
         data: {
@@ -126,12 +126,24 @@ export async function POST(req: Request) {
         select: PROJECT_SELECT,
       });
 
-      await tx.viontoAlbum.create({
+      const baseAlbum = await tx.viontoAlbum.create({
         data: {
           projectId: created.id,
           userId: user.id,
           name: "Base album",
           isBase: true,
+        },
+      });
+
+      // Auto-create one default video version with the project's creative settings.
+      const { title: _title, description: _desc, locale: _locale, ...videoSettings } = parsed.data;
+      await tx.viontoVideoVersion.create({
+        data: {
+          projectId: created.id,
+          userId: user.id,
+          albumId: baseAlbum.id,
+          name: "Version 1",
+          ...videoSettings,
         },
       });
 

@@ -1049,6 +1049,18 @@ input[type="text"] {
   border-radius: 2px !important;
 }
 
+.version-tabs {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+.version-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+.version-tabs::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
 .preview-panel {
   position: sticky;
   top: 66px;

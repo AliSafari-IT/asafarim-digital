@@ -97,6 +97,7 @@ export const audioTrackSchema = z.object({
 
 export const renderManifestSchema = z.object({
   projectId: z.string().min(1),
+  versionId: z.string().min(1).optional(),
   userId: z.string().min(1),
   jobId: z.string().min(1),
 

@@ -99,9 +99,12 @@ export async function POST(req: Request) {
       return badRequest("projectId is required.");
     }
 
+    // Optional: render using a specific video version's settings.
+    const bodyVersionId = (body as Record<string, unknown>)?.versionId;
+    const versionId = typeof bodyVersionId === "string" && bodyVersionId ? bodyVersionId : null;
+
     // Optional: render using a specific album's image subset and order.
     const albumId = (body as Record<string, unknown>)?.albumId;
-    const effectiveAlbumId = typeof albumId === "string" && albumId ? albumId : null;
 
     const project = await prisma.viontoProject.findFirst({
       where: { id: projectId, userId: user.id },
@@ -111,13 +114,34 @@ export async function POST(req: Request) {
       return badRequest("Project not found.");
     }
 
-    console.log("[render] Project fetched:", {
-      id: project.id,
-      musicOption: project.musicOption,
-      musicMetadata: project.musicMetadata,
-      musicUploadKey: project.musicUploadKey,
-      musicTrackId: project.musicTrackId,
-      visualStyle: project.visualStyle,
+    // If a versionId is provided, load settings from the version instead.
+    type SettingsSource = typeof project;
+    let settings: SettingsSource = project;
+    let resolvedVersionId: string | null = null;
+
+    if (versionId) {
+      const version = await prisma.viontoVideoVersion.findFirst({
+        where: { id: versionId, projectId },
+        select: { id: true, albumId: true, mode: true, aspectRatio: true, resolution: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true, subtitleSettings: true, targetDurationSeconds: true },
+      });
+      if (!version) return badRequest("Video version not found.");
+      // Merge version settings with project locale (which stays on the project)
+      settings = { ...version, locale: project.locale } as SettingsSource;
+      resolvedVersionId = version.id;
+    }
+
+    // Resolve effective album: explicit albumId > version's albumId > null (all assets)
+    const effectiveAlbumId = (typeof albumId === "string" && albumId)
+      ? albumId
+      : (versionId ? (settings as any).albumId ?? null : null) as string | null;
+
+    console.log("[render] Settings source:", versionId ? `version ${versionId}` : "project", {
+      id: settings.id,
+      musicOption: settings.musicOption,
+      musicMetadata: settings.musicMetadata,
+      musicUploadKey: settings.musicUploadKey,
+      musicTrackId: settings.musicTrackId,
+      visualStyle: settings.visualStyle,
     });
 
     // Validate manifest if provided; otherwise build a minimal one
@@ -134,6 +158,7 @@ export async function POST(req: Request) {
     const job = await prisma.viontoRenderJob.create({
       data: {
         projectId: project.id,
+        versionId: resolvedVersionId,
         userId: user.id,
         state: "queued",
         progressPercent: 0,
@@ -183,13 +208,21 @@ export async function POST(req: Request) {
       const [assets, scripts, audioTracks] = await Promise.all([
         Promise.resolve(rawAssets),
         prisma.viontoScript.findMany({
-          where: { projectId: project.id, userId: user.id },
+          where: {
+            projectId: project.id,
+            userId: user.id,
+            ...(resolvedVersionId ? { versionId: resolvedVersionId } : {}),
+          },
           orderBy: { updatedAt: "desc" },
           select: { narrationText: true, srtText: true },
           take: 20,
         }),
         prisma.viontoAudioTrack.findMany({
-          where: { projectId: project.id, userId: user.id },
+          where: {
+            projectId: project.id,
+            userId: user.id,
+            ...(resolvedVersionId ? { versionId: resolvedVersionId } : {}),
+          },
           orderBy: { updatedAt: "desc" },
           select: {
             type: true,
@@ -219,7 +252,7 @@ export async function POST(req: Request) {
       // Resolve the target duration. Project value is authoritative; fall back to
       // a simple per-asset heuristic only when the field has never been set.
       const DEFAULT_DURATION_SECONDS = 30;
-      const projectTargetDuration = project.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
+      const projectTargetDuration = settings.targetDurationSeconds ?? DEFAULT_DURATION_SECONDS;
 
       // Run smart pacing analysis
       let pacingAssets: RenderAsset[] = assets.map((asset) => ({
@@ -233,8 +266,8 @@ export async function POST(req: Request) {
       try {
         const pacingResult = await analyzeProjectForPacing(
           project.id,
-          project.emotionalTone || "nostalgic",
-          project.storyMode || "memory_film",
+          settings.emotionalTone || "nostalgic",
+          settings.storyMode || "memory_film",
           {
             targetTotalDurationSeconds: projectTargetDuration,
           }
@@ -258,12 +291,12 @@ export async function POST(req: Request) {
 
       // Handle music selection
       let musicTracks: Array<Record<string, unknown>> = [];
-      console.log("[render] Music option:", project.musicOption);
-      console.log("[render] Music metadata:", JSON.stringify(project.musicMetadata));
-      console.log("[render] Music upload key:", project.musicUploadKey);
+      console.log("[render] Music option:", settings.musicOption);
+      console.log("[render] Music metadata:", JSON.stringify(settings.musicMetadata));
+      console.log("[render] Music upload key:", settings.musicUploadKey);
 
-      if (project.musicOption && project.musicOption !== "no_music") {
-        const selectedMusicTracks = getProjectMusicTracks(project.musicMetadata);
+      if (settings.musicOption && settings.musicOption !== "no_music") {
+        const selectedMusicTracks = getProjectMusicTracks(settings.musicMetadata);
         console.log("[render] Selected music tracks:", selectedMusicTracks);
 
         const renderableMusicTracks = selectedMusicTracks.filter(isRenderableMusicTrack);
@@ -283,18 +316,18 @@ export async function POST(req: Request) {
                   .reduce((offset, previous) => offset + (typeof previous.duration === "number" ? previous.duration : 0), 0),
           }));
           console.log("[render] Using music tracks from metadata:", musicTracks);
-        } else if (project.musicOption === "upload_own" && project.musicUploadKey) {
+        } else if (settings.musicOption === "upload_own" && settings.musicUploadKey) {
           // User-uploaded music
           musicTracks = [{
             type: "music",
-            storageKey: project.musicUploadKey,
-            metadata: project.musicMetadata,
+            storageKey: settings.musicUploadKey,
+            metadata: settings.musicMetadata,
           }];
           console.log("[render] Using music from upload key:", musicTracks);
-        } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(project.musicOption)) {
+        } else if (["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic"].includes(settings.musicOption!)) {
           // Fetch from Pixabay based on category
           try {
-            const tracks = await fetchPixabayMusicByCategory(project.musicOption, 10);
+            const tracks = await fetchPixabayMusicByCategory(settings.musicOption!, 10);
             const selectedTrack = selectTrackByDuration(tracks, projectTargetDuration);
             if (selectedTrack) {
               musicTracks = [{
@@ -303,13 +336,20 @@ export async function POST(req: Request) {
                 downloadUrl: selectedTrack.downloadUrl,
                 metadata: selectedTrack,
               }];
-              // Update project with selected track metadata
+              // Update version (or project) with selected track metadata
+              const musicUpdateData = {
+                musicTrackId: selectedTrack.trackId ?? undefined,
+                musicMetadata: [selectedTrack] as Prisma.InputJsonValue,
+              };
+              if (resolvedVersionId) {
+                await prisma.viontoVideoVersion.update({
+                  where: { id: resolvedVersionId },
+                  data: musicUpdateData,
+                }).catch(() => null);
+              }
               await prisma.viontoProject.update({
                 where: { id: project.id },
-                data: {
-                  musicTrackId: selectedTrack.trackId ?? undefined,
-                  musicMetadata: [selectedTrack] as Prisma.InputJsonValue,
-                },
+                data: musicUpdateData,
               }).catch(() => null);
             }
           } catch (error) {
@@ -320,21 +360,22 @@ export async function POST(req: Request) {
       }
 
       const subtitleConfig = resolveSubtitleConfig(
-        project.subtitleSettings,
-        normalizeVisualStyle(project.visualStyle ?? DEFAULT_VISUAL_STYLE),
-        project.aspectRatio ?? "16:9"
+        settings.subtitleSettings,
+        normalizeVisualStyle(settings.visualStyle ?? DEFAULT_VISUAL_STYLE),
+        settings.aspectRatio ?? "16:9"
       );
 
       const generatedManifest = {
         projectId: project.id,
+        ...(resolvedVersionId ? { versionId: resolvedVersionId } : {}),
         userId: user.id,
         jobId: job.id,
         ...(effectiveAlbumId ? { albumId: effectiveAlbumId } : {}),
-        mode: toRenderMode(project.mode),
-        visualStyle: normalizeVisualStyle(project.visualStyle ?? DEFAULT_VISUAL_STYLE),
+        mode: toRenderMode(settings.mode),
+        visualStyle: normalizeVisualStyle(settings.visualStyle ?? DEFAULT_VISUAL_STYLE),
         targetDurationSeconds: targetDurationSeconds,
-        aspectRatio: project.aspectRatio ?? "16:9",
-        resolution: project.resolution ?? "1080p",
+        aspectRatio: settings.aspectRatio ?? "16:9",
+        resolution: settings.resolution ?? "1080p",
         assets: pacingAssets.map((asset) => ({
           storageKey: asset.storageKey,
           width: asset.width ?? undefined,

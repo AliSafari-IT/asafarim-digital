@@ -63,6 +63,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         projectId: true,
+        versionId: true,
         renderJobId: true,
         storageKey: true,
         filename: true,
@@ -83,6 +84,7 @@ export async function GET(req: Request) {
         musicMetadata: true,
         createdAt: true,
         project: { select: { title: true, storyMode: true, emotionalTone: true } },
+        version: { select: { name: true, storyMode: true, emotionalTone: true } },
       },
     });
 
@@ -90,13 +92,15 @@ export async function GET(req: Request) {
     const data = await Promise.all(page.map(async (item) => ({
       id: item.id,
       projectId: item.projectId,
+      versionId: item.versionId,
       renderJobId: item.renderJobId,
       projectTitle: item.project.title,
+      versionName: item.version?.name ?? null,
       storageKey: item.storageKey,
       filename: item.filename,
       mode: item.userMode,
-      storyMode: item.project.storyMode,
-      emotionalTone: item.project.emotionalTone,
+      storyMode: item.version?.storyMode ?? item.project.storyMode,
+      emotionalTone: item.version?.emotionalTone ?? item.project.emotionalTone,
       visualStyle: item.visualStyle,
       renderMode: item.renderMode,
       aspectRatio: item.aspectRatio,
