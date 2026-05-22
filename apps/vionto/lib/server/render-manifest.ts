@@ -103,6 +103,8 @@ export const renderManifestSchema = z.object({
 
   mode: z.enum(["cinematic", "slideshow", "social"]).default("cinematic"),
   visualStyle: visualStyleSchema,
+  storyMode: z.string().optional(),
+  emotionalTone: z.string().optional(),
   targetDurationSeconds: z.number().positive().optional(),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),

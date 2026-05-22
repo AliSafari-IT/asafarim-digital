@@ -373,6 +373,8 @@ export async function POST(req: Request) {
         ...(effectiveAlbumId ? { albumId: effectiveAlbumId } : {}),
         mode: toRenderMode(settings.mode),
         visualStyle: normalizeVisualStyle(settings.visualStyle ?? DEFAULT_VISUAL_STYLE),
+        storyMode: settings.storyMode ?? undefined,
+        emotionalTone: settings.emotionalTone ?? undefined,
         targetDurationSeconds: targetDurationSeconds,
         aspectRatio: settings.aspectRatio ?? "16:9",
         resolution: settings.resolution ?? "1080p",

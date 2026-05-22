@@ -404,6 +404,8 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         aspectRatio: exportMetadata.aspectRatio,
         aspectLabel: exportMetadata.aspectLabel,
         visualStyle: manifest.visualStyle,
+        storyMode: manifest.storyMode ?? null,
+        emotionalTone: manifest.emotionalTone ?? null,
         storyKeywords: exportMetadata.storyKeywords,
         previewTitle: exportMetadata.previewTitle,
         previewSubtitle: exportMetadata.previewSubtitle,

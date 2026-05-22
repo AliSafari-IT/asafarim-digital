@@ -298,6 +298,7 @@ export function ViontoPage() {
     orderIndex: number;
   }>>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isAssetsExpanded, setIsAssetsExpanded] = useState(false);
   const dragAssetId = useRef<string | null>(null);
   const dragOverAssetId = useRef<string | null>(null);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
@@ -2128,10 +2129,15 @@ export function ViontoPage() {
               {/* Show persisted assets */}
               {selectedProjectId && projectAssets.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-medium text-[var(--color-text-muted)]">
-                    {t("vionto.project.assets")} ({projectAssets.length})
-                  </p>
-                  <ul className="project-assets-grid mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAssetsExpanded((v) => !v)}
+                    className="flex w-full items-center justify-between gap-1 text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  >
+                    <span>{t("vionto.project.assets")} ({projectAssets.length})</span>
+                    {isAssetsExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                  {isAssetsExpanded && <ul className="project-assets-grid mt-1">
                     {projectAssets.map((a, idx) => (
                       <li
                         key={a.id}
@@ -2186,7 +2192,7 @@ export function ViontoPage() {
                         +{projectAssets.length - 8} {t("vionto.asset.more")}
                       </li>
                     )}
-                  </ul>
+                  </ul>}
                 </div>
               )}
 

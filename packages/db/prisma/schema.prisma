@@ -1534,6 +1534,8 @@ model ViontoExport {
   aspectRatio     String? // 16:9, 9:16, 1:1
   aspectLabel     String? // landscape, portrait, 1by1
   visualStyle     String? // film_grain, polaroid_memory, clean_modern_slideshow, travel_map_overlay, vhs_archive, wedding_cinematic, social_vertical_captions
+  storyMode       String? // memory_film, travel_recap, family_archive, event_recap, social_reel, documentary — snapshotted at render time
+  emotionalTone   String? // nostalgic, joyful, calm, epic, funny, romantic, reflective — snapshotted at render time
   storyKeywords   Json?
   previewTitle    String?
   previewSubtitle String? @db.Text
