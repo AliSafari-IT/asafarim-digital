@@ -37,6 +37,7 @@ const theme = {
 
 type Props = {
   projectId: string | null;
+  versionId?: string | null;
   aspectRatio: string;
   onChange?: (config: SubtitleConfigType) => void;
 };
@@ -121,7 +122,7 @@ function SubtitlePreview({
   );
 }
 
-export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
+export function SubtitleConfig({ projectId, versionId, aspectRatio, onChange }: Props) {
   const { t } = useTranslation();
   const [config, setConfig] = useState<SubtitleConfigType>({
     presetId: DEFAULT_SUBTITLE_PRESET,
@@ -144,7 +145,10 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
 
   useEffect(() => {
     if (!projectId) return;
-    fetch(`/api/projects/${projectId}/subtitles`)
+    const url = versionId
+      ? `/api/projects/${projectId}/subtitles?versionId=${versionId}`
+      : `/api/projects/${projectId}/subtitles`;
+    fetch(url)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data) {
@@ -154,7 +158,7 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
         }
       })
       .catch(() => {});
-  }, [projectId, onChange]);
+  }, [projectId, versionId, onChange]);
 
   const saveConfig = useCallback(
     (newConfig: SubtitleConfigType) => {
@@ -166,13 +170,13 @@ export function SubtitleConfig({ projectId, aspectRatio, onChange }: Props) {
           await fetch(`/api/projects/${projectId}/subtitles`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newConfig),
+            body: JSON.stringify(versionId ? { ...newConfig, versionId } : newConfig),
           });
         } catch {}
         setIsSaving(false);
       }, 600);
     },
-    [projectId]
+    [projectId, versionId]
   );
 
   const updateConfig = useCallback(

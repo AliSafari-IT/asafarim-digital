@@ -2946,6 +2946,7 @@ export function ViontoPage() {
                 {!subtitlesCollapsed && (
                   <SubtitleConfig
                     projectId={selectedProjectId}
+                    versionId={selectedVersionId}
                     aspectRatio={activeAspectRatio}
                     onChange={setSubtitleConfig}
                   />
