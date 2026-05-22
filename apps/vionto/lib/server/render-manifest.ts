@@ -97,11 +97,14 @@ export const audioTrackSchema = z.object({
 
 export const renderManifestSchema = z.object({
   projectId: z.string().min(1),
+  versionId: z.string().min(1).optional(),
   userId: z.string().min(1),
   jobId: z.string().min(1),
 
   mode: z.enum(["cinematic", "slideshow", "social"]).default("cinematic"),
   visualStyle: visualStyleSchema,
+  storyMode: z.string().optional(),
+  emotionalTone: z.string().optional(),
   targetDurationSeconds: z.number().positive().optional(),
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),

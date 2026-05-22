@@ -27,6 +27,7 @@ export async function GET(req: Request) {
       select: {
         id: true,
         projectId: true,
+        versionId: true,
         userId: true,
         storageKey: true,
         format: true,

@@ -31,7 +31,7 @@ const PROJECT_SELECT = {
   userId: true,
   createdAt: true,
   updatedAt: true,
-  _count: { select: { assets: true, scripts: true, exports: true } },
+  _count: { select: { assets: true, scripts: true, exports: true, videoVersions: true } },
 } as const;
 
 /** Returns the project if the user owns it or has a share record. */

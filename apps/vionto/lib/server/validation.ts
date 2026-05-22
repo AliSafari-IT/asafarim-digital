@@ -128,6 +128,34 @@ export const createProjectSchema = z.object({
 
 export const updateProjectSchema = createProjectSchema.partial();
 
+// ─── Video version schemas ──────────────────────────────────────────
+
+const musicOptionValues = ["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic", "no_music", "upload_own"] as const;
+
+export const createVideoVersionSchema = z.object({
+  name: z.string().min(1).max(120).default("Version 1"),
+  albumId: z.string().cuid().nullable().optional(),
+  mode: z.enum(["story", "slideshow", "documentary"]).default("story"),
+  storyMode: z.string().optional(),
+  emotionalTone: z.string().optional(),
+  visualStyle: z.enum(VISUAL_STYLE_VALUES).default("clean_modern_slideshow"),
+  subtitleSettings: z.any().nullable().optional(),
+  musicOption: z.enum(musicOptionValues).default("no_music"),
+  musicTrackId: z.string().nullable().optional(),
+  musicUploadKey: z.string().nullable().optional(),
+  musicMetadata: z.any().nullable().optional(),
+  aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
+  resolution: z.enum(["720p", "1080p", "4k"]).nullable().optional(),
+  targetDurationSeconds: targetDurationSecondsSchema.optional(),
+  /** Clone settings from an existing version instead of using defaults. */
+  cloneFromVersionId: z.string().cuid().optional(),
+});
+
+export const updateVideoVersionSchema = createVideoVersionSchema.omit({ cloneFromVersionId: true }).partial();
+
+export type CreateVideoVersionInput = z.infer<typeof createVideoVersionSchema>;
+export type UpdateVideoVersionInput = z.infer<typeof updateVideoVersionSchema>;
+
 // ─── Pagination schema ────────────────────────────────────────────────
 
 // ─── Project sharing schemas ──────────────────────────────────

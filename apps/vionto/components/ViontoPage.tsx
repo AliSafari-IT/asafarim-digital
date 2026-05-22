@@ -8,6 +8,7 @@ import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
   Captions,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +22,7 @@ import {
   ListChecks,
   Mic,
   Pause,
+  Pencil,
   Play,
   Plus,
   RefreshCw,
@@ -296,6 +298,7 @@ export function ViontoPage() {
     orderIndex: number;
   }>>([]);
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [isAssetsExpanded, setIsAssetsExpanded] = useState(false);
   const dragAssetId = useRef<string | null>(null);
   const dragOverAssetId = useRef<string | null>(null);
   const [dragActiveId, setDragActiveId] = useState<string | null>(null);
@@ -361,6 +364,27 @@ export function ViontoPage() {
   const [dragAlbumActiveId, setDragAlbumActiveId] = useState<string | null>(null);
   const [dragAlbumOverId, setDragAlbumOverId] = useState<string | null>(null);
 
+  // ─── Video version state ───────────────────────────────────────────────
+  type VideoVersion = {
+    id: string;
+    name: string;
+    albumId: string | null;
+    mode: string;
+    storyMode: string | null;
+    emotionalTone: string | null;
+    visualStyle: string | null;
+    musicOption: string | null;
+    aspectRatio: string;
+    targetDurationSeconds: number | null;
+    _count: { scripts: number; renderJobs: number; exports: number };
+  };
+  const [videoVersions, setVideoVersions] = useState<VideoVersion[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false);
+  const [renamingVersionId, setRenamingVersionId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+
   const ACCEPTED = [".jpg", ".jpeg", ".png", ".heic", ".webp", ".zip"];
   const acceptedMime = "image/jpeg,image/png,image/heic,image/webp,application/zip,.heic,.zip";
 
@@ -375,14 +399,10 @@ export function ViontoPage() {
     if (selectedProjectId) {
       const selected = projects.find((project) => project.id === selectedProjectId);
       if (selected) {
-        setActiveMode(API_MODE_TO_UI_MODE[selected.mode] ?? "cinematic");
-        setSelectedStoryMode(selected.storyMode ?? "memory_film");
-        setSelectedEmotionalTone(selected.emotionalTone ?? "nostalgic");
-        setSelectedVisualStyle(normalizeVisualStyle(selected.visualStyle));
+        // Settings are now loaded from the video version (via useEffect above),
+        // but we still set music tracks from the project as a fallback until
+        // versions load.
         setSelectedMusicTracks(normalizeProjectMusicMetadata(selected.musicMetadata));
-        const supportedAspect = ASPECT_OPTIONS.some((option) => option.value === selected.aspectRatio);
-        setActiveAspectRatio(supportedAspect ? selected.aspectRatio as AspectRatio : "16:9");
-        setTargetDurationSeconds(selected.targetDurationSeconds ?? 20);
         setScriptStale(false);
       }
       loadProjectAssets(selectedProjectId);
@@ -392,6 +412,7 @@ export function ViontoPage() {
       loadProjectExports(selectedProjectId);
       loadExportLibrary({ projectId: selectedProjectId });
       loadProjectAlbums(selectedProjectId);
+      loadVideoVersions(selectedProjectId);
     } else {
       setProjectAssets([]);
       setVersions([]);
@@ -409,6 +430,8 @@ export function ViontoPage() {
       setAlbums([]);
       setSelectedAlbumId(null);
       setAlbumItems([]);
+      setVideoVersions([]);
+      setSelectedVersionId(null);
       loadExportLibrary();
     }
   }, [selectedProjectId, locale, projects]);
@@ -704,6 +727,115 @@ export function ViontoPage() {
 
   // ─── End album management functions ────────────────────────────────────────
 
+  // ─── Video version management functions ──────────────────────────────────
+
+  async function loadVideoVersions(projectId: string) {
+    setIsLoadingVersions(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/versions`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const loaded: VideoVersion[] = data.data || [];
+      setVideoVersions(loaded);
+      // Auto-select the first version if none is selected
+      setSelectedVersionId((current) => {
+        if (current && loaded.some((v) => v.id === current)) return current;
+        return loaded[0]?.id ?? null;
+      });
+    } catch (error) {
+      console.error("Failed to load video versions", error);
+    } finally {
+      setIsLoadingVersions(false);
+    }
+  }
+
+  async function createVideoVersion(name?: string) {
+    if (!selectedProjectId) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name || `Version ${videoVersions.length + 1}` }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      await loadVideoVersions(selectedProjectId);
+      if (data.data?.id) setSelectedVersionId(data.data.id);
+    } catch (error) {
+      console.error("Failed to create video version", error);
+    }
+  }
+
+  async function duplicateVideoVersion(versionId: string) {
+    if (!selectedProjectId) return;
+    const source = videoVersions.find((v) => v.id === versionId);
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${source?.name ?? "Version"} (copy)`,
+          cloneFromVersionId: versionId,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      await loadVideoVersions(selectedProjectId);
+      if (data.data?.id) setSelectedVersionId(data.data.id);
+    } catch (error) {
+      console.error("Failed to duplicate video version", error);
+    }
+  }
+
+  async function renameVideoVersion(versionId: string, newName: string) {
+    if (!selectedProjectId || !newName.trim()) return;
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/versions/${versionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      if (!res.ok) return;
+      setVideoVersions((prev) =>
+        prev.map((v) => (v.id === versionId ? { ...v, name: newName.trim() } : v)),
+      );
+    } catch (error) {
+      console.error("Failed to rename video version", error);
+    }
+  }
+
+  async function deleteVideoVersion(versionId: string) {
+    if (!selectedProjectId) return;
+    if (videoVersions.length <= 1) return; // prevent deleting the last version
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/versions/${versionId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) return;
+      await loadVideoVersions(selectedProjectId);
+    } catch (error) {
+      console.error("Failed to delete video version", error);
+    }
+  }
+
+  // Apply settings from the selected version when it changes
+  useEffect(() => {
+    if (!selectedVersionId) return;
+    const version = videoVersions.find((v) => v.id === selectedVersionId);
+    if (!version) return;
+    setActiveMode(API_MODE_TO_UI_MODE[version.mode] ?? "cinematic");
+    setSelectedStoryMode(version.storyMode ?? "memory_film");
+    setSelectedEmotionalTone(version.emotionalTone ?? "nostalgic");
+    setSelectedVisualStyle(normalizeVisualStyle(version.visualStyle));
+    const supportedAspect = ASPECT_OPTIONS.some((o) => o.value === version.aspectRatio);
+    setActiveAspectRatio(supportedAspect ? version.aspectRatio as AspectRatio : "16:9");
+    setTargetDurationSeconds(version.targetDurationSeconds ?? 20);
+    if (version.albumId) setSelectedAlbumId(version.albumId);
+    setScriptStale(false);
+  }, [selectedVersionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── End video version management functions ─────────────────────────────
+
   async function loadProjectScripts(projectId: string) {
     try {
       const res = await fetch(`/api/projects/${projectId}/scripts`);
@@ -798,26 +930,42 @@ export function ViontoPage() {
 
   async function saveProjectSettings(): Promise<boolean> {
     if (!selectedProjectId) return false;
+    const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
+    const settingsData = {
+      mode: apiMode,
+      storyMode: selectedStoryMode,
+      emotionalTone: selectedEmotionalTone,
+      visualStyle: selectedVisualStyle,
+      musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
+      musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
+      musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
+      aspectRatio: activeAspectRatio,
+      targetDurationSeconds,
+    };
     try {
-      const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
-      const res = await fetch(`/api/projects/${selectedProjectId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: apiMode,
-          storyMode: selectedStoryMode,
-          emotionalTone: selectedEmotionalTone,
-          visualStyle: selectedVisualStyle,
-          musicOption: selectedMusicTracks.length > 0 ? "upload_own" : "no_music",
-          musicTrackId: selectedMusicTracks.map((track) => track.trackId).join(",") || null,
-          musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
-          aspectRatio: activeAspectRatio,
-          targetDurationSeconds,
-        }),
-      });
-      if (!res.ok) {
-        const message = await res.text().catch(() => "");
-        throw new Error(message || "Failed to save project settings");
+      // Save to the video version if one is selected (preferred).
+      // The version PATCH endpoint also syncs back to the project.
+      if (selectedVersionId) {
+        const res = await fetch(`/api/projects/${selectedProjectId}/versions/${selectedVersionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(settingsData),
+        });
+        if (!res.ok) {
+          const message = await res.text().catch(() => "");
+          throw new Error(message || "Failed to save version settings");
+        }
+      } else {
+        // Fallback: save directly to project
+        const res = await fetch(`/api/projects/${selectedProjectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(settingsData),
+        });
+        if (!res.ok) {
+          const message = await res.text().catch(() => "");
+          throw new Error(message || "Failed to save project settings");
+        }
       }
       setProjects((prev) =>
         prev.map((project) =>
@@ -828,7 +976,7 @@ export function ViontoPage() {
       );
       return true;
     } catch (error) {
-      console.error("Failed to save project settings", error);
+      console.error("Failed to save settings", error);
       return false;
     }
   }
@@ -840,7 +988,7 @@ export function ViontoPage() {
       const res = await fetch(`/api/projects/${selectedProjectId}/subtitles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subtitleConfig),
+        body: JSON.stringify({ ...subtitleConfig, versionId: selectedVersionId ?? undefined }),
       });
       if (!res.ok) {
         const message = await res.text().catch(() => "");
@@ -875,6 +1023,7 @@ export function ViontoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: selectedProjectId,
+          versionId: selectedVersionId ?? undefined,
           type: "narration",
           source: "tts",
           voiceId,
@@ -984,6 +1133,7 @@ export function ViontoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: selectedProjectId,
+          versionId: selectedVersionId ?? undefined,
           albumId: selectedAlbumId ?? undefined,
         }),
       });
@@ -1319,6 +1469,7 @@ export function ViontoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: selectedProjectId,
+          versionId: selectedVersionId ?? undefined,
           albumId: selectedAlbumId ?? undefined,
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
@@ -1755,6 +1906,146 @@ export function ViontoPage() {
                 )}
               </div>
 
+              {/* ─── Video Version Selector ─────────────────────────────────── */}
+              {selectedProjectId && videoVersions.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-[var(--color-text-muted)]">
+                      Video Version
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => createVideoVersion()}
+                      className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
+                    >
+                      <Plus size={11} /> New version
+                    </button>
+                  </div>
+                  <div className="version-tabs mt-1.5 flex gap-1 overflow-x-auto pb-1">
+                    {videoVersions.map((version) => {
+                      const isActive = version.id === selectedVersionId;
+                      const isRenaming = version.id === renamingVersionId;
+
+                      return (
+                        <div
+                          key={version.id}
+                          className={`group relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition cursor-pointer select-none whitespace-nowrap ${
+                            isActive
+                              ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)] font-medium"
+                              : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/50"
+                          }`}
+                          onClick={() => {
+                            if (!isRenaming) setSelectedVersionId(version.id);
+                          }}
+                        >
+                          <Clapperboard size={13} className="flex-shrink-0 opacity-60" />
+
+                          {isRenaming ? (
+                            <form
+                              className="flex items-center gap-1"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                renameVideoVersion(version.id, renameValue);
+                                setRenamingVersionId(null);
+                              }}
+                            >
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                className="w-24 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Escape") setRenamingVersionId(null);
+                                }}
+                              />
+                              <button
+                                type="submit"
+                                className="rounded p-0.5 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Check size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); setRenamingVersionId(null); }}
+                                className="rounded p-0.5 text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
+                              >
+                                <X size={12} />
+                              </button>
+                            </form>
+                          ) : (
+                            <span>{version.name}</span>
+                          )}
+
+                          {/* Action buttons - show on hover for active tab */}
+                          {isActive && !isRenaming && (
+                            <span className="ml-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                type="button"
+                                title="Rename"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRenamingVersionId(version.id);
+                                  setRenameValue(version.name);
+                                }}
+                                className="rounded p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Duplicate"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  duplicateVideoVersion(version.id);
+                                }}
+                                className="rounded p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface)]"
+                              >
+                                <Copy size={11} />
+                              </button>
+                              {videoVersions.length > 1 && (
+                                <button
+                                  type="button"
+                                  title="Delete"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm("Delete this version? This cannot be undone.")) {
+                                      deleteVideoVersion(version.id);
+                                    }
+                                  }}
+                                  className="rounded p-0.5 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-50/10"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Version stats badge */}
+                  {selectedVersionId && (() => {
+                    const v = videoVersions.find((ver) => ver.id === selectedVersionId);
+                    if (!v) return null;
+                    const stats = [
+                      v._count.scripts > 0 && `${v._count.scripts} script${v._count.scripts > 1 ? "s" : ""}`,
+                      v._count.renderJobs > 0 && `${v._count.renderJobs} render${v._count.renderJobs > 1 ? "s" : ""}`,
+                      v._count.exports > 0 && `${v._count.exports} export${v._count.exports > 1 ? "s" : ""}`,
+                    ].filter(Boolean);
+                    if (stats.length === 0) return null;
+                    return (
+                      <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
+                        {stats.join(" · ")}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
+              {/* ─── End Video Version Selector ─────────────────────────────── */}
+
               {/* Upload dropzone */}
               {selectedProjectId && (
                 <>
@@ -1838,10 +2129,15 @@ export function ViontoPage() {
               {/* Show persisted assets */}
               {selectedProjectId && projectAssets.length > 0 && (
                 <div className="mt-3">
-                  <p className="text-xs font-medium text-[var(--color-text-muted)]">
-                    {t("vionto.project.assets")} ({projectAssets.length})
-                  </p>
-                  <ul className="project-assets-grid mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAssetsExpanded((v) => !v)}
+                    className="flex w-full items-center justify-between gap-1 text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                  >
+                    <span>{t("vionto.project.assets")} ({projectAssets.length})</span>
+                    {isAssetsExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+                  {isAssetsExpanded && <ul className="project-assets-grid mt-1">
                     {projectAssets.map((a, idx) => (
                       <li
                         key={a.id}
@@ -1896,7 +2192,7 @@ export function ViontoPage() {
                         +{projectAssets.length - 8} {t("vionto.asset.more")}
                       </li>
                     )}
-                  </ul>
+                  </ul>}
                 </div>
               )}
 

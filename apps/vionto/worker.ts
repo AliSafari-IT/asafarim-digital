@@ -362,6 +362,15 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
       where: { id: manifest.projectId, userId: manifest.userId },
       select: { title: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true },
     });
+
+    // If the manifest has a versionId, load music metadata from the version
+    // (which is the authoritative source for per-version creative settings).
+    const versionMusic = manifest.versionId
+      ? await prisma.viontoVideoVersion.findUnique({
+          where: { id: manifest.versionId },
+          select: { musicOption: true, musicTrackId: true, musicMetadata: true },
+        })
+      : null;
     const exportMetadata = buildExportMetadata({
       manifest,
       projectTitle: project?.title,
@@ -377,9 +386,11 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     logLines.push(`Output uploaded: ${outputKey}`);
 
     // Create export record with full metadata
+    const musicSource = versionMusic ?? project;
     const exportRecord = await prisma.viontoExport.create({
       data: {
         projectId: manifest.projectId,
+        versionId: manifest.versionId ?? null,
         userId: manifest.userId,
         renderJobId: jobId,
         storageKey: outputKey,
@@ -393,12 +404,14 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         aspectRatio: exportMetadata.aspectRatio,
         aspectLabel: exportMetadata.aspectLabel,
         visualStyle: manifest.visualStyle,
+        storyMode: manifest.storyMode ?? null,
+        emotionalTone: manifest.emotionalTone ?? null,
         storyKeywords: exportMetadata.storyKeywords,
         previewTitle: exportMetadata.previewTitle,
         previewSubtitle: exportMetadata.previewSubtitle,
-        musicOption: project?.musicOption,
-        musicTrackId: project?.musicTrackId,
-        musicMetadata: project?.musicMetadata as Prisma.InputJsonValue | undefined,
+        musicOption: musicSource?.musicOption,
+        musicTrackId: musicSource?.musicTrackId,
+        musicMetadata: musicSource?.musicMetadata as Prisma.InputJsonValue | undefined,
       },
     });
 
