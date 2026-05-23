@@ -310,7 +310,18 @@ export function ViontoNav() {
     console.error("Vionto navigation fetch error:", error);
   }
 
-  const navItems = useMemo(() => toNavItems(items), [items]);
+  const navItems = useMemo(() => {
+    const mapped = toNavItems(items);
+    // Ensure core Vionto pages are always reachable from the navbar
+    const coreLinks: NavItem[] = [
+      { id: "nav-dashboard", label: "Dashboard", href: "/albums" },
+      { id: "nav-create", label: "Create", href: "/create" },
+      { id: "nav-projects", label: "Projects", href: "/projects" },
+    ];
+    const existingHrefs = new Set(mapped.map((i) => i.href));
+    const additions = coreLinks.filter((c) => !existingHrefs.has(c.href));
+    return [...additions, ...mapped];
+  }, [items]);
 
   // Prevent hydration mismatch by only rendering AppNavbar after mount
   if (!mounted) {
