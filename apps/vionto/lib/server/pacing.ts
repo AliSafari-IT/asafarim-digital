@@ -368,7 +368,24 @@ export function generatePacingPlan(
       plan.transition = TRANSITION_STYLES.fast;
     }
   }
-  
+
+  // Final enforcement: if the total still drifts from the target (e.g. because
+  // min-duration clamping pushed it up), scale all durations proportionally so
+  // the video length matches what the user asked for.
+  if (options.targetTotalDurationSeconds) {
+    const HARD_MIN = 1.0;
+    const finalTotal = plans.reduce((sum, p) => sum + p.durationSeconds, 0);
+    if (finalTotal > 0 && Math.abs(finalTotal - options.targetTotalDurationSeconds) > 0.5) {
+      const ratio = options.targetTotalDurationSeconds / finalTotal;
+      for (const plan of plans) {
+        plan.durationSeconds = Math.max(HARD_MIN, Math.round(plan.durationSeconds * ratio * 10) / 10);
+      }
+      for (const plan of plans) {
+        plan.motion.durationSeconds = Math.min(plan.durationSeconds, plan.motion.durationSeconds || 5);
+      }
+    }
+  }
+
   return plans;
 }
 
