@@ -17,9 +17,12 @@ import {
   CloudUpload,
   Copy,
   Download,
+  EyeOff,
   FileAudio,
+  Globe,
   ImagePlus,
   ListChecks,
+  Lock,
   Mic,
   Pause,
   Pencil,
@@ -37,6 +40,7 @@ import { SubtitleConfig } from "./SubtitleConfig";
 import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
+import { PRIVACY_LEVELS, OCCASION_SUGGESTIONS, MOOD_SUGGESTIONS } from "@/lib/album-constants";
 
 function ViontoMark({ className = "" }: { className?: string }) {
   return (
@@ -311,6 +315,13 @@ export function ViontoPage() {
     description: string | null;
     isBase: boolean;
     coverAssetId: string | null;
+    dateFrom: string | null;
+    dateTo: string | null;
+    location: string | null;
+    people: string[];
+    occasion: string | null;
+    mood: string | null;
+    privacyLevel: string;
     _count: { items: number };
   };
   type AlbumItem = {
@@ -343,6 +354,27 @@ export function ViontoPage() {
   const [newAlbumDesc, setNewAlbumDesc] = useState("");
   const [newAlbumFromBase, setNewAlbumFromBase] = useState(true);
   const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const [showCreateAlbumDetails, setShowCreateAlbumDetails] = useState(false);
+  const [newAlbumDateFrom, setNewAlbumDateFrom] = useState("");
+  const [newAlbumDateTo, setNewAlbumDateTo] = useState("");
+  const [newAlbumLocation, setNewAlbumLocation] = useState("");
+  const [newAlbumPeople, setNewAlbumPeople] = useState("");
+  const [newAlbumOccasion, setNewAlbumOccasion] = useState("");
+  const [newAlbumMood, setNewAlbumMood] = useState("");
+  const [newAlbumPrivacy, setNewAlbumPrivacy] = useState("private");
+
+  // Edit album details panel
+  const [showAlbumDetails, setShowAlbumDetails] = useState(false);
+  const [editDateFrom, setEditDateFrom] = useState("");
+  const [editDateTo, setEditDateTo] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editPeople, setEditPeople] = useState("");
+  const [editOccasion, setEditOccasion] = useState("");
+  const [editMood, setEditMood] = useState("");
+  const [editPrivacy, setEditPrivacy] = useState("private");
+  const [editDescription, setEditDescription] = useState("");
+  const [isSavingAlbumDetails, setIsSavingAlbumDetails] = useState(false);
+  const [albumDetailsError, setAlbumDetailsError] = useState<string | null>(null);
 
   // Rename album inline
   const [renamingAlbumId, setRenamingAlbumId] = useState<string | null>(null);
@@ -532,6 +564,9 @@ export function ViontoPage() {
     if (!selectedProjectId || !newAlbumName.trim() || isCreatingAlbum) return;
     setIsCreatingAlbum(true);
     try {
+      const peopleParsed = newAlbumPeople.trim()
+        ? newAlbumPeople.split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
       const res = await fetch(`/api/projects/${selectedProjectId}/albums`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -539,6 +574,13 @@ export function ViontoPage() {
           name: newAlbumName.trim(),
           description: newAlbumDesc.trim() || undefined,
           fromBase: newAlbumFromBase,
+          dateFrom: newAlbumDateFrom || undefined,
+          dateTo: newAlbumDateTo || undefined,
+          location: newAlbumLocation.trim() || undefined,
+          people: peopleParsed,
+          occasion: newAlbumOccasion.trim() || undefined,
+          mood: newAlbumMood.trim() || undefined,
+          privacyLevel: newAlbumPrivacy,
         }),
       });
       if (!res.ok) {
@@ -551,6 +593,14 @@ export function ViontoPage() {
       setNewAlbumName("");
       setNewAlbumDesc("");
       setNewAlbumFromBase(true);
+      setShowCreateAlbumDetails(false);
+      setNewAlbumDateFrom("");
+      setNewAlbumDateTo("");
+      setNewAlbumLocation("");
+      setNewAlbumPeople("");
+      setNewAlbumOccasion("");
+      setNewAlbumMood("");
+      setNewAlbumPrivacy("private");
       await loadProjectAlbums(selectedProjectId);
       setSelectedAlbumId(created.id);
     } catch (error) {
@@ -603,6 +653,57 @@ export function ViontoPage() {
     } finally {
       setRenamingAlbumId(null);
       setRenameAlbumValue("");
+    }
+  }
+
+  function openAlbumDetails(album: Album) {
+    setEditDateFrom(album.dateFrom ? album.dateFrom.split("T")[0] : "");
+    setEditDateTo(album.dateTo ? album.dateTo.split("T")[0] : "");
+    setEditLocation(album.location ?? "");
+    setEditPeople(album.people.join(", "));
+    setEditOccasion(album.occasion ?? "");
+    setEditMood(album.mood ?? "");
+    setEditPrivacy(album.privacyLevel);
+    setEditDescription(album.description ?? "");
+    setAlbumDetailsError(null);
+    setShowAlbumDetails(true);
+  }
+
+  async function handleSaveAlbumDetails() {
+    if (!selectedProjectId || !selectedAlbumId) return;
+    setIsSavingAlbumDetails(true);
+    setAlbumDetailsError(null);
+    try {
+      const peopleParsed = editPeople.trim()
+        ? editPeople.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const res = await fetch(`/api/projects/${selectedProjectId}/albums/${selectedAlbumId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: editDescription.trim() || null,
+          dateFrom: editDateFrom || null,
+          dateTo: editDateTo || null,
+          location: editLocation.trim() || null,
+          people: peopleParsed,
+          occasion: editOccasion.trim() || null,
+          mood: editMood.trim() || null,
+          privacyLevel: editPrivacy,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to save" }));
+        setAlbumDetailsError(data.error ?? "Failed to save album details");
+        return;
+      }
+      const updated = await res.json();
+      setAlbums((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+      setShowAlbumDetails(false);
+    } catch (error) {
+      console.error("Failed to save album details", error);
+      setAlbumDetailsError("Failed to save album details");
+    } finally {
+      setIsSavingAlbumDetails(false);
     }
   }
 
@@ -2248,6 +2349,9 @@ export function ViontoPage() {
                               }`}
                             >
                               {album.isBase && <span className="mr-0.5 text-[10px] opacity-60">★</span>}
+                              {!album.isBase && album.privacyLevel === "private" && <Lock size={9} className="opacity-50" />}
+                              {!album.isBase && album.privacyLevel === "unlisted" && <EyeOff size={9} className="opacity-50" />}
+                              {!album.isBase && album.privacyLevel === "public" && <Globe size={9} className="opacity-50" />}
                               {album.name}
                               <span className="ml-1 rounded bg-[var(--color-surface)] px-1 text-[10px] text-[var(--color-text-muted)]">{album._count.items}</span>
                             </button>
@@ -2296,6 +2400,58 @@ export function ViontoPage() {
                         />
                         Start with all images from base album
                       </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateAlbumDetails((v) => !v)}
+                        className="mt-2 flex items-center gap-1 text-[10px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
+                      >
+                        {showCreateAlbumDetails ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                        Details (optional)
+                      </button>
+                      {showCreateAlbumDetails && (
+                        <div className="mt-1.5 space-y-1.5 border-t border-[var(--color-border)] pt-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Date from</label>
+                              <input type="date" value={newAlbumDateFrom} onChange={(e) => setNewAlbumDateFrom(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Date to</label>
+                              <input type="date" value={newAlbumDateTo} onChange={(e) => setNewAlbumDateTo(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Location</label>
+                            <input type="text" placeholder="e.g., Paris, France" value={newAlbumLocation} onChange={(e) => setNewAlbumLocation(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">People</label>
+                            <input type="text" placeholder="Comma-separated names" value={newAlbumPeople} onChange={(e) => setNewAlbumPeople(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Occasion</label>
+                              <input type="text" list="occasion-suggestions" placeholder="e.g., wedding" value={newAlbumOccasion} onChange={(e) => setNewAlbumOccasion(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                              <datalist id="occasion-suggestions">
+                                {OCCASION_SUGGESTIONS.map((o) => <option key={o} value={o} />)}
+                              </datalist>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Mood</label>
+                              <input type="text" list="mood-suggestions" placeholder="e.g., joyful" value={newAlbumMood} onChange={(e) => setNewAlbumMood(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                              <datalist id="mood-suggestions">
+                                {MOOD_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
+                              </datalist>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Privacy</label>
+                            <select value={newAlbumPrivacy} onChange={(e) => setNewAlbumPrivacy(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]">
+                              {PRIVACY_LEVELS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      )}
                       <div className="mt-2 flex justify-end gap-2">
                         <button
                           type="button"
@@ -2326,17 +2482,92 @@ export function ViontoPage() {
                           <p className="text-xs text-[var(--color-text-muted)]">
                             {selectedAlbum?.name} · {albumItems.length} images · drag to reorder
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowAddImages(true);
-                              setAddImageSelection(new Set());
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
-                          >
-                            <ImagePlus size={12} />
-                            Add images
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => { if (selectedAlbum) openAlbumDetails(selectedAlbum); }}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                            >
+                              <Pencil size={12} />
+                              Details
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowAddImages(true);
+                                setAddImageSelection(new Set());
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                            >
+                              <ImagePlus size={12} />
+                              Add images
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Edit album details panel */}
+                      {showAlbumDetails && !isBaseAlbumSelected && selectedAlbum && (
+                        <div className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                          <p className="mb-2 text-xs font-semibold text-[var(--color-text)]">Album details</p>
+                          <div className="space-y-1.5">
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Description</label>
+                              <input type="text" placeholder="Album description" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Date from</label>
+                                <input type="date" value={editDateFrom} onChange={(e) => setEditDateFrom(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Date to</label>
+                                <input type="date" value={editDateTo} onChange={(e) => setEditDateTo(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Location</label>
+                              <input type="text" placeholder="e.g., Paris, France" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">People</label>
+                              <input type="text" placeholder="Comma-separated names" value={editPeople} onChange={(e) => setEditPeople(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Occasion</label>
+                                <input type="text" list="edit-occasion-suggestions" placeholder="e.g., wedding" value={editOccasion} onChange={(e) => setEditOccasion(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                                <datalist id="edit-occasion-suggestions">
+                                  {OCCASION_SUGGESTIONS.map((o) => <option key={o} value={o} />)}
+                                </datalist>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Mood</label>
+                                <input type="text" list="edit-mood-suggestions" placeholder="e.g., joyful" value={editMood} onChange={(e) => setEditMood(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]" />
+                                <datalist id="edit-mood-suggestions">
+                                  {MOOD_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
+                                </datalist>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Privacy</label>
+                              <select value={editPrivacy} onChange={(e) => setEditPrivacy(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]">
+                                {PRIVACY_LEVELS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          {albumDetailsError && (
+                            <p className="mt-1.5 text-[10px] text-red-500">{albumDetailsError}</p>
+                          )}
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button type="button" onClick={() => setShowAlbumDetails(false)} className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-xs text-[var(--color-text)] transition hover:bg-[var(--color-surface)]">
+                              Cancel
+                            </button>
+                            <button type="button" onClick={handleSaveAlbumDetails} disabled={isSavingAlbumDetails} className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[var(--color-accent)]/90 disabled:opacity-50">
+                              {isSavingAlbumDetails ? <RefreshCw size={12} className="animate-spin" /> : <Check size={12} />}
+                              Save
+                            </button>
+                          </div>
                         </div>
                       )}
 

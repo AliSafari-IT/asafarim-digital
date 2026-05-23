@@ -26,6 +26,13 @@ const ALBUM_SELECT = {
   isBase: true,
   coverAssetId: true,
   metadata: true,
+  dateFrom: true,
+  dateTo: true,
+  location: true,
+  people: true,
+  occasion: true,
+  mood: true,
+  privacyLevel: true,
   createdAt: true,
   updatedAt: true,
   _count: { select: { items: true } },
@@ -108,7 +115,10 @@ export async function POST(
     const parsed = createAlbumSchema.safeParse(body);
     if (!parsed.success) return badRequest(formatZodError(parsed.error));
 
-    const { name, description, fromBase, assetIds, coverAssetId, metadata } = parsed.data;
+    const {
+      name, description, fromBase, assetIds, coverAssetId, metadata,
+      dateFrom, dateTo, location, people, occasion, mood, privacyLevel,
+    } = parsed.data;
 
     // Resolve which asset IDs to seed the album with.
     let seedAssetIds: string[] = [];
@@ -182,6 +192,13 @@ export async function POST(
           isBase: false,
           coverAssetId: coverAssetId ?? null,
           metadata: metadata ?? undefined,
+          dateFrom: dateFrom ?? undefined,
+          dateTo: dateTo ?? undefined,
+          location: location ?? undefined,
+          people: people ?? undefined,
+          occasion: occasion ?? undefined,
+          mood: mood ?? undefined,
+          privacyLevel,
         },
         select: ALBUM_SELECT,
       });
