@@ -1632,6 +1632,12 @@ model ViontoVideoVersion {
   resolution            String? // 720p, 1080p, 4k; null = auto
   targetDurationSeconds Int?
 
+  // ── Story structure & caption overlays (#102) ──
+  /// Narrative structure: opening title, chapters, climax, closing, dedication.
+  storyStructure         Json?
+  /// Caption overlay toggles: scene/date/location/people, placement, style.
+  captionOverlaySettings Json?
+
   // ── Relations ──
   project     ViontoProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   album       ViontoAlbum?       @relation(fields: [albumId], references: [id], onDelete: SetNull)

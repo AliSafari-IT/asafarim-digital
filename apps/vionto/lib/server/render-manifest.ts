@@ -122,6 +122,35 @@ export const renderManifestSchema = z.object({
   subtitleExport: subtitleExportSchema.default({}),
   subtitlePresetId: z.string().optional(),
 
+  // Story structure & caption overlays (#102)
+  storyStructure: z.object({
+    openingTitle: z.string().default(""),
+    introNarration: z.string().default(""),
+    chapters: z.array(z.object({
+      title: z.string().default(""),
+      description: z.string().default(""),
+    })).default([]),
+    climaxDescription: z.string().default(""),
+    closingMessage: z.string().default(""),
+    dedicationText: z.string().default(""),
+  }).optional(),
+  captionOverlays: z.array(z.object({
+    assetIndex: z.number().int().min(0).optional(),
+    startSeconds: z.number().min(0),
+    endSeconds: z.number().min(0),
+    text: z.string(),
+    kind: z.enum(["scene", "date", "location", "person"]),
+  })).optional(),
+  captionOverlaySettings: z.object({
+    enabled: z.boolean().default(false),
+    showSceneCaptions: z.boolean().default(true),
+    showDateCaptions: z.boolean().default(true),
+    showLocationCaptions: z.boolean().default(true),
+    showPeopleLabels: z.boolean().default(false),
+    placement: z.enum(["top", "bottom", "lower_third", "corner"]).default("lower_third"),
+    stylePreset: z.enum(["minimal", "memory", "social", "documentary"]).default("minimal"),
+  }).optional(),
+
   outputFormat: z.enum(["mp4", "mov", "webm"]).default("mp4"),
   videoCodec: z.enum(["libx264", "libx265"]).default("libx264"),
   audioCodec: z.enum(["aac", "libmp3lame"]).default("aac"),
@@ -143,6 +172,7 @@ export type SubtitleTiming = z.infer<typeof subtitleTimingSchema>;
 export type SubtitleExport = z.infer<typeof subtitleExportSchema>;
 export type SubtitleConfig = z.infer<typeof subtitleConfigSchema>;
 export type VisualStyle = z.infer<typeof visualStyleSchema>;
+export type CaptionOverlay = NonNullable<RenderManifest["captionOverlays"]>[number];
 
 /** Validate and parse a raw manifest payload. */
 export function parseManifest(payload: unknown): RenderManifest {

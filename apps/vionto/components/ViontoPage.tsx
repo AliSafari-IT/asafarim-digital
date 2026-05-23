@@ -232,6 +232,26 @@ export function ViontoPage() {
   const [versions, setVersions] = useState<ScriptVersion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userNotes, setUserNotes] = useState("");
+
+  // ─── Story structure state (#102) ──────────────────────────────────
+  const [storyStructureOpen, setStoryStructureOpen] = useState(false);
+  const [openingTitle, setOpeningTitle] = useState("");
+  const [introNarration, setIntroNarration] = useState("");
+  const [chapters, setChapters] = useState<{ title: string; description: string }[]>([]);
+  const [climaxDescription, setClimaxDescription] = useState("");
+  const [closingMessage, setClosingMessage] = useState("");
+  const [dedicationText, setDedicationText] = useState("");
+
+  // ─── Caption overlay state (#102) ──────────────────────────────────
+  const [captionOverlaysOpen, setCaptionOverlaysOpen] = useState(false);
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [showSceneCaptions, setShowSceneCaptions] = useState(true);
+  const [showDateCaptions, setShowDateCaptions] = useState(true);
+  const [showLocationCaptions, setShowLocationCaptions] = useState(true);
+  const [showPeopleLabels, setShowPeopleLabels] = useState(false);
+  const [captionPlacement, setCaptionPlacement] = useState<"top" | "bottom" | "lower_third" | "corner">("lower_third");
+  const [captionStylePreset, setCaptionStylePreset] = useState<"minimal" | "memory" | "social" | "documentary">("minimal");
+
   const [selectedStoryMode, setSelectedStoryMode] = useState<string>("memory_film");
   const [selectedEmotionalTone, setSelectedEmotionalTone] = useState<string>("nostalgic");
   const [selectedVisualStyle, setSelectedVisualStyle] = useState<VisualStyle>(DEFAULT_VISUAL_STYLE);
@@ -415,6 +435,23 @@ export function ViontoPage() {
     musicOption: string | null;
     aspectRatio: string;
     targetDurationSeconds: number | null;
+    storyStructure: {
+      openingTitle?: string;
+      introNarration?: string;
+      chapters?: { title: string; description: string }[];
+      climaxDescription?: string;
+      closingMessage?: string;
+      dedicationText?: string;
+    } | null;
+    captionOverlaySettings: {
+      enabled?: boolean;
+      showSceneCaptions?: boolean;
+      showDateCaptions?: boolean;
+      showLocationCaptions?: boolean;
+      showPeopleLabels?: boolean;
+      placement?: "top" | "bottom" | "lower_third" | "corner";
+      stylePreset?: "minimal" | "memory" | "social" | "documentary";
+    } | null;
     _count: { scripts: number; renderJobs: number; exports: number };
   };
   const [videoVersions, setVideoVersions] = useState<VideoVersion[]>([]);
@@ -471,6 +508,10 @@ export function ViontoPage() {
       setAlbumItems([]);
       setVideoVersions([]);
       setSelectedVersionId(null);
+      // Reset story structure & caption overlay state
+      setOpeningTitle(""); setIntroNarration(""); setChapters([]); setClimaxDescription(""); setClosingMessage(""); setDedicationText("");
+      setCaptionsEnabled(false); setShowSceneCaptions(true); setShowDateCaptions(true); setShowLocationCaptions(true); setShowPeopleLabels(false);
+      setCaptionPlacement("lower_third"); setCaptionStylePreset("minimal");
       loadExportLibrary();
     }
   }, [selectedProjectId, locale, projects]);
@@ -977,6 +1018,23 @@ export function ViontoPage() {
     setActiveAspectRatio(supportedAspect ? version.aspectRatio as AspectRatio : "16:9");
     setTargetDurationSeconds(version.targetDurationSeconds ?? 20);
     if (version.albumId) setSelectedAlbumId(version.albumId);
+    // Apply story structure (#102)
+    const ss = version.storyStructure;
+    setOpeningTitle(ss?.openingTitle ?? "");
+    setIntroNarration(ss?.introNarration ?? "");
+    setChapters(ss?.chapters ?? []);
+    setClimaxDescription(ss?.climaxDescription ?? "");
+    setClosingMessage(ss?.closingMessage ?? "");
+    setDedicationText(ss?.dedicationText ?? "");
+    // Apply caption overlay settings (#102)
+    const cos = version.captionOverlaySettings;
+    setCaptionsEnabled(cos?.enabled ?? false);
+    setShowSceneCaptions(cos?.showSceneCaptions ?? true);
+    setShowDateCaptions(cos?.showDateCaptions ?? true);
+    setShowLocationCaptions(cos?.showLocationCaptions ?? true);
+    setShowPeopleLabels(cos?.showPeopleLabels ?? false);
+    setCaptionPlacement(cos?.placement ?? "lower_third");
+    setCaptionStylePreset(cos?.stylePreset ?? "minimal");
     setScriptStale(false);
   }, [selectedVersionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1077,6 +1135,17 @@ export function ViontoPage() {
   async function saveProjectSettings(): Promise<boolean> {
     if (!selectedProjectId) return false;
     const apiMode = UI_MODE_TO_API_MODE[activeMode] ?? "story";
+    // Gather story structure — only include if any field is non-empty
+    const storyStructure = {
+      openingTitle: openingTitle.trim(),
+      introNarration: introNarration.trim(),
+      chapters: chapters.filter((c) => c.title.trim() || c.description.trim()),
+      climaxDescription: climaxDescription.trim(),
+      closingMessage: closingMessage.trim(),
+      dedicationText: dedicationText.trim(),
+    };
+    const hasStoryStructure = storyStructure.openingTitle || storyStructure.introNarration || storyStructure.chapters.length > 0 || storyStructure.climaxDescription || storyStructure.closingMessage || storyStructure.dedicationText;
+
     const settingsData = {
       mode: apiMode,
       storyMode: selectedStoryMode,
@@ -1087,6 +1156,16 @@ export function ViontoPage() {
       musicMetadata: selectedMusicTracks.length > 0 ? selectedMusicTracks : null,
       aspectRatio: activeAspectRatio,
       targetDurationSeconds,
+      storyStructure: hasStoryStructure ? storyStructure : null,
+      captionOverlaySettings: {
+        enabled: captionsEnabled,
+        showSceneCaptions,
+        showDateCaptions,
+        showLocationCaptions,
+        showPeopleLabels,
+        placement: captionPlacement,
+        stylePreset: captionStylePreset,
+      },
     };
     try {
       // Save to the video version if one is selected (preferred).
@@ -3197,6 +3276,212 @@ export function ViontoPage() {
                   <p className="mt-1 rounded-md bg-amber-500/10 px-2 py-1 text-[11px] text-amber-600 dark:text-amber-400">
                     {t("vionto.videoLength.staleWarning")}
                   </p>
+                )}
+              </div>
+
+              {/* ─── Story Structure (#102) ──────────────────────────── */}
+              <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+                <button
+                  type="button"
+                  onClick={() => setStoryStructureOpen(!storyStructureOpen)}
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text)]">
+                    <ListChecks size={14} className="text-[var(--color-accent)]" />
+                    Story Structure
+                  </span>
+                  {storyStructureOpen ? <ChevronUp size={14} className="text-[var(--color-text-muted)]" /> : <ChevronDown size={14} className="text-[var(--color-text-muted)]" />}
+                </button>
+                {storyStructureOpen && (
+                  <div className="space-y-2.5 border-t border-[var(--color-border)] px-3 pb-3 pt-2.5">
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Opening Title</label>
+                      <input
+                        type="text"
+                        value={openingTitle}
+                        onChange={(e) => setOpeningTitle(e.target.value)}
+                        placeholder="e.g. Our Summer in Provence"
+                        maxLength={200}
+                        className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Intro Narration</label>
+                      <textarea
+                        value={introNarration}
+                        onChange={(e) => setIntroNarration(e.target.value)}
+                        placeholder="A short intro paragraph to set the scene..."
+                        maxLength={1000}
+                        rows={2}
+                        className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Chapters</label>
+                        <button
+                          type="button"
+                          onClick={() => setChapters([...chapters, { title: "", description: "" }])}
+                          disabled={chapters.length >= 10}
+                          className="text-[11px] font-medium text-[var(--color-accent)] hover:underline disabled:opacity-50"
+                        >
+                          <Plus size={10} className="mr-0.5 inline" /> Add chapter
+                        </button>
+                      </div>
+                      {chapters.map((ch, i) => (
+                        <div key={i} className="mt-1 flex gap-1.5">
+                          <input
+                            type="text"
+                            value={ch.title}
+                            onChange={(e) => {
+                              const next = [...chapters];
+                              next[i] = { ...next[i], title: e.target.value };
+                              setChapters(next);
+                            }}
+                            placeholder={`Chapter ${i + 1} title`}
+                            maxLength={120}
+                            className="flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                          />
+                          <input
+                            type="text"
+                            value={ch.description}
+                            onChange={(e) => {
+                              const next = [...chapters];
+                              next[i] = { ...next[i], description: e.target.value };
+                              setChapters(next);
+                            }}
+                            placeholder="Description"
+                            maxLength={500}
+                            className="flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setChapters(chapters.filter((_, j) => j !== i))}
+                            className="shrink-0 rounded p-1 text-[var(--color-text-muted)] hover:text-red-500"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Climax / Highlight</label>
+                      <input
+                        type="text"
+                        value={climaxDescription}
+                        onChange={(e) => setClimaxDescription(e.target.value)}
+                        placeholder="Which moment gets the most emphasis?"
+                        maxLength={500}
+                        className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Closing Message</label>
+                      <input
+                        type="text"
+                        value={closingMessage}
+                        onChange={(e) => setClosingMessage(e.target.value)}
+                        placeholder="e.g. Until we meet again..."
+                        maxLength={500}
+                        className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Dedication</label>
+                      <input
+                        type="text"
+                        value={dedicationText}
+                        onChange={(e) => setDedicationText(e.target.value)}
+                        placeholder="e.g. For Mom and Dad"
+                        maxLength={300}
+                        className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2.5 py-1.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ─── Caption Overlays (#102) ──────────────────────────── */}
+              <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+                <button
+                  type="button"
+                  onClick={() => setCaptionOverlaysOpen(!captionOverlaysOpen)}
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                >
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text)]">
+                    <Captions size={14} className="text-[var(--color-accent)]" />
+                    Caption Overlays
+                    {captionsEnabled && (
+                      <span className="ml-1 rounded-full bg-[var(--color-accent)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-accent)]">ON</span>
+                    )}
+                  </span>
+                  {captionOverlaysOpen ? <ChevronUp size={14} className="text-[var(--color-text-muted)]" /> : <ChevronDown size={14} className="text-[var(--color-text-muted)]" />}
+                </button>
+                {captionOverlaysOpen && (
+                  <div className="space-y-3 border-t border-[var(--color-border)] px-3 pb-3 pt-2.5">
+                    <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+                      <input
+                        type="checkbox"
+                        checked={captionsEnabled}
+                        onChange={(e) => setCaptionsEnabled(e.target.checked)}
+                        className="h-4 w-4 rounded border-[var(--color-border)] accent-[var(--color-accent)]"
+                      />
+                      Enable caption overlays
+                    </label>
+
+                    {captionsEnabled && (
+                      <>
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] font-medium text-[var(--color-text-muted)]">Show in video</p>
+                          {[
+                            { label: "Scene captions", checked: showSceneCaptions, onChange: setShowSceneCaptions },
+                            { label: "Date captions", checked: showDateCaptions, onChange: setShowDateCaptions },
+                            { label: "Location captions", checked: showLocationCaptions, onChange: setShowLocationCaptions },
+                            { label: "People labels", checked: showPeopleLabels, onChange: setShowPeopleLabels },
+                          ].map((item) => (
+                            <label key={item.label} className="flex items-center gap-2 text-xs text-[var(--color-text)]">
+                              <input
+                                type="checkbox"
+                                checked={item.checked}
+                                onChange={(e) => item.onChange(e.target.checked)}
+                                className="h-3.5 w-3.5 rounded border-[var(--color-border)] accent-[var(--color-accent)]"
+                              />
+                              {item.label}
+                            </label>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Placement</label>
+                            <select
+                              value={captionPlacement}
+                              onChange={(e) => setCaptionPlacement(e.target.value as any)}
+                              className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1.5 text-xs text-[var(--color-text)]"
+                            >
+                              <option value="lower_third">Lower third</option>
+                              <option value="top">Top</option>
+                              <option value="bottom">Bottom</option>
+                              <option value="corner">Corner</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-medium text-[var(--color-text-muted)]">Style</label>
+                            <select
+                              value={captionStylePreset}
+                              onChange={(e) => setCaptionStylePreset(e.target.value as any)}
+                              className="mt-0.5 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1.5 text-xs text-[var(--color-text)]"
+                            >
+                              <option value="minimal">Minimal</option>
+                              <option value="memory">Memory</option>
+                              <option value="social">Social</option>
+                              <option value="documentary">Documentary</option>
+                            </select>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
 
