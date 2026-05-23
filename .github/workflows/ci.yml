@@ -123,18 +123,21 @@ jobs:
           NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
           NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
           PUPPETEER_SKIP_DOWNLOAD: "true"
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
       - name: Build EduMatch (App)
         run: pnpm --filter edumatch build
         env:
           NEXT_PUBLIC_EDUMATCH_URL: http://localhost:3005
           NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
       - name: Build Vionto (App)
         run: pnpm --filter vionto build
         env:
           NEXT_PUBLIC_VIONTO_URL: http://localhost:3006
           NEXT_PUBLIC_PORTAL_URL: http://localhost:3000
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
   # ───────────────────────────────────────────
   # 4. Vionto Docker Config & Dockerfile Lint
