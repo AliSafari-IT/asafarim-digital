@@ -4,6 +4,7 @@ import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/serv
 import { formatZodError, promoteSessionSchema } from "@/lib/server/validation";
 import { getSessionForUser, deleteSession } from "@/lib/server/upload-session";
 import { createPresignedDownloadUrl, deleteObject } from "@/lib/server/storage";
+import { advanceAlbumLifecycleStage } from "@/lib/server/album-lifecycle";
 
 /**
  * Lazily ensures a project has a base album and returns its id.
@@ -209,6 +210,11 @@ export async function POST(
           orderIndex: baseAlbumOrderStart + idx,
         })),
         skipDuplicates: true,
+      });
+      await advanceAlbumLifecycleStage(prisma, {
+        projectId,
+        albumId: baseAlbumId,
+        stage: "photos_uploaded",
       });
     }
 

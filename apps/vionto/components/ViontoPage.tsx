@@ -43,6 +43,7 @@ import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
 import { PRIVACY_LEVELS, OCCASION_SUGGESTIONS, MOOD_SUGGESTIONS } from "@/lib/album-constants";
+import { VIDEO_TEMPLATES, getVideoTemplate, type VideoTemplateId } from "@/lib/video-templates";
 
 function ViontoMark({ className = "" }: { className?: string }) {
   return (
@@ -107,6 +108,17 @@ const EMOTIONAL_TONE_OPTIONS = [
   { labelKey: "vionto.emotionalTone.romantic", descriptionKey: "vionto.emotionalTone.romantic.description", value: "romantic" },
   { labelKey: "vionto.emotionalTone.reflective", descriptionKey: "vionto.emotionalTone.reflective.description", value: "reflective" },
 ] as const;
+
+const COLLECTION_OPTIONS = ["family", "travel", "events", "work", "archive", "favorites"] as const;
+
+const LIFECYCLE_LABELS: Record<string, { label: string; next: string }> = {
+  draft: { label: "Draft", next: "Upload photos" },
+  photos_uploaded: { label: "Photos uploaded", next: "Generate story" },
+  story_generated: { label: "Story generated", next: "Choose audio" },
+  audio_ready: { label: "Audio ready", next: "Render video" },
+  video_rendered: { label: "Video rendered", next: "Publish/export" },
+  published_exported: { label: "Published/exported", next: "Ready" },
+};
 
 type AspectRatio = (typeof ASPECT_OPTIONS)[number]["value"];
 type UiMode = "cinematic" | "slideshow" | "social";
@@ -337,6 +349,9 @@ export function ViontoPage() {
     description: string | null;
     isBase: boolean;
     coverAssetId: string | null;
+    lifecycleStage: string;
+    collections: string[];
+    isFavorite: boolean;
     dateFrom: string | null;
     dateTo: string | null;
     location: string | null;
@@ -384,6 +399,8 @@ export function ViontoPage() {
   const [newAlbumOccasion, setNewAlbumOccasion] = useState("");
   const [newAlbumMood, setNewAlbumMood] = useState("");
   const [newAlbumPrivacy, setNewAlbumPrivacy] = useState("private");
+  const [newAlbumCollections, setNewAlbumCollections] = useState<string[]>([]);
+  const [newAlbumFavorite, setNewAlbumFavorite] = useState(false);
 
   // Edit album details panel
   const [showAlbumDetails, setShowAlbumDetails] = useState(false);
@@ -395,6 +412,8 @@ export function ViontoPage() {
   const [editMood, setEditMood] = useState("");
   const [editPrivacy, setEditPrivacy] = useState("private");
   const [editDescription, setEditDescription] = useState("");
+  const [editCollections, setEditCollections] = useState<string[]>([]);
+  const [editFavorite, setEditFavorite] = useState(false);
   const [isSavingAlbumDetails, setIsSavingAlbumDetails] = useState(false);
   const [albumDetailsError, setAlbumDetailsError] = useState<string | null>(null);
 
@@ -435,6 +454,8 @@ export function ViontoPage() {
     musicOption: string | null;
     aspectRatio: string;
     targetDurationSeconds: number | null;
+    templateId: string | null;
+    templateSettings: unknown;
     storyStructure: {
       openingTitle?: string;
       introNarration?: string;
@@ -460,9 +481,40 @@ export function ViontoPage() {
   const [renamingVersionId, setRenamingVersionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<VideoTemplateId | "">("");
+  const [versionTemplateId, setVersionTemplateId] = useState<VideoTemplateId | "">("");
+  const [albumCollectionFilter, setAlbumCollectionFilter] = useState("");
 
   const ACCEPTED = [".jpg", ".jpeg", ".png", ".heic", ".webp", ".zip"];
   const acceptedMime = "image/jpeg,image/png,image/heic,image/webp,application/zip,.heic,.zip";
+
+  function applyTemplateToDraft(templateId: VideoTemplateId | "") {
+    setSelectedTemplateId(templateId);
+    const template = getVideoTemplate(templateId);
+    if (!template) return;
+
+    const { settings } = template;
+    setActiveMode(API_MODE_TO_UI_MODE[settings.mode] ?? "cinematic");
+    setSelectedStoryMode(settings.storyMode);
+    setSelectedEmotionalTone(settings.emotionalTone);
+    setSelectedVisualStyle(settings.visualStyle);
+    setActiveAspectRatio(settings.aspectRatio === "4:3" ? "16:9" : settings.aspectRatio);
+    setTargetDurationSeconds(settings.targetDurationSeconds);
+    setSubtitleConfig(settings.subtitleSettings as SubtitleConfigType | null ?? null);
+    if (settings.captionOverlaySettings) {
+      setCaptionsEnabled(settings.captionOverlaySettings.enabled);
+      setShowSceneCaptions(settings.captionOverlaySettings.showSceneCaptions);
+      setShowDateCaptions(settings.captionOverlaySettings.showDateCaptions);
+      setShowLocationCaptions(settings.captionOverlaySettings.showLocationCaptions);
+      setShowPeopleLabels(settings.captionOverlaySettings.showPeopleLabels);
+      setCaptionPlacement(settings.captionOverlaySettings.placement);
+      setCaptionStylePreset(settings.captionOverlaySettings.stylePreset);
+    }
+  }
+
+  function toggleCollection(value: string, current: string[], setter: (next: string[]) => void) {
+    setter(current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
+  }
 
   // Load projects on mount
   useEffect(() => {
@@ -569,7 +621,11 @@ export function ViontoPage() {
   async function loadProjectAlbums(projectId: string) {
     setIsLoadingAlbums(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/albums`);
+      const params = new URLSearchParams();
+      if (albumCollectionFilter === "favorites") params.set("favorite", "true");
+      else if (albumCollectionFilter) params.set("collection", albumCollectionFilter);
+      const suffix = params.toString() ? `?${params.toString()}` : "";
+      const res = await fetch(`/api/projects/${projectId}/albums${suffix}`);
       if (!res.ok) return;
       const data = await res.json();
       const loadedAlbums: Album[] = data.albums || [];
@@ -630,6 +686,8 @@ export function ViontoPage() {
           occasion: newAlbumOccasion.trim() || undefined,
           mood: newAlbumMood.trim() || undefined,
           privacyLevel: newAlbumPrivacy,
+          collections: newAlbumFavorite ? Array.from(new Set([...newAlbumCollections, "favorites"])) : newAlbumCollections,
+          isFavorite: newAlbumFavorite,
         }),
       });
       if (!res.ok) {
@@ -650,6 +708,8 @@ export function ViontoPage() {
       setNewAlbumOccasion("");
       setNewAlbumMood("");
       setNewAlbumPrivacy("private");
+      setNewAlbumCollections([]);
+      setNewAlbumFavorite(false);
       await loadProjectAlbums(selectedProjectId);
       setSelectedAlbumId(created.id);
     } catch (error) {
@@ -714,6 +774,8 @@ export function ViontoPage() {
     setEditMood(album.mood ?? "");
     setEditPrivacy(album.privacyLevel);
     setEditDescription(album.description ?? "");
+    setEditCollections(album.collections ?? []);
+    setEditFavorite(album.isFavorite ?? false);
     setAlbumDetailsError(null);
     setShowAlbumDetails(true);
   }
@@ -738,6 +800,8 @@ export function ViontoPage() {
           occasion: editOccasion.trim() || null,
           mood: editMood.trim() || null,
           privacyLevel: editPrivacy,
+          collections: editFavorite ? Array.from(new Set([...editCollections, "favorites"])) : editCollections,
+          isFavorite: editFavorite,
         }),
       });
       if (!res.ok) {
@@ -935,12 +999,14 @@ export function ViontoPage() {
 
   async function createVideoVersion(name?: string, albumId?: string | null) {
     if (!selectedProjectId) return;
+    const template = getVideoTemplate(versionTemplateId);
     try {
       const res = await fetch(`/api/projects/${selectedProjectId}/versions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name || `Version ${videoVersions.length + 1}`,
+          ...(template ? { ...template.settings, templateId: template.id, templateSettings: template.settings } : {}),
           ...(albumId && { albumId }),
         }),
       });
@@ -948,10 +1014,15 @@ export function ViontoPage() {
       const data = await res.json();
       await loadVideoVersions(selectedProjectId);
       if (data.data?.id) setSelectedVersionId(data.data.id);
+      setVersionTemplateId("");
     } catch (error) {
       console.error("Failed to create video version", error);
     }
   }
+
+  useEffect(() => {
+    if (selectedProjectId) loadProjectAlbums(selectedProjectId);
+  }, [albumCollectionFilter]);
 
   async function duplicateVideoVersion(versionId: string) {
     if (!selectedProjectId) return;
@@ -1452,6 +1523,7 @@ export function ViontoPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: newProjectTitle.trim(),
+          templateId: selectedTemplateId || undefined,
           mode: UI_MODE_TO_API_MODE[activeMode] ?? "story",
           storyMode: selectedStoryMode,
           emotionalTone: selectedEmotionalTone,
@@ -1473,6 +1545,7 @@ export function ViontoPage() {
       await loadProjects();
       setSelectedProjectId(project.id);
       setNewProjectTitle("");
+      setSelectedTemplateId("");
       setIsCreatingProject(false);
     } catch (error) {
       console.error("Failed to create project", error);
@@ -2099,6 +2172,24 @@ export function ViontoPage() {
                       disabled={isSubmittingProject}
                       autoFocus
                     />
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => applyTemplateToDraft(e.target.value as VideoTemplateId | "")}
+                      disabled={isSubmittingProject}
+                      className="mt-2 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                      <option value="">Manual setup</option>
+                      {VIDEO_TEMPLATES.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedTemplateId && (
+                      <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                        {getVideoTemplate(selectedTemplateId)?.summary}
+                      </p>
+                    )}
                     <div className="mt-2 flex justify-end gap-2">
                       <button
                         type="button"
@@ -2138,13 +2229,26 @@ export function ViontoPage() {
                     <label className="text-xs font-medium text-[var(--color-text-muted)]">
                       Video Version
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => createVideoVersion(undefined, selectedAlbumId)}
-                      className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
-                    >
-                      <Plus size={11} /> New version
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={versionTemplateId}
+                        onChange={(e) => setVersionTemplateId(e.target.value as VideoTemplateId | "")}
+                        className="max-w-36 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                        aria-label="Video template"
+                      >
+                        <option value="">Manual</option>
+                        {VIDEO_TEMPLATES.map((template) => (
+                          <option key={template.id} value={template.id}>{template.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => createVideoVersion(undefined, selectedAlbumId)}
+                        className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
+                      >
+                        <Plus size={11} /> New version
+                      </button>
+                    </div>
                   </div>
                   <div className="version-tabs mt-1.5 flex gap-1 overflow-x-auto pb-1">
                     {videoVersions.map((version) => {
@@ -2206,6 +2310,11 @@ export function ViontoPage() {
                               {version.albumId && (
                                 <span className="ml-1 rounded bg-[var(--color-surface)] px-1 py-0.5 text-[9px] text-[var(--color-text-muted)]">
                                   {albums.find((a) => a.id === version.albumId)?.name ?? "Album"}
+                                </span>
+                              )}
+                              {version.templateId && (
+                                <span className="ml-1 rounded bg-[var(--color-accent)]/10 px-1 py-0.5 text-[9px] text-[var(--color-accent)]">
+                                  {getVideoTemplate(version.templateId)?.name ?? "Template"}
                                 </span>
                               )}
                             </>
@@ -2434,14 +2543,27 @@ export function ViontoPage() {
                   {/* Album selector bar */}
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-medium text-[var(--color-text-muted)]">Albums</p>
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateAlbum(true)}
-                      className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-                    >
-                      <Plus size={12} />
-                      New album
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={albumCollectionFilter}
+                        onChange={(e) => setAlbumCollectionFilter(e.target.value)}
+                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                        aria-label="Album collection"
+                      >
+                        <option value="">All</option>
+                        {COLLECTION_OPTIONS.map((collection) => (
+                          <option key={collection} value={collection}>{collection}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateAlbum(true)}
+                        className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+                      >
+                        <Plus size={12} />
+                        New album
+                      </button>
+                    </div>
                   </div>
 
                   {isLoadingAlbums ? (
@@ -2483,7 +2605,11 @@ export function ViontoPage() {
                               {!album.isBase && album.privacyLevel === "private" && <Lock size={9} className="opacity-50" />}
                               {!album.isBase && album.privacyLevel === "unlisted" && <EyeOff size={9} className="opacity-50" />}
                               {!album.isBase && album.privacyLevel === "public" && <Globe size={9} className="opacity-50" />}
+                              {album.isFavorite && <span className="text-[10px] text-[var(--color-accent)]">★</span>}
                               {album.name}
+                              <span className="rounded bg-[var(--color-accent)]/10 px-1 text-[9px] text-[var(--color-accent)]">
+                                {LIFECYCLE_LABELS[album.lifecycleStage]?.label ?? album.lifecycleStage}
+                              </span>
                               <span className="ml-1 rounded bg-[var(--color-surface)] px-1 text-[10px] text-[var(--color-text-muted)]">{album._count.items}</span>
                             </button>
                           )}
@@ -2581,6 +2707,34 @@ export function ViontoPage() {
                               {PRIVACY_LEVELS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                             </select>
                           </div>
+                          <div>
+                            <label className="mb-1 block text-[10px] font-medium text-[var(--color-text-muted)]">Collections</label>
+                            <div className="flex flex-wrap gap-1">
+                              {COLLECTION_OPTIONS.filter((collection) => collection !== "favorites").map((collection) => (
+                                <button
+                                  key={collection}
+                                  type="button"
+                                  onClick={() => toggleCollection(collection, newAlbumCollections, setNewAlbumCollections)}
+                                  className={`rounded-md border px-2 py-0.5 text-[10px] ${
+                                    newAlbumCollections.includes(collection)
+                                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                      : "border-[var(--color-border)] text-[var(--color-text-muted)]"
+                                  }`}
+                                >
+                                  {collection}
+                                </button>
+                              ))}
+                              <label className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
+                                <input
+                                  type="checkbox"
+                                  checked={newAlbumFavorite}
+                                  onChange={(e) => setNewAlbumFavorite(e.target.checked)}
+                                  className="h-3 w-3 accent-[var(--color-accent)]"
+                                />
+                                favorite
+                              </label>
+                            </div>
+                          </div>
                         </div>
                       )}
                       <div className="mt-2 flex justify-end gap-2">
@@ -2607,6 +2761,16 @@ export function ViontoPage() {
                   {/* Selected album image grid */}
                   {selectedAlbumId && (
                     <div className="mt-3">
+                      {selectedAlbum && (
+                        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="rounded-md bg-[var(--color-accent)]/10 px-2 py-0.5 font-medium text-[var(--color-accent)]">
+                            {LIFECYCLE_LABELS[selectedAlbum.lifecycleStage]?.label ?? selectedAlbum.lifecycleStage}
+                          </span>
+                          <span className="text-[var(--color-text-muted)]">
+                            Next: {LIFECYCLE_LABELS[selectedAlbum.lifecycleStage]?.next ?? "Continue"}
+                          </span>
+                        </div>
+                      )}
                       {/* Toolbar for non-base albums */}
                       {!isBaseAlbumSelected && (
                         <div className="mb-2 flex items-center justify-between gap-2">
@@ -2675,7 +2839,15 @@ export function ViontoPage() {
                       {/* Edit album details panel */}
                       {showAlbumDetails && !isBaseAlbumSelected && selectedAlbum && (
                         <div className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-                          <p className="mb-2 text-xs font-semibold text-[var(--color-text)]">Album details</p>
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <p className="text-xs font-semibold text-[var(--color-text)]">Album details</p>
+                            <span className="rounded-md bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] text-[var(--color-accent)]">
+                              {LIFECYCLE_LABELS[selectedAlbum.lifecycleStage]?.label ?? selectedAlbum.lifecycleStage}
+                            </span>
+                            <span className="text-[10px] text-[var(--color-text-muted)]">
+                              Next: {LIFECYCLE_LABELS[selectedAlbum.lifecycleStage]?.next ?? "Continue"}
+                            </span>
+                          </div>
                           <div className="space-y-1.5">
                             <div>
                               <label className="block text-[10px] font-medium text-[var(--color-text-muted)] mb-0.5">Description</label>
@@ -2720,6 +2892,34 @@ export function ViontoPage() {
                               <select value={editPrivacy} onChange={(e) => setEditPrivacy(e.target.value)} className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]">
                                 {PRIVACY_LEVELS.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
                               </select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-[10px] font-medium text-[var(--color-text-muted)]">Collections</label>
+                              <div className="flex flex-wrap gap-1">
+                                {COLLECTION_OPTIONS.filter((collection) => collection !== "favorites").map((collection) => (
+                                  <button
+                                    key={collection}
+                                    type="button"
+                                    onClick={() => toggleCollection(collection, editCollections, setEditCollections)}
+                                    className={`rounded-md border px-2 py-0.5 text-[10px] ${
+                                      editCollections.includes(collection)
+                                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                        : "border-[var(--color-border)] text-[var(--color-text-muted)]"
+                                    }`}
+                                  >
+                                    {collection}
+                                  </button>
+                                ))}
+                                <label className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-text-muted)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={editFavorite}
+                                    onChange={(e) => setEditFavorite(e.target.checked)}
+                                    className="h-3 w-3 accent-[var(--color-accent)]"
+                                  />
+                                  favorite
+                                </label>
+                              </div>
                             </div>
                           </div>
                           {albumDetailsError && (

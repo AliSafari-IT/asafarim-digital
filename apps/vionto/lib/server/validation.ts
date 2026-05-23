@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { VISUAL_STYLE_VALUES } from "../visual-styles";
 import { PRIVACY_LEVELS } from "../album-constants";
+import { VIDEO_TEMPLATE_IDS } from "../video-templates";
 
 /**
  * Vionto file constraints — kept in sync with the project plan §6.2.1.
@@ -125,6 +126,7 @@ export const createProjectSchema = z.object({
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).default("1080p"),
   targetDurationSeconds: targetDurationSecondsSchema.optional(),
+  templateId: z.enum(VIDEO_TEMPLATE_IDS).nullable().optional(),
 });
 
 export const updateProjectSchema = createProjectSchema.partial();
@@ -186,6 +188,8 @@ export const createVideoVersionSchema = z.object({
   targetDurationSeconds: targetDurationSecondsSchema.optional(),
   storyStructure: storyStructureSchema.nullable().optional(),
   captionOverlaySettings: captionOverlaySettingsSchema.nullable().optional(),
+  templateId: z.enum(VIDEO_TEMPLATE_IDS).nullable().optional(),
+  templateSettings: z.any().nullable().optional(),
   /** Clone settings from an existing version instead of using defaults. */
   cloneFromVersionId: z.string().cuid().optional(),
 });
@@ -239,6 +243,9 @@ export const createAlbumSchema = z
     assetIds: z.array(z.string().cuid()).max(200).optional(),
     coverAssetId: z.string().cuid().optional(),
     metadata: z.any().optional(),
+    lifecycleStage: z.enum(["draft", "photos_uploaded", "story_generated", "audio_ready", "video_rendered", "published_exported"]).optional(),
+    collections: z.array(z.string().min(1).max(80)).max(12).default([]),
+    isFavorite: z.boolean().default(false),
     dateFrom: z.coerce.date().nullable().optional(),
     dateTo: z.coerce.date().nullable().optional(),
     location: z.string().max(200).nullable().optional(),
@@ -261,6 +268,9 @@ export const updateAlbumSchema = z
     description: z.string().max(2000).nullable().optional(),
     coverAssetId: z.string().cuid().nullable().optional(),
     metadata: z.any().optional(),
+    lifecycleStage: z.enum(["draft", "photos_uploaded", "story_generated", "audio_ready", "video_rendered", "published_exported"]).optional(),
+    collections: z.array(z.string().min(1).max(80)).max(12).optional(),
+    isFavorite: z.boolean().optional(),
     dateFrom: z.coerce.date().nullable().optional(),
     dateTo: z.coerce.date().nullable().optional(),
     location: z.string().max(200).nullable().optional(),

@@ -10,6 +10,7 @@ import {
 import { generateSrtFromText, isValidSrt } from "@/lib/server/srt";
 import { buildExifSummary, formatExifSummaryForPrompt } from "@/lib/server/exif";
 import { generateImageCaption } from "@/lib/server/vision";
+import { advanceAlbumLifecycleStage } from "@/lib/server/album-lifecycle";
 
 export const runtime = "nodejs";
 
@@ -352,6 +353,11 @@ export async function POST(req: Request) {
     }
 
     console.log(`[story/generate] Successfully created script ${script.id}`);
+    await advanceAlbumLifecycleStage(prisma, {
+      projectId,
+      albumId: effectiveAlbumId,
+      stage: "story_generated",
+    });
     return NextResponse.json({
       scriptId: script.id,
       narration,

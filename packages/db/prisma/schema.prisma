@@ -1618,6 +1618,10 @@ model ViontoVideoVersion {
   /// User-facing label, e.g. "Family version", "Social reel".
   name String @default("Version 1")
 
+  /// Optional guided template used to prefill this version.
+  templateId       String?
+  templateSettings Json?
+
   // ── Creative settings (migrated from ViontoProject) ──
   mode                  String  @default("story") // story, slideshow, documentary
   storyMode             String? @default("memory_film")
@@ -1652,6 +1656,7 @@ model ViontoVideoVersion {
   @@index([projectId])
   @@index([userId])
   @@index([albumId])
+  @@index([templateId])
 }
 
 // ─── Vionto Album Management ──────────────────────────────────
@@ -1678,6 +1683,13 @@ model ViontoAlbum {
   /// Album-level metadata (arbitrary JSON, e.g. tags, notes, theme).
   metadata Json?
 
+  /// Workflow progress for the album's creation pipeline.
+  lifecycleStage String @default("draft") // draft, photos_uploaded, story_generated, audio_ready, video_rendered, published_exported
+
+  /// User-facing organization buckets. Favorites are also mirrored in isFavorite.
+  collections String[] @default([])
+  isFavorite  Boolean  @default(false)
+
   /// Structured metadata fields for queries and indexing.
   dateFrom     DateTime?
   dateTo       DateTime?
@@ -1700,6 +1712,8 @@ model ViontoAlbum {
   @@index([projectId])
   @@index([userId])
   @@index([projectId, isBase])
+  @@index([lifecycleStage])
+  @@index([isFavorite])
 }
 
 /// A single image reference inside an album.

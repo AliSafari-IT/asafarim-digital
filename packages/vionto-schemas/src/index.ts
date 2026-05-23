@@ -14,6 +14,16 @@ export const AudioCodec = z.enum(["aac", "libmp3lame"]).default("aac");
 
 export const projectStatus = z.enum(["draft", "ready", "rendering", "completed", "archived"]);
 export const renderJobState = z.enum(["queued", "running", "paused", "completed", "failed", "cancelled"]);
+export const albumLifecycleStage = z.enum(["draft", "photos_uploaded", "story_generated", "audio_ready", "video_rendered", "published_exported"]);
+export const videoTemplateId = z.enum([
+  "birthday_recap",
+  "vacation_memories",
+  "wedding_highlights",
+  "baby_first_year",
+  "before_after",
+  "memorial_tribute",
+  "real_estate_showcase",
+]);
 
 // ─── File upload constraints ──────────────────────────────────────────
 
@@ -68,6 +78,7 @@ export const createProjectSchema = z.object({
   title: z.string().min(1).max(120),
   description: z.string().max(2000).optional(),
   mode: ProjectMode.default("story"),
+  templateId: videoTemplateId.nullable().optional(),
   locale: z.string().min(2).max(10).default("en"),
   aspectRatio: AspectRatio.default("16:9"),
   resolution: Resolution.default("1080p"),

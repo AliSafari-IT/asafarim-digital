@@ -6,6 +6,7 @@ import {
   paginationQuerySchema,
   formatZodError,
 } from "@/lib/server/validation";
+import { getVideoTemplate } from "@/lib/video-templates";
 
 export const runtime = "nodejs";
 
@@ -115,12 +116,18 @@ export async function POST(req: Request) {
       return badRequest(formatZodError(parsed.error));
     }
 
+    const { templateId, ...projectInput } = parsed.data;
+    const template = getVideoTemplate(templateId);
+    const templateSettings = template?.settings;
+    const { captionOverlaySettings: _captionOverlaySettings, ...projectTemplateSettings } = templateSettings ?? {};
+
     // Create project + base album + default video version atomically.
     const [project] = await prisma.$transaction(async (tx) => {
       const created = await tx.viontoProject.create({
         data: {
           userId: user.id,
-          ...parsed.data,
+          ...projectTemplateSettings,
+          ...projectInput,
           status: "draft",
         },
         select: PROJECT_SELECT,
@@ -136,13 +143,18 @@ export async function POST(req: Request) {
       });
 
       // Auto-create one default video version with the project's creative settings.
-      const { title: _title, description: _desc, locale: _locale, ...videoSettings } = parsed.data;
+      const { title: _title, description: _desc, locale: _locale, ...videoSettings } = {
+        ...(templateSettings ?? {}),
+        ...projectInput,
+      };
       await tx.viontoVideoVersion.create({
         data: {
           projectId: created.id,
           userId: user.id,
           albumId: baseAlbum.id,
           name: "Version 1",
+          templateId: template?.id ?? null,
+          templateSettings: template?.settings ?? undefined,
           ...videoSettings,
         },
       });
