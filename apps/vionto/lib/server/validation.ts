@@ -279,9 +279,15 @@ export const reorderAlbumItemsSchema = z.object({
   orderedItemIds: z.array(z.string().cuid()).min(1).max(200),
 });
 
+export const sortAlbumItemsSchema = z.object({
+  /** Sort mode: date_asc/date_desc use EXIF timestamp, location clusters by GPS. */
+  mode: z.enum(["date_asc", "date_desc", "location"]),
+});
+
 export type CreateAlbumInput = z.infer<typeof createAlbumSchema>;
 export type UpdateAlbumInput = z.infer<typeof updateAlbumSchema>;
 export type AddAlbumItemInput = z.infer<typeof addAlbumItemSchema>;
 export type AddAlbumItemsBulkInput = z.infer<typeof addAlbumItemsBulkSchema>;
 export type UpdateAlbumItemInput = z.infer<typeof updateAlbumItemSchema>;
 export type ReorderAlbumItemsInput = z.infer<typeof reorderAlbumItemsSchema>;
+export type SortAlbumItemsInput = z.infer<typeof sortAlbumItemsSchema>;

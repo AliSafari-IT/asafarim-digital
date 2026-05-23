@@ -244,7 +244,7 @@ export type ExifSummary = {
   totalSizeBytes?: number;
 };
 
-function getAssetExif(metadata: unknown): ExifData | null {
+export function getAssetExif(metadata: unknown): ExifData | null {
   if (!metadata || typeof metadata !== "object") return null;
   const record = metadata as Record<string, unknown>;
   const exif = record.exif && typeof record.exif === "object" ? record.exif : record;
