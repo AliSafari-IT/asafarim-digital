@@ -11,7 +11,8 @@
       "PowerShell(Get-Process | Where-Object { $_.ProcessName -match 'node|next|prisma' } | Select-Object Id, ProcessName, Path | Format-Table -AutoSize)",
       "Bash(xargs grep -l \"ViontoAlbum\")",
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
-      "Bash(xargs grep -l \"album\\\\|Album\")"
+      "Bash(xargs grep -l \"album\\\\|Album\")",
+      "PowerShell(git -C \"D:\\\\repos\\\\asafarim-digital\" diff --stat HEAD)"
     ]
   }
 }
