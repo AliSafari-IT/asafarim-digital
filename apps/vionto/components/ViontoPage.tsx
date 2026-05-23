@@ -1480,6 +1480,10 @@ export function ViontoPage() {
         const message = data.errorSummary || t("vionto.alert.unknownError");
         setRenderError(message);
         alert(`${t("vionto.alert.renderFailed")}: ${message}`);
+      } else if (data.state === "cancelled") {
+        setRenderState("idle");
+        setRenderProgress(0);
+        setRenderJobId(null);
       } else if (data.state === "queued" || data.state === "running") {
         // Continue polling
         setTimeout(() => pollRenderStatus(jobId), 2000);
@@ -1488,6 +1492,23 @@ export function ViontoPage() {
       console.error("Failed to poll render status", error);
       setRenderError(t("vionto.render.error.pollFailed"));
       setRenderState("failed");
+    }
+  }
+
+  async function cancelRender() {
+    if (!renderJobId) return;
+    try {
+      const res = await fetch(`/api/render/${renderJobId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to cancel render");
+        return;
+      }
+      setRenderState("idle");
+      setRenderProgress(0);
+      setRenderJobId(null);
+    } catch (error) {
+      console.error("Failed to cancel render", error);
     }
   }
 
@@ -3865,11 +3886,21 @@ export function ViontoPage() {
                 </button>
               ) : renderState === "queued" || renderState === "running" ? (
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <RefreshCw size={16} className="animate-spin" />
-                    <span className="text-sm">
-                      {renderState === "queued" ? t("vionto.render.queued") : t("vionto.render.running")}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span className="text-sm">
+                        {renderState === "queued" ? t("vionto.render.queued") : t("vionto.render.running")}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelRender}
+                      className="inline-flex items-center gap-1 rounded-md border border-red-300 px-2 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+                    >
+                      <X size={14} />
+                      {t("vionto.render.cancel")}
+                    </button>
                   </div>
                   <div className="h-2 w-full rounded-full bg-[var(--color-border)]">
                     <div

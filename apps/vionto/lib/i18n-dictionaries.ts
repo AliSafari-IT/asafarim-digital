@@ -95,6 +95,8 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.render.downloading": "Download link ready",
     "vionto.render.save": "Download MP4",
     "vionto.render.retry": "Retry render",
+    "vionto.render.cancel": "Cancel render",
+    "vionto.render.cancelled": "Cancelled",
     "vionto.render.generateVideo": "Generate video",
 
     // Export
@@ -421,6 +423,8 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.render.downloading": "Downloadlink klaar",
     "vionto.render.save": "MP4 downloaden",
     "vionto.render.retry": "Render opnieuw proberen",
+    "vionto.render.cancel": "Render annuleren",
+    "vionto.render.cancelled": "Geannuleerd",
     "vionto.render.generateVideo": "Video genereren",
 
     "vionto.export.title": "Exporteren",
@@ -744,6 +748,8 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.render.downloading": "Lien prêt",
     "vionto.render.save": "Télécharger MP4",
     "vionto.render.retry": "Réessayer le rendu",
+    "vionto.render.cancel": "Annuler le rendu",
+    "vionto.render.cancelled": "Annulé",
     "vionto.render.generateVideo": "Générer vidéo",
 
     "vionto.export.title": "Exporter",
@@ -997,6 +1003,8 @@ export const viontoDictionaries: Dictionaries = {
     "vionto.render.downloading": "Download-Link bereit",
     "vionto.render.save": "MP4 herunterladen",
     "vionto.render.retry": "Render erneut versuchen",
+    "vionto.render.cancel": "Render abbrechen",
+    "vionto.render.cancelled": "Abgebrochen",
     "vionto.render.generateVideo": "Video generieren",
 
     "vionto.export.title": "Exportieren",

@@ -131,6 +131,11 @@ async function downloadUrlToLocalFile(url: string, path: string) {
   await writeFile(path, buffer);
 }
 
+async function isCancelled(jobId: string): Promise<boolean> {
+  const job = await prisma.viontoRenderJob.findUnique({ where: { id: jobId }, select: { state: true } });
+  return job?.state === "cancelled";
+}
+
 /** Main job processor. */
 async function processRenderJob(jobId: string, manifestRaw: unknown) {
   const logLines: string[] = [`[${new Date().toISOString()}] Job ${jobId} start`];
@@ -147,6 +152,13 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
   const manifest = manifestResult.data;
   const workDir = join(tmpdir(), "vionto-renders", jobId);
   await mkdir(workDir, { recursive: true });
+
+  if (await isCancelled(jobId)) {
+    logLines.push("Job cancelled before start");
+    await setLog(jobId, logLines);
+    await rm(workDir, { recursive: true, force: true }).catch(() => null);
+    return;
+  }
 
   await prisma.viontoRenderJob.update({
     where: { id: jobId },
@@ -312,6 +324,13 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     }
     await updateState(jobId, "running", { progressPercent: 25 });
 
+    if (await isCancelled(jobId)) {
+      logLines.push("Job cancelled before encoding");
+      await setLog(jobId, logLines);
+      await rm(workDir, { recursive: true, force: true }).catch(() => null);
+      return;
+    }
+
     // --- Prepare image segments with local paths ---
     logLines.push("Generating image segments…");
     // Create a modified manifest with local paths instead of storage keys
@@ -339,6 +358,12 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
 
     // Run all segment generation steps except the final concat/encode
     for (let i = 0; i < steps.length - 1; i++) {
+      if (await isCancelled(jobId)) {
+        logLines.push(`Job cancelled during segment ${i + 1}/${steps.length - 1}`);
+        await setLog(jobId, logLines);
+        await rm(workDir, { recursive: true, force: true }).catch(() => null);
+        return;
+      }
       await runFfmpeg(steps[i], workDir, logLines);
       const progress = 25 + Math.round(((i + 1) / steps.length) * 35);
       await updateState(jobId, "running", { progressPercent: progress });
