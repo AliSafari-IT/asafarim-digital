@@ -8,7 +8,11 @@
       "Bash(gh label *)",
       "Bash(npx prisma *)",
       "Bash(mkdir -p \"D:\\\\repos\\\\asafarim-digital\\\\apps\\\\vionto\\\\app\\\\api\\\\projects\\\\[projectId]\\\\versions\\\\[versionId]\")",
-      "PowerShell(Get-Process | Where-Object { $_.ProcessName -match 'node|next|prisma' } | Select-Object Id, ProcessName, Path | Format-Table -AutoSize)"
+      "PowerShell(Get-Process | Where-Object { $_.ProcessName -match 'node|next|prisma' } | Select-Object Id, ProcessName, Path | Format-Table -AutoSize)",
+      "Bash(xargs grep -l \"ViontoAlbum\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(xargs grep -l \"album\\\\|Album\")",
+      "PowerShell(git -C \"D:\\\\repos\\\\asafarim-digital\" diff --stat HEAD)"
     ]
   }
 }

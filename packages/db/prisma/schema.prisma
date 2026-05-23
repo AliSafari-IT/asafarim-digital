@@ -1672,6 +1672,15 @@ model ViontoAlbum {
   /// Album-level metadata (arbitrary JSON, e.g. tags, notes, theme).
   metadata Json?
 
+  /// Structured metadata fields for queries and indexing.
+  dateFrom     DateTime?
+  dateTo       DateTime?
+  location     String?
+  people       String[]  @default([])
+  occasion     String?
+  mood         String?
+  privacyLevel String    @default("private") // private, unlisted, public
+
   project       ViontoProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   items         ViontoAlbumItem[]
   videoVersions ViontoVideoVersion[]

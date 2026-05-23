@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { VISUAL_STYLE_VALUES } from "../visual-styles";
+import { PRIVACY_LEVELS } from "../album-constants";
 
 /**
  * Vionto file constraints — kept in sync with the project plan §6.2.1.
@@ -190,23 +191,53 @@ export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 /** Max byte-size allowed for album-item metadata JSON (serialised). */
 export const MAX_ALBUM_ITEM_METADATA_BYTES = 8 * 1024; // 8 KB
 
-export const createAlbumSchema = z.object({
-  name: z.string().min(1).max(120),
-  description: z.string().max(2000).optional(),
-  /** If true, seed the new album with every image currently in the base album. */
-  fromBase: z.boolean().default(false),
-  /** Seed the new album with a specific subset of asset IDs. */
-  assetIds: z.array(z.string().cuid()).max(200).optional(),
-  coverAssetId: z.string().cuid().optional(),
-  metadata: z.any().optional(),
-});
+export const createAlbumSchema = z
+  .object({
+    name: z.string().min(1).max(120),
+    description: z.string().max(2000).optional(),
+    /** If true, seed the new album with every image currently in the base album. */
+    fromBase: z.boolean().default(false),
+    /** Seed the new album with a specific subset of asset IDs. */
+    assetIds: z.array(z.string().cuid()).max(200).optional(),
+    coverAssetId: z.string().cuid().optional(),
+    metadata: z.any().optional(),
+    dateFrom: z.coerce.date().nullable().optional(),
+    dateTo: z.coerce.date().nullable().optional(),
+    location: z.string().max(200).nullable().optional(),
+    people: z.array(z.string().max(100)).max(50).default([]),
+    occasion: z.string().max(100).nullable().optional(),
+    mood: z.string().max(100).nullable().optional(),
+    privacyLevel: z.enum(PRIVACY_LEVELS).default("private"),
+  })
+  .refine(
+    (data) => {
+      if (data.dateFrom && data.dateTo) return data.dateFrom <= data.dateTo;
+      return true;
+    },
+    { message: "Start date must be before or equal to end date", path: ["dateTo"] },
+  );
 
-export const updateAlbumSchema = z.object({
-  name: z.string().min(1).max(120).optional(),
-  description: z.string().max(2000).nullable().optional(),
-  coverAssetId: z.string().cuid().nullable().optional(),
-  metadata: z.any().optional(),
-});
+export const updateAlbumSchema = z
+  .object({
+    name: z.string().min(1).max(120).optional(),
+    description: z.string().max(2000).nullable().optional(),
+    coverAssetId: z.string().cuid().nullable().optional(),
+    metadata: z.any().optional(),
+    dateFrom: z.coerce.date().nullable().optional(),
+    dateTo: z.coerce.date().nullable().optional(),
+    location: z.string().max(200).nullable().optional(),
+    people: z.array(z.string().max(100)).max(50).optional(),
+    occasion: z.string().max(100).nullable().optional(),
+    mood: z.string().max(100).nullable().optional(),
+    privacyLevel: z.enum(PRIVACY_LEVELS).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.dateFrom && data.dateTo) return data.dateFrom <= data.dateTo;
+      return true;
+    },
+    { message: "Start date must be before or equal to end date", path: ["dateTo"] },
+  );
 
 /** Item metadata must be a plain object and serialise to ≤ MAX_ALBUM_ITEM_METADATA_BYTES. */
 const albumItemMetadataSchema = z
