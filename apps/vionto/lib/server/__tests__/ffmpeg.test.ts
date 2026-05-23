@@ -168,6 +168,29 @@ describe("buildRenderCommand", () => {
     expect(final[vfIndex + 1]).toContain("Alignment=2");
   });
 
+  it("uses top-center alignment (SSA v4 =6) when subtitle position is top", () => {
+    const topStyle: SubtitleStyle = { ...BASE_SUBTITLE_STYLE, position: "top", marginV: 40 };
+    const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "1:1", burnSubtitles: true, subtitleStyle: topStyle };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+      srtPath: "/tmp/work/sub.srt",
+    });
+    const final = steps[steps.length - 1];
+    expect(final[final.indexOf("-vf") + 1]).toContain("Alignment=6");
+    expect(final[final.indexOf("-vf") + 1]).toContain("MarginV=40");
+  });
+
+  it("uses center alignment (SSA v4 =10) when subtitle position is center", () => {
+    const centerStyle: SubtitleStyle = { ...BASE_SUBTITLE_STYLE, position: "center", marginV: 0 };
+    const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "1:1", burnSubtitles: true, subtitleStyle: centerStyle };
+    const { steps } = buildRenderCommand(manifest, "/tmp/work", {
+      outputPath: "/tmp/work/out.mp4",
+      srtPath: "/tmp/work/sub.srt",
+    });
+    const final = steps[steps.length - 1];
+    expect(final[final.indexOf("-vf") + 1]).toContain("Alignment=10");
+  });
+
   it("renders square 1080p as a 1:1 canvas", () => {
     const manifest: RenderManifest = { ...BASE_MANIFEST, aspectRatio: "1:1" };
     const { steps } = buildRenderCommand(manifest, "/tmp/work", {
