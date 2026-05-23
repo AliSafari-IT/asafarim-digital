@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
 import type { SubtitleConfig as SubtitleConfigType } from "@/lib/server/render-manifest";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
   ArrowRight,
+  ArrowUpDown,
   Captions,
   Check,
   ChevronDown,
@@ -23,6 +24,7 @@ import {
   ImagePlus,
   ListChecks,
   Lock,
+  MapPin,
   Mic,
   Pause,
   Pencil,
@@ -390,6 +392,11 @@ export function ViontoPage() {
   const [showAddImages, setShowAddImages] = useState(false);
   const [addImageSelection, setAddImageSelection] = useState<Set<string>>(new Set());
 
+  // Auto-sort / auto-group
+  type LocationGroup = { label: string; latitude: number | null; longitude: number | null; startIndex: number; count: number };
+  const [isSorting, setIsSorting] = useState(false);
+  const [locationGroups, setLocationGroups] = useState<LocationGroup[] | null>(null);
+
   // Drag-reorder inside album
   const dragAlbumItemId = useRef<string | null>(null);
   const dragOverAlbumItemId = useRef<string | null>(null);
@@ -553,6 +560,7 @@ export function ViontoPage() {
   }
 
   useEffect(() => {
+    setLocationGroups(null); // Clear auto-groups when switching albums
     if (selectedProjectId && selectedAlbumId) {
       loadAlbumItems(selectedProjectId, selectedAlbumId);
     } else {
@@ -755,6 +763,7 @@ export function ViontoPage() {
 
   async function reorderAlbumItems(newItems: AlbumItem[]) {
     if (!selectedProjectId || !selectedAlbumId) return;
+    setLocationGroups(null); // Clear auto-groups on manual reorder
     setAlbumItems(newItems);
     try {
       await fetch(
@@ -767,6 +776,39 @@ export function ViontoPage() {
       );
     } catch (error) {
       console.error("Failed to persist album item order", error);
+    }
+  }
+
+  async function handleSortAlbum(mode: "date_asc" | "date_desc" | "location") {
+    if (!selectedProjectId || !selectedAlbumId || isSorting) return;
+    setIsSorting(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${selectedProjectId}/albums/${selectedAlbumId}/items/sort`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode }),
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Failed to sort" }));
+        alert(data.error ?? "Failed to sort album");
+        return;
+      }
+      const data = await res.json();
+      if (mode === "location" && data.groups) {
+        setLocationGroups(data.groups);
+      } else {
+        setLocationGroups(null);
+      }
+      // Reload items to get the new order with presigned URLs.
+      await loadAlbumItems(selectedProjectId, selectedAlbumId);
+    } catch (error) {
+      console.error("Failed to sort album", error);
+      alert("Failed to sort album");
+    } finally {
+      setIsSorting(false);
     }
   }
 
@@ -2502,6 +2544,26 @@ export function ViontoPage() {
                               <ImagePlus size={12} />
                               Add images
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSortAlbum("date_asc")}
+                              disabled={isSorting || albumItems.length < 2}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
+                              title="Sort images by EXIF date (oldest first)"
+                            >
+                              {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <ArrowUpDown size={12} />}
+                              Sort by date
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSortAlbum("location")}
+                              disabled={isSorting || albumItems.length < 2}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
+                              title="Group images by GPS location"
+                            >
+                              {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}
+                              Group by location
+                            </button>
                           </div>
                         </div>
                       )}
@@ -2634,9 +2696,22 @@ export function ViontoPage() {
                         </p>
                       ) : (
                         <ul className="project-assets-grid">
-                          {albumItems.map((item, idx) => (
+                          {albumItems.map((item, idx) => {
+                            // Find if a location group header should appear before this item.
+                            const groupHeader = locationGroups?.find((g) => g.startIndex === idx);
+                            return (
+                              <Fragment key={item.id}>
+                                {groupHeader && (
+                                  <li
+                                    style={{ gridColumn: "1 / -1" }}
+                                    className="flex items-center gap-2 border-t border-[var(--color-border)] pt-2 pb-1"
+                                  >
+                                    <MapPin size={12} className="text-[var(--color-accent)] shrink-0" />
+                                    <span className="text-[11px] font-medium text-[var(--color-text)]">{groupHeader.label}</span>
+                                    <span className="text-[10px] text-[var(--color-text-muted)]">{groupHeader.count} {groupHeader.count === 1 ? "photo" : "photos"}</span>
+                                  </li>
+                                )}
                             <li
-                              key={item.id}
                               draggable
                               onDragStart={() => {
                                 dragAlbumItemId.current = item.id;
@@ -2703,7 +2778,9 @@ export function ViontoPage() {
                                 )}
                               </div>
                             </li>
-                          ))}
+                              </Fragment>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
