@@ -374,12 +374,30 @@ export function generatePacingPlan(
   // the video length matches what the user asked for.
   if (options.targetTotalDurationSeconds) {
     const HARD_MIN = 1.0;
+    const target = options.targetTotalDurationSeconds;
     const finalTotal = plans.reduce((sum, p) => sum + p.durationSeconds, 0);
-    if (finalTotal > 0 && Math.abs(finalTotal - options.targetTotalDurationSeconds) > 0.5) {
-      const ratio = options.targetTotalDurationSeconds / finalTotal;
+    if (finalTotal > 0 && Math.abs(finalTotal - target) > 0.5) {
+      const ratio = target / finalTotal;
       for (const plan of plans) {
         plan.durationSeconds = Math.max(HARD_MIN, Math.round(plan.durationSeconds * ratio * 10) / 10);
       }
+
+      // Correct rounding drift by distributing the remainder across longest segments.
+      const afterRounding = plans.reduce((sum, p) => sum + p.durationSeconds, 0);
+      let remainder = Math.round((target - afterRounding) * 10) / 10;
+      if (Math.abs(remainder) >= 0.05) {
+        const step = remainder > 0 ? 0.1 : -0.1;
+        const sorted = [...plans].sort((a, b) => b.durationSeconds - a.durationSeconds);
+        for (const plan of sorted) {
+          if (Math.abs(remainder) < 0.05) break;
+          const adj = plan.durationSeconds + step;
+          if (adj >= HARD_MIN) {
+            plan.durationSeconds = Math.round(adj * 10) / 10;
+            remainder = Math.round((remainder - step) * 10) / 10;
+          }
+        }
+      }
+
       for (const plan of plans) {
         plan.motion.durationSeconds = Math.min(plan.durationSeconds, plan.motion.durationSeconds || 5);
       }
