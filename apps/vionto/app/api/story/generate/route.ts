@@ -70,11 +70,11 @@ export async function POST(req: Request) {
 
     // If a versionId is provided, load creative settings from the version.
     // Otherwise fall back to project-level settings (backward compat).
-    let versionRecord: { id: string; albumId: string | null; mode: string; storyMode: string | null; emotionalTone: string | null; visualStyle: string | null; musicOption: string | null; targetDurationSeconds: number | null } | null = null;
+    let versionRecord: { id: string; albumId: string | null; mode: string; storyMode: string | null; emotionalTone: string | null; visualStyle: string | null; musicOption: string | null; targetDurationSeconds: number | null; storyStructure: unknown; captionOverlaySettings: unknown } | null = null;
     if (versionId && typeof versionId === "string") {
       versionRecord = await prisma.viontoVideoVersion.findFirst({
         where: { id: versionId, projectId },
-        select: { id: true, albumId: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true, targetDurationSeconds: true },
+        select: { id: true, albumId: true, mode: true, storyMode: true, emotionalTone: true, visualStyle: true, musicOption: true, targetDurationSeconds: true, storyStructure: true, captionOverlaySettings: true },
       });
       if (!versionRecord) return badRequest("Video version not found.");
     }
@@ -244,6 +244,12 @@ export async function POST(req: Request) {
     }
 
     const systemPrompt = buildStorySystemPrompt(effectiveLocale);
+    // Parse story structure from the version if available
+    const rawStoryStructure = versionRecord?.storyStructure;
+    const storyStructure = rawStoryStructure && typeof rawStoryStructure === "object"
+      ? rawStoryStructure as { openingTitle?: string; introNarration?: string; chapters?: { title: string; description: string }[]; climaxDescription?: string; closingMessage?: string; dedicationText?: string }
+      : undefined;
+
     const userPrompt = buildStoryUserPrompt({
       locale: effectiveLocale,
       mode: effectiveMode,
@@ -254,6 +260,7 @@ export async function POST(req: Request) {
       captions: effectiveCaptions,
       exifSummary: effectiveExifSummary,
       targetDurationSeconds: effectiveTargetDurationSeconds,
+      storyStructure,
     });
 
     console.log(`[story/generate] Starting AI generation with ${effectiveCaptions.length} captions`);

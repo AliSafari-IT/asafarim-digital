@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     if (versionId) {
       const version = await prisma.viontoVideoVersion.findFirst({
         where: { id: versionId, projectId },
-        select: { id: true, albumId: true, mode: true, aspectRatio: true, resolution: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true, subtitleSettings: true, targetDurationSeconds: true },
+        select: { id: true, albumId: true, mode: true, aspectRatio: true, resolution: true, visualStyle: true, musicOption: true, musicTrackId: true, musicMetadata: true, musicUploadKey: true, emotionalTone: true, storyMode: true, subtitleSettings: true, targetDurationSeconds: true, storyStructure: true, captionOverlaySettings: true },
       });
       if (!version) return badRequest("Video version not found.");
       // Merge version settings with project locale (which stays on the project)
@@ -392,6 +392,9 @@ export async function POST(req: Request) {
         subtitleStyle: subtitleConfig.style,
         subtitleTiming: subtitleConfig.timing,
         subtitleExport: subtitleConfig.exportOpts,
+        // Story structure & caption overlays (#102)
+        ...((settings as any).storyStructure ? { storyStructure: (settings as any).storyStructure } : {}),
+        ...((settings as any).captionOverlaySettings ? { captionOverlaySettings: (settings as any).captionOverlaySettings } : {}),
         audioTracks: [
           ...audioTracks
             .filter((track) => track.storageKey || track.voiceId)

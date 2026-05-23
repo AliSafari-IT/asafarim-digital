@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 import {
   getAuthedUser,
   unauthorized,
@@ -30,6 +30,8 @@ const VERSION_SELECT = {
   aspectRatio: true,
   resolution: true,
   targetDurationSeconds: true,
+  storyStructure: true,
+  captionOverlaySettings: true,
   createdAt: true,
   updatedAt: true,
   _count: { select: { scripts: true, renderJobs: true, exports: true } },
@@ -119,9 +121,17 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       if (!album) return badRequest("Album not found.");
     }
 
+    // Transform null JSON values for Prisma compatibility
+    const updateData: Record<string, unknown> = { ...parsed.data };
+    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata"] as const) {
+      if (key in updateData && updateData[key] === null) {
+        updateData[key] = Prisma.JsonNull;
+      }
+    }
+
     const updated = await prisma.viontoVideoVersion.update({
       where: { id: versionId },
-      data: parsed.data,
+      data: updateData as any,
       select: VERSION_SELECT,
     });
 

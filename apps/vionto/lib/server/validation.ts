@@ -129,6 +129,42 @@ export const createProjectSchema = z.object({
 
 export const updateProjectSchema = createProjectSchema.partial();
 
+// ─── Story structure & caption overlay schemas (#102) ────────────────
+
+/** Chapter entry for a video's narrative structure. */
+const storyChapterSchema = z.object({
+  title: z.string().max(120).default(""),
+  description: z.string().max(500).default(""),
+});
+
+/** Story structure defines the narrative skeleton of a generated video. */
+export const storyStructureSchema = z.object({
+  openingTitle: z.string().max(200).default(""),
+  introNarration: z.string().max(1000).default(""),
+  chapters: z.array(storyChapterSchema).max(10).default([]),
+  climaxDescription: z.string().max(500).default(""),
+  closingMessage: z.string().max(500).default(""),
+  dedicationText: z.string().max(300).default(""),
+});
+
+export type StoryStructure = z.infer<typeof storyStructureSchema>;
+
+const CAPTION_PLACEMENTS = ["top", "bottom", "lower_third", "corner"] as const;
+const CAPTION_STYLE_PRESETS = ["minimal", "memory", "social", "documentary"] as const;
+
+/** Caption overlay settings control which metadata captions appear in the rendered video. */
+export const captionOverlaySettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  showSceneCaptions: z.boolean().default(true),
+  showDateCaptions: z.boolean().default(true),
+  showLocationCaptions: z.boolean().default(true),
+  showPeopleLabels: z.boolean().default(false),
+  placement: z.enum(CAPTION_PLACEMENTS).default("lower_third"),
+  stylePreset: z.enum(CAPTION_STYLE_PRESETS).default("minimal"),
+});
+
+export type CaptionOverlaySettings = z.infer<typeof captionOverlaySettingsSchema>;
+
 // ─── Video version schemas ──────────────────────────────────────────
 
 const musicOptionValues = ["calm_piano", "cinematic_strings", "travel_upbeat", "family_warm_acoustic", "no_music", "upload_own"] as const;
@@ -148,6 +184,8 @@ export const createVideoVersionSchema = z.object({
   aspectRatio: z.enum(["16:9", "9:16", "1:1", "4:3"]).default("16:9"),
   resolution: z.enum(["720p", "1080p", "4k"]).nullable().optional(),
   targetDurationSeconds: targetDurationSecondsSchema.optional(),
+  storyStructure: storyStructureSchema.nullable().optional(),
+  captionOverlaySettings: captionOverlaySettingsSchema.nullable().optional(),
   /** Clone settings from an existing version instead of using defaults. */
   cloneFromVersionId: z.string().cuid().optional(),
 });

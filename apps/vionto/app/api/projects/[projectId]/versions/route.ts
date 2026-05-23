@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { createVideoVersionSchema, formatZodError } from "@/lib/server/validation";
 
@@ -23,6 +23,8 @@ const VERSION_SELECT = {
   aspectRatio: true,
   resolution: true,
   targetDurationSeconds: true,
+  storyStructure: true,
+  captionOverlaySettings: true,
   createdAt: true,
   updatedAt: true,
   _count: { select: { scripts: true, renderJobs: true, exports: true } },
@@ -115,6 +117,8 @@ export async function POST(
           aspectRatio: true,
           resolution: true,
           targetDurationSeconds: true,
+          storyStructure: true,
+          captionOverlaySettings: true,
         },
       });
       if (!source) return badRequest("Source version not found.");
@@ -131,14 +135,22 @@ export async function POST(
       if (!album) return badRequest("Album not found.");
     }
 
+    // Transform null JSON values for Prisma compatibility
+    const createData: Record<string, unknown> = {
+      projectId,
+      userId: user.id,
+      ...cloneData,
+      ...data,
+      albumId: effectiveAlbumId,
+    };
+    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata"] as const) {
+      if (key in createData && createData[key] === null) {
+        createData[key] = Prisma.JsonNull;
+      }
+    }
+
     const version = await prisma.viontoVideoVersion.create({
-      data: {
-        projectId,
-        userId: user.id,
-        ...cloneData,
-        ...data,
-        albumId: effectiveAlbumId,
-      },
+      data: createData as any,
       select: VERSION_SELECT,
     });
 

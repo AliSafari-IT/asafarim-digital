@@ -179,6 +179,15 @@ export async function generateWithAnthropic(
   };
 }
 
+export type StoryStructureContext = {
+  openingTitle?: string;
+  introNarration?: string;
+  chapters?: { title: string; description: string }[];
+  climaxDescription?: string;
+  closingMessage?: string;
+  dedicationText?: string;
+};
+
 export type StoryPromptContext = {
   locale: string;
   mode: "story" | "slideshow" | "documentary";
@@ -190,6 +199,8 @@ export type StoryPromptContext = {
   exifSummary?: string;
   /** Target video duration in seconds (10–90, multiple of 5). Drives narration length. */
   targetDurationSeconds?: number;
+  /** Optional story structure with opening title, chapters, climax, etc. */
+  storyStructure?: StoryStructureContext;
 };
 
 export function buildStorySystemPrompt(locale: string): string {
@@ -218,6 +229,30 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
   if (ctx.exifSummary && ctx.exifSummary.trim()) {
     lines.push(`Photo metadata: ${ctx.exifSummary.trim()}`);
   }
+
+  // Story structure — give the LLM explicit narrative skeleton when provided.
+  const ss = ctx.storyStructure;
+  if (ss) {
+    const structureLines: string[] = [];
+    if (ss.openingTitle) structureLines.push(`Opening title: "${ss.openingTitle}"`);
+    if (ss.introNarration) structureLines.push(`Intro narration: ${ss.introNarration}`);
+    if (ss.chapters && ss.chapters.length > 0) {
+      const chapStr = ss.chapters
+        .filter((c) => c.title || c.description)
+        .map((c, i) => `Chapter ${i + 1}${c.title ? `: ${c.title}` : ""}${c.description ? ` — ${c.description}` : ""}`)
+        .join("; ");
+      if (chapStr) structureLines.push(`Chapters: ${chapStr}`);
+    }
+    if (ss.climaxDescription) structureLines.push(`Climax/highlight: ${ss.climaxDescription}`);
+    if (ss.closingMessage) structureLines.push(`Closing message: "${ss.closingMessage}"`);
+    if (ss.dedicationText) structureLines.push(`Dedication: "${ss.dedicationText}"`);
+    if (structureLines.length > 0) {
+      lines.push("");
+      lines.push("Story structure provided by the user:");
+      structureLines.forEach((l) => lines.push(`- ${l}`));
+    }
+  }
+
   lines.push("");
   lines.push("Instructions:");
   
@@ -278,6 +313,18 @@ export function buildStoryUserPrompt(ctx: StoryPromptContext): string {
     lines.push("- Favor elegant, intimate phrasing that works with a cinematic wedding treatment.");
   }
   
+  // Story structure instructions
+  if (ss) {
+    const hasContent = ss.openingTitle || ss.introNarration || (ss.chapters && ss.chapters.length > 0) || ss.climaxDescription || ss.closingMessage || ss.dedicationText;
+    if (hasContent) {
+      lines.push("- Follow the user's story structure. Incorporate the opening title, chapter flow, climax, closing, and dedication into the narration naturally.");
+      if (ss.openingTitle) lines.push(`- Start the narration by referencing or incorporating the opening title: "${ss.openingTitle}".`);
+      if (ss.closingMessage) lines.push(`- End the narration with the closing message: "${ss.closingMessage}".`);
+      if (ss.dedicationText) lines.push(`- Include a brief dedication at the very end: "${ss.dedicationText}".`);
+      lines.push("- If a field is empty, skip it naturally — do not create placeholder content for missing fields.");
+    }
+  }
+
   // Duration-aware narration and SRT instructions
   const targetSec = ctx.targetDurationSeconds ?? 30;
   const approxWords = Math.round(targetSec * 2.5); // ~150 wpm speaking rate
