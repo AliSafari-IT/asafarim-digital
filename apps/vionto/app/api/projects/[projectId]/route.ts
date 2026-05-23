@@ -104,9 +104,11 @@ async function handleUpdate(
       return badRequest(formatZodError(parsed.error));
     }
 
+    const { templateId: _templateId, ...projectUpdate } = parsed.data;
+
     const updated = await prisma.viontoProject.update({
       where: { id: projectId },
-      data: parsed.data,
+      data: projectUpdate,
       select: PROJECT_SELECT,
     });
 

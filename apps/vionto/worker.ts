@@ -21,6 +21,7 @@ import { synthesizeSpeech } from "./lib/server/tts";
 import { buildKey, downloadObjectToLocalFile, uploadLocalFileToStorage, createPresignedDownloadUrl, getStorageStatus } from "./lib/server/storage";
 import { QUEUE_NAME, getRenderQueue } from "./lib/server/queue";
 import { parseSrt, buildSrt, buildVtt, applyTransformToCues, wrapAllCues, generateSrtFromText } from "./lib/server/srt";
+import { advanceAlbumLifecycleStage } from "./lib/server/album-lifecycle";
 
 const REDIS_URL = process.env.REDIS_URL;
 if (!REDIS_URL) {
@@ -418,6 +419,17 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
     logLines.push(`Export record ${exportRecord.id} created`);
     await setLog(jobId, logLines);
     await updateState(jobId, "completed", { progressPercent: 100, completedAt: new Date() });
+    const version = manifest.versionId
+      ? await prisma.viontoVideoVersion.findFirst({
+          where: { id: manifest.versionId, projectId: manifest.projectId },
+          select: { albumId: true },
+        })
+      : null;
+    await advanceAlbumLifecycleStage(prisma, {
+      projectId: manifest.projectId,
+      albumId: version?.albumId ?? null,
+      stage: "published_exported",
+    });
 
     // Cleanup work dir (keep in debug mode)
     if (process.env.NODE_ENV === "production") {

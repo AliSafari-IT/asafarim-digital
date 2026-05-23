@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
+import { advanceAlbumLifecycleStage } from "@/lib/server/album-lifecycle";
 
 export const runtime = "nodejs";
 
@@ -111,6 +112,18 @@ export async function POST(req: Request) {
             mixSettings,
           },
         });
+
+    const version = versionId
+      ? await prisma.viontoVideoVersion.findFirst({
+          where: { id: versionId, projectId },
+          select: { albumId: true },
+        })
+      : null;
+    await advanceAlbumLifecycleStage(prisma, {
+      projectId,
+      albumId: version?.albumId ?? null,
+      stage: "audio_ready",
+    });
 
     return NextResponse.json(track, { status: 201 });
   } catch (error) {

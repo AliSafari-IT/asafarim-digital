@@ -26,6 +26,9 @@ const ALBUM_SELECT = {
   isBase: true,
   coverAssetId: true,
   metadata: true,
+  lifecycleStage: true,
+  collections: true,
+  isFavorite: true,
   dateFrom: true,
   dateTo: true,
   location: true,
@@ -40,7 +43,7 @@ const ALBUM_SELECT = {
 
 /** GET /api/projects/[projectId]/albums — list all albums for this project. */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
@@ -86,8 +89,16 @@ export async function GET(
       }
     }
 
+    const { searchParams } = new URL(req.url);
+    const collection = searchParams.get("collection")?.trim().toLowerCase();
+    const favoritesOnly = searchParams.get("favorite") === "true";
+
     const albums = await prisma.viontoAlbum.findMany({
-      where: { projectId },
+      where: {
+        projectId,
+        ...(collection ? { collections: { has: collection } } : {}),
+        ...(favoritesOnly ? { isFavorite: true } : {}),
+      },
       orderBy: [{ isBase: "desc" }, { createdAt: "asc" }],
       select: ALBUM_SELECT,
     });
@@ -117,6 +128,7 @@ export async function POST(
 
     const {
       name, description, fromBase, assetIds, coverAssetId, metadata,
+      lifecycleStage, collections, isFavorite,
       dateFrom, dateTo, location, people, occasion, mood, privacyLevel,
     } = parsed.data;
 
@@ -192,6 +204,9 @@ export async function POST(
           isBase: false,
           coverAssetId: coverAssetId ?? null,
           metadata: metadata ?? undefined,
+          lifecycleStage: lifecycleStage ?? (seedAssetIds.length > 0 ? "photos_uploaded" : "draft"),
+          collections: isFavorite ? Array.from(new Set([...(collections ?? []), "favorites"])) : collections,
+          isFavorite,
           dateFrom: dateFrom ?? undefined,
           dateTo: dateTo ?? undefined,
           location: location ?? undefined,

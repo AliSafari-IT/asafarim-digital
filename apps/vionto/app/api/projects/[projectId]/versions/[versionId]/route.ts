@@ -9,6 +9,7 @@ import {
   serverError,
 } from "@/lib/server/auth";
 import { updateVideoVersionSchema, formatZodError } from "@/lib/server/validation";
+import { getVideoTemplate } from "@/lib/video-templates";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,8 @@ const VERSION_SELECT = {
   userId: true,
   albumId: true,
   name: true,
+  templateId: true,
+  templateSettings: true,
   mode: true,
   storyMode: true,
   emotionalTone: true,
@@ -121,9 +124,17 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       if (!album) return badRequest("Album not found.");
     }
 
+    const template = getVideoTemplate(parsed.data.templateId);
+
     // Transform null JSON values for Prisma compatibility
-    const updateData: Record<string, unknown> = { ...parsed.data };
-    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata"] as const) {
+    const updateData: Record<string, unknown> = {
+      ...(template ? { ...template.settings, templateId: template.id, templateSettings: template.settings } : {}),
+      ...parsed.data,
+    };
+    if (parsed.data.templateId === null) {
+      updateData.templateSettings = Prisma.JsonNull;
+    }
+    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata", "templateSettings"] as const) {
       if (key in updateData && updateData[key] === null) {
         updateData[key] = Prisma.JsonNull;
       }

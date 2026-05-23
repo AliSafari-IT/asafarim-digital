@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma, prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
 import { createVideoVersionSchema, formatZodError } from "@/lib/server/validation";
+import { getVideoTemplate } from "@/lib/video-templates";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ const VERSION_SELECT = {
   userId: true,
   albumId: true,
   name: true,
+  templateId: true,
+  templateSettings: true,
   mode: true,
   storyMode: true,
   emotionalTone: true,
@@ -105,6 +108,8 @@ export async function POST(
         where: { id: cloneFromVersionId, projectId },
         select: {
           albumId: true,
+          templateId: true,
+          templateSettings: true,
           mode: true,
           storyMode: true,
           emotionalTone: true,
@@ -125,6 +130,15 @@ export async function POST(
       cloneData = { ...source };
     }
 
+    const template = getVideoTemplate(data.templateId);
+    const templateData = template
+      ? {
+          ...template.settings,
+          templateId: template.id,
+          templateSettings: template.settings,
+        }
+      : {};
+
     // Validate albumId if provided
     const effectiveAlbumId = data.albumId ?? (cloneData.albumId as string | null) ?? null;
     if (effectiveAlbumId) {
@@ -140,10 +154,13 @@ export async function POST(
       projectId,
       userId: user.id,
       ...cloneData,
+      ...templateData,
       ...data,
+      templateId: data.templateId ?? (templateData as { templateId?: string }).templateId ?? (cloneData.templateId as string | null) ?? null,
+      templateSettings: data.templateSettings ?? (templateData as { templateSettings?: unknown }).templateSettings ?? cloneData.templateSettings ?? null,
       albumId: effectiveAlbumId,
     };
-    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata"] as const) {
+    for (const key of ["storyStructure", "captionOverlaySettings", "subtitleSettings", "musicMetadata", "templateSettings"] as const) {
       if (key in createData && createData[key] === null) {
         createData[key] = Prisma.JsonNull;
       }

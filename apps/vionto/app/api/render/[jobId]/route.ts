@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@asafarim/db";
 import { getAuthedUser, unauthorized, badRequest, serverError } from "@/lib/server/auth";
+import { advanceAlbumLifecycleStage } from "@/lib/server/album-lifecycle";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,20 @@ export async function GET(
     });
     if (!job) {
       return badRequest("Render job not found.");
+    }
+
+    if (job.state === "completed") {
+      const version = job.versionId
+        ? await prisma.viontoVideoVersion.findFirst({
+            where: { id: job.versionId, projectId: job.projectId },
+            select: { albumId: true },
+          })
+        : null;
+      await advanceAlbumLifecycleStage(prisma, {
+        projectId: job.projectId,
+        albumId: version?.albumId ?? null,
+        stage: job.exports.length > 0 ? "published_exported" : "video_rendered",
+      });
     }
 
     return NextResponse.json({
