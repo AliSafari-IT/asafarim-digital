@@ -892,13 +892,16 @@ export function ViontoPage() {
     }
   }
 
-  async function createVideoVersion(name?: string) {
+  async function createVideoVersion(name?: string, albumId?: string | null) {
     if (!selectedProjectId) return;
     try {
       const res = await fetch(`/api/projects/${selectedProjectId}/versions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name || `Version ${videoVersions.length + 1}` }),
+        body: JSON.stringify({
+          name: name || `Version ${videoVersions.length + 1}`,
+          ...(albumId && { albumId }),
+        }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -2058,7 +2061,7 @@ export function ViontoPage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => createVideoVersion()}
+                      onClick={() => createVideoVersion(undefined, selectedAlbumId)}
                       className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
                     >
                       <Plus size={11} /> New version
@@ -2119,7 +2122,14 @@ export function ViontoPage() {
                               </button>
                             </form>
                           ) : (
-                            <span>{version.name}</span>
+                            <>
+                              <span>{version.name}</span>
+                              {version.albumId && (
+                                <span className="ml-1 rounded bg-[var(--color-surface)] px-1 py-0.5 text-[9px] text-[var(--color-text-muted)]">
+                                  {albums.find((a) => a.id === version.albumId)?.name ?? "Album"}
+                                </span>
+                              )}
+                            </>
                           )}
 
                           {/* Action buttons - show on hover for active tab */}
@@ -2564,6 +2574,21 @@ export function ViontoPage() {
                               {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}
                               Group by location
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const albumVersions = videoVersions.filter((v) => v.albumId === selectedAlbumId);
+                                createVideoVersion(
+                                  `${selectedAlbum?.name} - Version ${albumVersions.length + 1}`,
+                                  selectedAlbumId,
+                                );
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                              title="Create a new video version linked to this album"
+                            >
+                              <Clapperboard size={12} />
+                              New version
+                            </button>
                           </div>
                         </div>
                       )}
@@ -2632,6 +2657,32 @@ export function ViontoPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Linked video versions for this album */}
+                      {selectedAlbum && !isBaseAlbumSelected && (() => {
+                        const albumVersions = videoVersions.filter((v) => v.albumId === selectedAlbumId);
+                        if (albumVersions.length === 0) return null;
+                        return (
+                          <div className="mb-2 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Versions:</span>
+                            {albumVersions.map((v) => (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={() => setSelectedVersionId(v.id)}
+                                className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                  v.id === selectedVersionId
+                                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                    : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/50"
+                                }`}
+                              >
+                                <Clapperboard size={9} />
+                                {v.name}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
 
                       {/* Add images panel */}
                       {showAddImages && !isBaseAlbumSelected && (
