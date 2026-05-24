@@ -112,7 +112,7 @@ button {
   display: flex !important;
   flex-direction: row !important;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip (not hidden) — avoids creating a scroll container that breaks position:sticky */
 }
 
 .sidebar {
@@ -231,7 +231,8 @@ button {
   min-width: 0;
   flex: 1;
   padding: 0;
-  overflow: visible;
+  overflow-x: clip; /* clip (not hidden) to avoid creating a scroll container that breaks sticky */
+  max-width: 100%;
 }
 
 .topbar {
@@ -856,7 +857,7 @@ html[data-theme="dark"] .workspace-shell > aside {
 
 .main-panel {
   min-width: 0;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip (not hidden) — avoids creating a scroll container that breaks position:sticky */
 }
 
 .topbar {
@@ -1215,6 +1216,7 @@ input[type="text"] {
   .main-panel {
     min-width: 0;
     width: calc(100vw - 56px);
+    max-width: 100%; /* prevents overflow when 100vw > container width (e.g. Windows scrollbar adds ~15px) */
   }
 
   .main-panel > .px-5 {
