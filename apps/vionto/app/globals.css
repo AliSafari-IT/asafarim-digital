@@ -1039,14 +1039,39 @@ input[type="text"] {
 
 .visual-style-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* auto-fill: 2 cols in sidebar (~320px), 3 cols in wider panels — never 1 col unless
+     the container itself is narrower than 240px */
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
   min-width: 0;
 }
 
 .visual-style-grid button {
   min-width: 0;
-  border-radius: 2px !important;
+  min-height: 76px;
+  border-radius: 8px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Clamp description to 2 lines so cards stay uniform height */
+.visual-style-grid button .vs-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.visual-style-grid button .vs-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  margin-top: 3px;
 }
 
 .version-tabs {
@@ -1332,9 +1357,14 @@ input[type="text"] {
   }
 
   .mode-row,
-  .visual-style-grid,
   .pipeline {
     grid-template-columns: 1fr;
+  }
+
+  /* visual-style-grid: let auto-fill keep 2 cols at mobile width */
+  .visual-style-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
   }
 }
 
@@ -1378,9 +1408,14 @@ input[type="text"] {
   }
 
   .mode-row,
-  .visual-style-grid,
   .pipeline {
     grid-template-columns: 1fr;
+  }
+
+  /* visual-style-grid: maintain 2 cols even on small phones */
+  .visual-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
   }
 
   h1 {

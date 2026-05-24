@@ -3330,19 +3330,31 @@ export function ViontoPage() {
                 <div className="visual-style-grid mt-2">
                   {VISUAL_STYLE_OPTIONS.map((option) => {
                     const active = selectedVisualStyle === option.value;
+                    const STYLE_ICON: Record<string, string> = {
+                      film_grain: "🎞",
+                      polaroid_memory: "📷",
+                      clean_modern_slideshow: "🖼",
+                      travel_map_overlay: "🗺",
+                      vhs_archive: "📼",
+                      wedding_cinematic: "💍",
+                      social_vertical_captions: "📱",
+                    };
                     return (
                       <button
                         key={option.value}
                         type="button"
                         onClick={() => setSelectedVisualStyle(option.value)}
-                        className={`rounded-lg border p-3 text-left transition ${
+                        className={`border p-2.5 text-left transition ${
                           active
-                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)]"
-                            : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
+                            ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)] shadow-sm shadow-[var(--color-accent)]/20"
+                            : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-elevated)]"
                         }`}
                       >
-                        <span className="block text-sm font-semibold">{t(option.labelKey)}</span>
-                        <span className="mt-1 block text-xs leading-snug text-[var(--color-text-muted)]">{t(option.descriptionKey)}</span>
+                        <span className="mb-1 block text-base leading-none" aria-hidden="true">
+                          {STYLE_ICON[option.value] ?? "✨"}
+                        </span>
+                        <span className="vs-title">{t(option.labelKey)}</span>
+                        <span className="vs-desc text-[var(--color-text-muted)]">{t(option.descriptionKey)}</span>
                       </button>
                     );
                   })}
