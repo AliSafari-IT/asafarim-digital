@@ -136,6 +136,39 @@ async function isCancelled(jobId: string): Promise<boolean> {
   return job?.state === "cancelled";
 }
 
+/**
+ * Probe an audio/video file and return its duration in milliseconds.
+ * Uses ffprobe (ships alongside ffmpeg) so no extra dependency is needed.
+ */
+async function getAudioDurationMs(filePath: string): Promise<number> {
+  const FFPROBE_BIN = process.env.FFPROBE_PATH ?? "ffprobe";
+  return new Promise((resolve, reject) => {
+    const proc = spawn(FFPROBE_BIN, [
+      "-v", "quiet",
+      "-print_format", "json",
+      "-show_format",
+      filePath,
+    ]);
+    let out = "";
+    proc.stdout.on("data", (chunk: Buffer) => { out += chunk.toString(); });
+    proc.on("close", (code) => {
+      if (code !== 0) { reject(new Error(`ffprobe exited ${code}`)); return; }
+      try {
+        const json = JSON.parse(out) as { format?: { duration?: string } };
+        const secs = parseFloat(json.format?.duration ?? "0");
+        resolve(Math.round(secs * 1000));
+      } catch (e) {
+        reject(new Error(`Failed to parse ffprobe output: ${e}`));
+      }
+    });
+    proc.on("error", (e) => reject(new Error(
+      e.message.includes("ENOENT")
+        ? `ffprobe not found. Install ffmpeg or set FFPROBE_PATH. Tried: ${FFPROBE_BIN}`
+        : `ffprobe error: ${e.message}`
+    )));
+  });
+}
+
 /** Main job processor. */
 async function processRenderJob(jobId: string, manifestRaw: unknown) {
   const logLines: string[] = [`[${new Date().toISOString()}] Job ${jobId} start`];
@@ -322,6 +355,20 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         logLines.push(`Concatenated ${localMusicPaths.length} music tracks`);
       }
     }
+    // --- Probe actual narration duration for A/V sync ---
+    // TTS speaking speed doesn't match targetDurationSeconds, so we measure the
+    // real audio length and use it as the single source of truth for both the
+    // image segment timings and the SRT timestamps.
+    let actualNarrationMs: number | null = null;
+    if (narrationWavPath) {
+      try {
+        actualNarrationMs = await getAudioDurationMs(narrationWavPath);
+        logLines.push(`Narration duration: ${(actualNarrationMs / 1000).toFixed(2)}s (target was ${manifest.targetDurationSeconds ?? 30}s)`);
+      } catch (err) {
+        logLines.push(`Warning: could not probe narration duration — sync may drift: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     await updateState(jobId, "running", { progressPercent: 25 });
 
     if (await isCancelled(jobId)) {
@@ -341,6 +388,40 @@ async function processRenderJob(jobId: string, manifestRaw: unknown) {
         storageKey: localAssetPaths[i], // Replace storage key with local path
       })),
     };
+
+    // --- Sync image pacing and SRT timestamps to actual narration duration ---
+    if (actualNarrationMs !== null && actualNarrationMs > 0) {
+      const actualNarrationSec = actualNarrationMs / 1000;
+      const totalAssetSec = localManifest.assets.reduce((s, a) => s + (a.durationSeconds ?? 5), 0);
+
+      // Rescale each image segment so total video length == narration length
+      if (totalAssetSec > 0 && Math.abs(totalAssetSec - actualNarrationSec) > 0.5) {
+        const scale = actualNarrationSec / totalAssetSec;
+        logLines.push(`Rescaling image segments: ${totalAssetSec.toFixed(2)}s → ${actualNarrationSec.toFixed(2)}s (×${scale.toFixed(3)})`);
+        for (const asset of localManifest.assets) {
+          asset.durationSeconds = Math.max(1.0, Math.round((asset.durationSeconds ?? 5) * scale * 10) / 10);
+        }
+      }
+
+      // Rescale SRT cue timestamps so subtitles span the actual narration window
+      if (srtContent && srtPath) {
+        const cues = parseSrt(srtContent);
+        if (cues.length > 0) {
+          const lastEnd = cues[cues.length - 1].endMs;
+          if (lastEnd > 0 && Math.abs(lastEnd - actualNarrationMs) > 500) {
+            const scale = actualNarrationMs / lastEnd;
+            const rescaled = cues.map((cue) => ({
+              ...cue,
+              startMs: Math.round(cue.startMs * scale),
+              endMs:   Math.round(cue.endMs   * scale),
+            }));
+            const rescaledSrt = buildSrt(rescaled);
+            await writeFile(srtPath, rescaledSrt);
+            logLines.push(`Rescaled SRT timestamps ×${scale.toFixed(3)} to match narration`);
+          }
+        }
+      }
+    }
 
     const { steps, concatListPath } = buildRenderCommand(localManifest, workDir, {
       narrationWavPath,
