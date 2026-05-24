@@ -11,6 +11,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "clean": "turbo clean",
+    "git:reset": "git fetch --all && git reset --hard origin/main",
     "dev:portal": "turbo dev --filter=portal",
     "dev:ops": "turbo dev --filter=ops-hub",
     "dev:vionto": "turbo dev --filter=vionto",
