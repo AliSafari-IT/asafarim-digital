@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Updated:** 2026-05-08
+**Updated:** 2026-05-24
 **Status:** Phase 7 in progress
 **Purpose:** Practice a production-shaped AI marketplace system inside the
 ASafariM Digital monorepo.
@@ -362,3 +362,24 @@ Implemented the first functional project and asset flow for Vionto, replacing th
 What surprised me: The upload session infrastructure was already well-designed (in-memory for dev, Redis-ready for prod), but the complete endpoint was trusting client-provided metadata blindly. Server-side EXIF extraction adds a small latency but prevents tampering and ensures consistent metadata across the pipeline.
 
 What I would do differently next time: Consider adding thumbnail generation to the worker queue immediately instead of falling back to original URLs. The current implementation uses original URLs as thumbnails, which works but may load full-resolution images in the UI.
+
+### 2026-05-24 - VPS Docker disk recovery and health-check hardening
+
+What actually happened:
+
+- `pnpm rs` failed on the VPS with Docker overlay `no space left on device`.
+- Docker cleanup reclaimed enough space to move `/dev/sda1` from full to a stable state, and a 6-hour age-filtered prune confirmed that most remaining cache was newer than 6 hours.
+- The app images were rebuilt/recreated in a lower-pressure sequence, avoiding the previous Docker hang.
+- All web services restarted, but Docker marked them unhealthy because container health checks used `localhost`; inside the runtime containers `127.0.0.1` worked while `localhost` returned connection refused.
+- Compose health checks were changed to `127.0.0.1`, then services were recreated without rebuilding and all app containers became healthy.
+
+What surprised me:
+
+- The VPS provider panel still showed very high disk usage while `df -h /` reported the Linux filesystem at roughly 55% used after cleanup.
+- Recent BuildKit cache can be large enough to risk another hang, but it is not removed by an `until=6h` prune.
+
+What I would do differently next time:
+
+- Build large Next.js app images sequentially on the small VPS instead of recreating all apps in one parallel Compose operation after a full cache prune.
+- Keep Docker health checks pinned to `127.0.0.1` in containers that bind to `0.0.0.0`.
+- Run the existing post-deploy prune routinely, and use a more aggressive BuildKit cache prune only when disk pressure is visible.

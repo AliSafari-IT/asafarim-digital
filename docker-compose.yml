@@ -102,7 +102,7 @@ services:
     volumes:
       - portal_uploads:/app/apps/portal/public/uploads
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000"]
       interval: 30s
       timeout: 10s
 
@@ -141,7 +141,7 @@ services:
     networks:
       - asafarim-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3001"]
       interval: 30s
       timeout: 10s
 
@@ -175,7 +175,7 @@ services:
     networks:
       - asafarim-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3003/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3003/api/health"]
       interval: 30s
       timeout: 10s
 
@@ -210,7 +210,7 @@ services:
     networks:
       - asafarim-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3004/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3004/api/health"]
       interval: 30s
       timeout: 10s
 
@@ -269,7 +269,7 @@ services:
     networks:
       - asafarim-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3005/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3005/api/health"]
       interval: 30s
       timeout: 10s
 
@@ -315,7 +315,7 @@ services:
     networks:
       - asafarim-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3006/api/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3006/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
