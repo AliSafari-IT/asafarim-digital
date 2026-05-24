@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
 import type { SubtitleConfig as SubtitleConfigType } from "@/lib/server/render-manifest";
 import { useTranslation } from "@asafarim/shared-i18n";
@@ -206,7 +206,9 @@ function previewFrameStyle(aspectRatio: string | null | undefined) {
 
 export function ViontoPage() {
   const { t, locale } = useTranslation();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const queryProjectId = searchParams?.get("projectId") ?? null;
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [subtitlesCollapsed, setSubtitlesCollapsed] = useState(false);
@@ -307,7 +309,7 @@ export function ViontoPage() {
   // Project state — pre-select from ?projectId= URL param if present
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    () => searchParams?.get("projectId") ?? null
+    () => queryProjectId
   );
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isSubmittingProject, setIsSubmittingProject] = useState(false);
@@ -523,6 +525,26 @@ export function ViontoPage() {
     loadExportLibrary();
   }, []);
 
+  useEffect(() => {
+    setSelectedProjectId((current) => (current === queryProjectId ? current : queryProjectId));
+  }, [queryProjectId]);
+
+  useEffect(() => {
+    if (!selectedProjectId || projects.some((project) => project.id === selectedProjectId)) return;
+
+    let cancelled = false;
+    loadProject(selectedProjectId).then((project) => {
+      if (cancelled || !project) return;
+      setProjects((current) => (
+        current.some((item) => item.id === project.id) ? current : [project, ...current]
+      ));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProjectId, projects]);
+
   // Load assets when project is selected
   useEffect(() => {
     if (selectedProjectId) {
@@ -587,6 +609,28 @@ export function ViontoPage() {
     } finally {
       setIsLoadingProjects(false);
     }
+  }
+
+  async function loadProject(projectId: string): Promise<ProjectSummary | null> {
+    try {
+      const res = await fetch(`/api/projects/${projectId}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (error) {
+      console.error("Failed to load project", error);
+      return null;
+    }
+  }
+
+  function selectProject(projectId: string | null) {
+    setSelectedProjectId(projectId);
+
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (projectId) params.set("projectId", projectId);
+    else params.delete("projectId");
+
+    const query = params.toString();
+    router.replace(query ? `/create?${query}` : "/create", { scroll: false });
   }
 
   async function reorderAssets(newOrder: typeof projectAssets) {
@@ -1620,7 +1664,7 @@ export function ViontoPage() {
       }
       const project = await res.json();
       await loadProjects();
-      setSelectedProjectId(project.id);
+      selectProject(project.id);
       setNewProjectTitle("");
       setSelectedTemplateId("");
       setIsCreatingProject(false);
@@ -2218,7 +2262,7 @@ export function ViontoPage() {
                   <select
                     className="flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                     value={selectedProjectId ?? ""}
-                    onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                    onChange={(e) => selectProject(e.target.value || null)}
                     disabled={isLoadingProjects || isUploading}
                   >
                     <option value="">{t("vionto.project.selectPlaceholder")}</option>
