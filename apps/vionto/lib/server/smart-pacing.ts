@@ -40,11 +40,18 @@ export async function analyzeProjectForPacing(
     skipDuplicateDetection?: boolean;
     targetTotalDurationSeconds?: number;
     preferShorterCuts?: boolean;
+    /** When set, only analyze these asset IDs (e.g. the album subset being rendered). */
+    assetIds?: string[];
   }
 ): Promise<SmartPacingResult> {
-  // Fetch project assets
+  // Fetch only the assets that will actually be rendered so the pacing plan
+  // distributes the target duration across the correct number of images.
   const assets = await prisma.viontoAsset.findMany({
-    where: { projectId, type: "source_image" },
+    where: {
+      projectId,
+      type: "source_image",
+      ...(options?.assetIds?.length ? { id: { in: options.assetIds } } : {}),
+    },
     select: {
       id: true,
       storageKey: true,

@@ -270,6 +270,10 @@ export async function POST(req: Request) {
           settings.storyMode || "memory_film",
           {
             targetTotalDurationSeconds: projectTargetDuration,
+            // Scope the pacing plan to exactly the assets being rendered so the
+            // target duration is distributed across the correct number of images
+            // (album subset or all project assets).
+            assetIds: rawAssets.map((a) => a.id),
           }
         );
 
