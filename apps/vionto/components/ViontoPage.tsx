@@ -2906,21 +2906,6 @@ export function ViontoPage() {
                               {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}
                               Group by location
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const albumVersions = videoVersions.filter((v) => v.albumId === selectedAlbumId);
-                                createVideoVersion(
-                                  `${selectedAlbum?.name} - Version ${albumVersions.length + 1}`,
-                                  selectedAlbumId,
-                                );
-                              }}
-                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
-                              title="Create a new video version linked to this album"
-                            >
-                              <Clapperboard size={12} />
-                              New version
-                            </button>
                           </div>
                         </div>
                       )}
@@ -3029,10 +3014,12 @@ export function ViontoPage() {
                       {/* Linked video versions for this album */}
                       {selectedAlbum && !isBaseAlbumSelected && (() => {
                         const albumVersions = videoVersions.filter((v) => v.albumId === selectedAlbumId);
-                        if (albumVersions.length === 0) return null;
                         return (
                           <div className="mb-2 flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Versions:</span>
+                            <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Video versions using this album:</span>
+                            {albumVersions.length === 0 && (
+                              <span className="text-[10px] text-[var(--color-text-muted)] italic">None yet</span>
+                            )}
                             {albumVersions.map((v) => (
                               <button
                                 key={v.id}
@@ -3048,6 +3035,21 @@ export function ViontoPage() {
                                 {v.name}
                               </button>
                             ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!confirm(`Create a new video version linked to "${selectedAlbum.name}"?\n\nThis adds a new entry in the Video Version tabs above — it is separate from the album itself.`)) return;
+                                createVideoVersion(
+                                  `${selectedAlbum.name} - Version ${albumVersions.length + 1}`,
+                                  selectedAlbumId,
+                                );
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md border border-dashed border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+                              title="Create a brand-new video version linked to this album"
+                            >
+                              <Plus size={9} />
+                              New video version
+                            </button>
                           </div>
                         );
                       })()}
