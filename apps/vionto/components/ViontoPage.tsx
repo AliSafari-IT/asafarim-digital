@@ -2616,7 +2616,10 @@ export function ViontoPage() {
 
               {/* ─── Album Management ──────────────────────────────────────── */}
               {selectedProjectId && (
-                <div className="mt-4" aria-label="Album management">
+                <div
+                  className="mt-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2.5"
+                  aria-label="Album management"
+                >
                   {/* Album selector bar */}
                   <div className="flex items-center justify-between gap-2">
                     <div>
@@ -3280,6 +3283,9 @@ export function ViontoPage() {
                 </div>
               )}
               {/* ─── End Album Management ───────────────────────────────────── */}
+
+              {/* ─── Video Settings separator ────────────────────────────────── */}
+              <hr className="settings-separator" role="separator" aria-hidden="true" />
 
               <div className="mode-row" aria-label={t("vionto.aria.videoModePresets")}>
                 {modes.map((mode) => (

@@ -99,8 +99,8 @@ function SubtitlePreview({
 
   return (
     <div
-      className={`relative rounded-lg overflow-hidden ${theme.bgSurfaceElevated} ${theme.border}`}
-      style={{ width: dims.w, height: dims.h, borderWidth: 1 }}
+      className={`relative rounded-lg overflow-hidden w-full ${theme.bgSurfaceElevated} ${theme.border}`}
+      style={{ maxWidth: dims.w, aspectRatio: `${dims.w}/${dims.h}`, borderWidth: 1 }}
     >
       <div className="absolute inset-0 flex items-center justify-center opacity-20">
         <Eye className={`w-10 h-10 ${theme.textMuted}`} />

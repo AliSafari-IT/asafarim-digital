@@ -932,8 +932,9 @@ h2 {
   max-width: 100%;
   min-width: 0;
   gap: 20px;
-  overflow: hidden;
   padding: 20px;
+  /* overflow: visible (default) — do NOT use overflow:hidden here; it clips
+     focus rings, box-shadows of child elements, and dropdown menus */
 }
 
 .project-picker-row,
@@ -951,17 +952,14 @@ h2 {
 .project-new-button {
   flex: 0 0 auto;
   justify-content: center;
-  border-radius: 2px;
-  background: var(--color-primary) !important;
-  color: #fff !important;
   white-space: nowrap;
+  /* accent color is set by Tailwind bg-[var(--color-accent)] in JSX — do NOT override with !important */
 }
 
-select,
-textarea,
-input[type="text"] {
-  border-radius: 2px !important;
-}
+/* REMOVED: global border-radius:2px !important on form elements.
+   That rule fought with Tailwind's rounded-* utility classes because non-layered CSS
+   beats @layer utilities even without !important, making rounded-md/lg useless.
+   Each element now controls its own radius via Tailwind classes in JSX. */
 
 .dropzone {
   min-width: 0;
@@ -1087,6 +1085,14 @@ input[type="text"] {
   border-radius: 2px;
 }
 
+/* ── Visual divider between project-management content and video-settings ── */
+.settings-separator {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 16px 0 8px;
+  opacity: 0.6;
+}
+
 .preview-panel {
   position: sticky;
   top: 66px;
@@ -1133,9 +1139,9 @@ input[type="text"] {
 
 .preview-copy button,
 .script-regenerate-button {
-  border-radius: 2px;
-  background: var(--color-primary) !important;
-  color: #fff !important;
+  border-radius: 6px;
+  /* background/color are handled by Tailwind bg-[var(--color-accent)] in JSX —
+     removed !important override that was forcing primary-blue onto accent-gold buttons */
 }
 
 .pipeline {
