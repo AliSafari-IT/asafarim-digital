@@ -1145,14 +1145,19 @@ export function ViontoPage() {
       const latestCompletedExport = (data.data || []).find((item: any) => item.renderJob?.state === "completed");
       if (latestCompletedExport) {
         setRenderJobId(latestCompletedExport.renderJobId ?? null);
-        setRenderState("completed");
+        // Never clobber an in-progress render triggered by the user
+        setRenderState((current) =>
+          current === "queued" || current === "running" ? current : "completed"
+        );
         setRenderProgress(100);
         setRenderError(null);
         setExportId(latestCompletedExport.id);
         setDownloadUrl(null);
       } else {
         setRenderJobId(null);
-        setRenderState("idle");
+        setRenderState((current) =>
+          current === "queued" || current === "running" ? current : "idle"
+        );
         setRenderProgress(0);
         setRenderError(null);
         setExportId(null);
@@ -1404,24 +1409,29 @@ export function ViontoPage() {
       setRenderError(t("vionto.render.error.noScript"));
       return;
     }
+
+    // Lock the UI immediately so any async side-effects (e.g. saveProjectSettings
+    // triggering the projects useEffect → loadProjectExports) cannot flash "completed".
+    setRenderState("queued");
+    setRenderProgress(0);
+    setRenderError(null);
+    setExportId(null);
+    setDownloadUrl(null);
+
     const savedSettings = await saveProjectSettings();
     if (!savedSettings) {
       alert(t("vionto.alert.saveSettingsFailed"));
       setRenderError(t("vionto.render.error.saveSettingsFailed"));
+      setRenderState("idle");
       return;
     }
     const savedSubtitleSettings = await saveSubtitleSettingsNow();
     if (!savedSubtitleSettings) {
       alert(t("vionto.alert.saveSubtitlesFailed"));
       setRenderError(t("vionto.render.error.saveSubtitlesFailed"));
+      setRenderState("idle");
       return;
     }
-
-    setRenderState("queued");
-    setRenderProgress(0);
-    setRenderError(null);
-    setExportId(null);
-    setDownloadUrl(null);
 
     try {
       const res = await fetch("/api/render", {
