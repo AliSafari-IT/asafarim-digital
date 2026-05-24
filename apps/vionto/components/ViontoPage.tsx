@@ -2302,15 +2302,15 @@ export function ViontoPage() {
               {/* ─── Video Version Selector ─────────────────────────────────── */}
               {selectedProjectId && videoVersions.length > 0 && (
                 <div className="mt-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <label className="text-xs font-medium text-[var(--color-text-muted)]">
                       Video Version
                     </label>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:justify-end">
                       <select
                         value={versionTemplateId}
                         onChange={(e) => setVersionTemplateId(e.target.value as VideoTemplateId | "")}
-                        className="max-w-36 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                        className="min-w-0 max-w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)] sm:max-w-36"
                         aria-label="Video template"
                       >
                         <option value="">Manual</option>
@@ -2321,7 +2321,7 @@ export function ViontoPage() {
                       <button
                         type="button"
                         onClick={() => createVideoVersion(undefined, selectedAlbumId)}
-                        className="text-xs font-medium text-[var(--color-accent)] hover:underline flex items-center gap-1"
+                        className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--color-accent)] hover:underline"
                       >
                         <Plus size={11} /> New version
                       </button>
@@ -2335,7 +2335,7 @@ export function ViontoPage() {
                       return (
                         <div
                           key={version.id}
-                          className={`group relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition cursor-pointer select-none whitespace-nowrap ${
+                          className={`group relative flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition cursor-pointer select-none whitespace-nowrap ${
                             isActive
                               ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-text)] font-medium"
                               : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/50"
@@ -2383,9 +2383,9 @@ export function ViontoPage() {
                             </form>
                           ) : (
                             <>
-                              <span>{version.name}</span>
+                              <span className="min-w-0 max-w-[12rem] truncate">{version.name}</span>
                               {version.albumId && (
-                                <span className="ml-1 rounded bg-[var(--color-surface)] px-1 py-0.5 text-[9px] text-[var(--color-text-muted)]">
+                                <span className="ml-1 max-w-[8rem] truncate rounded bg-[var(--color-surface)] px-1 py-0.5 text-[9px] text-[var(--color-text-muted)]">
                                   {albums.find((a) => a.id === version.albumId)?.name ?? "Album"}
                                 </span>
                               )}
@@ -2621,20 +2621,20 @@ export function ViontoPage() {
                   aria-label="Album management"
                 >
                   {/* Album selector bar */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
                       <p className="text-xs font-medium text-[var(--color-text-muted)]">Album for active version</p>
                       {activeVersion && (
-                        <p className="text-[10px] text-[var(--color-text-muted)]">
+                        <p className="text-[10px] text-[var(--color-text-muted)] break-words">
                           {activeVersion.name} renders from {selectedAlbum?.name ?? "the selected album"}.
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:justify-end">
                       <select
                         value={albumCollectionFilter}
                         onChange={(e) => setAlbumCollectionFilter(e.target.value)}
-                        className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
+                        className="min-w-0 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs text-[var(--color-text)] outline-none focus:border-[var(--color-accent)]"
                         aria-label="Album collection"
                       >
                         <option value="">All</option>
@@ -2645,7 +2645,7 @@ export function ViontoPage() {
                       <button
                         type="button"
                         onClick={() => setShowCreateAlbum(true)}
-                        className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
                       >
                         <Plus size={12} />
                         New album
@@ -2658,7 +2658,7 @@ export function ViontoPage() {
                   ) : (
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {albums.map((album) => (
-                        <div key={album.id} className="group relative flex items-center gap-1">
+                        <div key={album.id} className="group relative flex min-w-0 items-center gap-1">
                           {renamingAlbumId === album.id ? (
                             <input
                               type="text"
@@ -2682,7 +2682,7 @@ export function ViontoPage() {
                                   setRenameAlbumValue(album.name);
                                 }
                               }}
-                              className={`flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                              className={`flex min-w-0 max-w-full items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                                 selectedAlbumId === album.id
                                   ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
                                   : "border-[var(--color-border)] bg-[var(--color-surface-soft)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
@@ -2693,7 +2693,7 @@ export function ViontoPage() {
                               {!album.isBase && album.privacyLevel === "unlisted" && <EyeOff size={9} className="opacity-50" />}
                               {!album.isBase && album.privacyLevel === "public" && <Globe size={9} className="opacity-50" />}
                               {album.isFavorite && <span className="text-[10px] text-[var(--color-accent)]">★</span>}
-                              {album.name}
+                              <span className="min-w-0 max-w-[10rem] truncate">{album.name}</span>
                               {album.id === activeVersionAlbumId && (
                                 <span className="rounded bg-[var(--color-accent)]/10 px-1 text-[9px] text-[var(--color-accent)]">
                                   linked
@@ -2865,15 +2865,15 @@ export function ViontoPage() {
                       )}
                       {/* Toolbar for non-base albums */}
                       {!isBaseAlbumSelected && (
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <p className="text-xs text-[var(--color-text-muted)]">
+                        <div className="mb-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="min-w-0 text-xs text-[var(--color-text-muted)] break-words">
                             {selectedAlbum?.name} · {albumItems.length} images · drag to reorder
                           </p>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:justify-end">
                             <button
                               type="button"
                               onClick={() => { if (selectedAlbum) openAlbumDetails(selectedAlbum); }}
-                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
                             >
                               <Pencil size={12} />
                               Details
@@ -2884,7 +2884,7 @@ export function ViontoPage() {
                                 setShowAddImages(true);
                                 setAddImageSelection(new Set());
                               }}
-                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors"
                             >
                               <ImagePlus size={12} />
                               Add images
@@ -2893,7 +2893,7 @@ export function ViontoPage() {
                               type="button"
                               onClick={() => handleSortAlbum("date_asc")}
                               disabled={isSorting || albumItems.length < 2}
-                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                               title="Sort images by EXIF date (oldest first)"
                             >
                               {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <ArrowUpDown size={12} />}
@@ -2903,7 +2903,7 @@ export function ViontoPage() {
                               type="button"
                               onClick={() => handleSortAlbum("location")}
                               disabled={isSorting || albumItems.length < 2}
-                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-2 py-1 text-xs font-medium text-[var(--color-text)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50"
                               title="Group images by GPS location"
                             >
                               {isSorting ? <RefreshCw size={12} className="animate-spin" /> : <MapPin size={12} />}

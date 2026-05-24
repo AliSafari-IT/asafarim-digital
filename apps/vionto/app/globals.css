@@ -937,6 +937,29 @@ h2 {
      focus rings, box-shadows of child elements, and dropdown menus */
 }
 
+.upload-panel,
+.preview-panel,
+.preview-copy,
+.script-editor,
+.job-card,
+.pipeline-step,
+.dropzone,
+.project-assets-grid,
+.version-tabs {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.upload-panel > *,
+.preview-panel > *,
+.preview-copy > *,
+.script-editor > *,
+.job-card > *,
+.pipeline-step > * {
+  min-width: 0;
+}
+
 .project-picker-row,
 .settings-row {
   display: flex;
@@ -1074,6 +1097,9 @@ h2 {
 }
 
 .version-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
