@@ -140,13 +140,15 @@ function buildImageSegmentCmd(
   const totalFrames = Math.max(1, Math.round(duration * frameRate));
   const { zExpr, xExpr, yExpr } = buildZoompanExpr(motion, frameRate, totalFrames);
 
-  // zoompan outputs at 1fps by default; we use fps filter after it
+  // Scale to fill (center-crop) then apply Ken Burns motion.
+  // "increase" + crop ensures the frame is always filled — no letterbox/pillarbox
+  // black bars even when the source image has a different aspect ratio than the target.
   return [
     "-framerate", String(frameRate),
     "-loop", "1",
     "-i", asset.storageKey,
     "-vf",
-    `scale=${res.width}:${res.height}:force_original_aspect_ratio=decrease,pad=${res.width}:${res.height}:(ow-iw)/2:(oh-ih)/2:black,zoompan=z='${zExpr}':x='${xExpr}':y='${yExpr}':d=${totalFrames}:s=${res.width}x${res.height},fps=${frameRate}`,
+    `scale=${res.width}:${res.height}:force_original_aspect_ratio=increase,crop=${res.width}:${res.height},zoompan=z='${zExpr}':x='${xExpr}':y='${yExpr}':d=${totalFrames}:s=${res.width}x${res.height},fps=${frameRate}`,
     "-c:v", "libx264",
     "-pix_fmt", "yuv420p",
     "-t", String(duration),
@@ -290,7 +292,10 @@ export function buildRenderCommand(
     : "";
 
   const vfParts: string[] = [];
-  vfParts.push(`scale=${res.width}:${res.height}:force_original_aspect_ratio=decrease,pad=${res.width}:${res.height}:(ow-iw)/2:(oh-ih)/2:black`);
+  // Center-crop to fill: eliminates any residual letterbox/pillarbox from concat.
+  // Input segments are already correctly sized so this is effectively a no-op
+  // for well-formed input, but guarantees exact WxH output in edge cases.
+  vfParts.push(`scale=${res.width}:${res.height}:force_original_aspect_ratio=increase,crop=${res.width}:${res.height}`);
   vfParts.push(...buildVisualStyleFilters(visualStyle, Boolean(videoFilter)));
   if (videoFilter) vfParts.push(videoFilter);
 

@@ -3869,7 +3869,7 @@ export function ViontoPage() {
                       controls
                       playsInline
                       preload="metadata"
-                      className="h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                   ) : (
                     <>
