@@ -477,6 +477,7 @@ export function ViontoPage() {
   };
   const [videoVersions, setVideoVersions] = useState<VideoVersion[]>([]);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const lastAppliedVersionId = useRef<string | null>(null);
   const [isLoadingVersions, setIsLoadingVersions] = useState(false);
   const [renamingVersionId, setRenamingVersionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -711,7 +712,7 @@ export function ViontoPage() {
       setNewAlbumCollections([]);
       setNewAlbumFavorite(false);
       await loadProjectAlbums(selectedProjectId);
-      setSelectedAlbumId(created.id);
+      await selectAlbumForActiveVersion(created.id);
     } catch (error) {
       console.error("Failed to create album", error);
       alert("Failed to create album");
@@ -969,9 +970,41 @@ export function ViontoPage() {
   }
 
   const selectedAlbum = albums.find((a) => a.id === selectedAlbumId) ?? null;
+  const activeVersion = videoVersions.find((v) => v.id === selectedVersionId) ?? null;
+  const activeVersionAlbumId = activeVersion?.albumId ?? albums.find((album) => album.isBase)?.id ?? albums[0]?.id ?? null;
   const isBaseAlbumSelected = selectedAlbum?.isBase ?? true;
   const metaEditorItem = albumItems.find((i) => i.id === metaEditorItemId) ?? null;
   const metaEditorAssetUrl = metaEditorItem?.asset.thumbnailUrl ?? metaEditorItem?.asset.originalUrl ?? null;
+
+  async function selectAlbumForActiveVersion(albumId: string) {
+    setSelectedAlbumId(albumId);
+
+    if (!selectedProjectId || !selectedVersionId) return;
+    const previousAlbumId = activeVersion?.albumId ?? null;
+    if (previousAlbumId === albumId) return;
+
+    try {
+      const res = await fetch(`/api/projects/${selectedProjectId}/versions/${selectedVersionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ albumId }),
+      });
+      if (!res.ok) {
+        const message = await res.text().catch(() => "");
+        throw new Error(message || "Failed to link album to version");
+      }
+      setVideoVersions((prev) =>
+        prev.map((version) =>
+          version.id === selectedVersionId ? { ...version, albumId } : version
+        )
+      );
+      setScriptStale(true);
+    } catch (error) {
+      console.error("Failed to link album to version", error);
+      setSelectedAlbumId(previousAlbumId ?? activeVersionAlbumId);
+      alert("Could not link this album to the active version.");
+    }
+  }
 
   // ─── End album management functions ────────────────────────────────────────
 
@@ -1081,33 +1114,46 @@ export function ViontoPage() {
     if (!selectedVersionId) return;
     const version = videoVersions.find((v) => v.id === selectedVersionId);
     if (!version) return;
-    setActiveMode(API_MODE_TO_UI_MODE[version.mode] ?? "cinematic");
-    setSelectedStoryMode(version.storyMode ?? "memory_film");
-    setSelectedEmotionalTone(version.emotionalTone ?? "nostalgic");
-    setSelectedVisualStyle(normalizeVisualStyle(version.visualStyle));
-    const supportedAspect = ASPECT_OPTIONS.some((o) => o.value === version.aspectRatio);
-    setActiveAspectRatio(supportedAspect ? version.aspectRatio as AspectRatio : "16:9");
-    setTargetDurationSeconds(version.targetDurationSeconds ?? 20);
-    if (version.albumId) setSelectedAlbumId(version.albumId);
-    // Apply story structure (#102)
-    const ss = version.storyStructure;
-    setOpeningTitle(ss?.openingTitle ?? "");
-    setIntroNarration(ss?.introNarration ?? "");
-    setChapters(ss?.chapters ?? []);
-    setClimaxDescription(ss?.climaxDescription ?? "");
-    setClosingMessage(ss?.closingMessage ?? "");
-    setDedicationText(ss?.dedicationText ?? "");
-    // Apply caption overlay settings (#102)
-    const cos = version.captionOverlaySettings;
-    setCaptionsEnabled(cos?.enabled ?? false);
-    setShowSceneCaptions(cos?.showSceneCaptions ?? true);
-    setShowDateCaptions(cos?.showDateCaptions ?? true);
-    setShowLocationCaptions(cos?.showLocationCaptions ?? true);
-    setShowPeopleLabels(cos?.showPeopleLabels ?? false);
-    setCaptionPlacement(cos?.placement ?? "lower_third");
-    setCaptionStylePreset(cos?.stylePreset ?? "minimal");
-    setScriptStale(false);
-  }, [selectedVersionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const shouldApplySettings = lastAppliedVersionId.current !== selectedVersionId;
+    if (shouldApplySettings) {
+      setActiveMode(API_MODE_TO_UI_MODE[version.mode] ?? "cinematic");
+      setSelectedStoryMode(version.storyMode ?? "memory_film");
+      setSelectedEmotionalTone(version.emotionalTone ?? "nostalgic");
+      setSelectedVisualStyle(normalizeVisualStyle(version.visualStyle));
+      const supportedAspect = ASPECT_OPTIONS.some((o) => o.value === version.aspectRatio);
+      setActiveAspectRatio(supportedAspect ? version.aspectRatio as AspectRatio : "16:9");
+      setTargetDurationSeconds(version.targetDurationSeconds ?? 20);
+    }
+    setSelectedAlbumId(
+      version.albumId ??
+      albums.find((album) => album.isBase)?.id ??
+      albums[0]?.id ??
+      null
+    );
+
+    if (shouldApplySettings) {
+      // Apply story structure (#102)
+      const ss = version.storyStructure;
+      setOpeningTitle(ss?.openingTitle ?? "");
+      setIntroNarration(ss?.introNarration ?? "");
+      setChapters(ss?.chapters ?? []);
+      setClimaxDescription(ss?.climaxDescription ?? "");
+      setClosingMessage(ss?.closingMessage ?? "");
+      setDedicationText(ss?.dedicationText ?? "");
+      // Apply caption overlay settings (#102)
+      const cos = version.captionOverlaySettings;
+      setCaptionsEnabled(cos?.enabled ?? false);
+      setShowSceneCaptions(cos?.showSceneCaptions ?? true);
+      setShowDateCaptions(cos?.showDateCaptions ?? true);
+      setShowLocationCaptions(cos?.showLocationCaptions ?? true);
+      setShowPeopleLabels(cos?.showPeopleLabels ?? false);
+      setCaptionPlacement(cos?.placement ?? "lower_third");
+      setCaptionStylePreset(cos?.stylePreset ?? "minimal");
+      setScriptStale(false);
+      lastAppliedVersionId.current = selectedVersionId;
+    }
+  }, [selectedVersionId, videoVersions, albums]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── End video version management functions ─────────────────────────────
 
@@ -1250,7 +1296,7 @@ export function ViontoPage() {
         const res = await fetch(`/api/projects/${selectedProjectId}/versions/${selectedVersionId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(settingsData),
+          body: JSON.stringify({ ...settingsData, albumId: selectedAlbumId ?? null }),
         });
         if (!res.ok) {
           const message = await res.text().catch(() => "");
@@ -1440,7 +1486,7 @@ export function ViontoPage() {
         body: JSON.stringify({
           projectId: selectedProjectId,
           versionId: selectedVersionId ?? undefined,
-          albumId: selectedAlbumId ?? undefined,
+          ...(!selectedVersionId && selectedAlbumId ? { albumId: selectedAlbumId } : {}),
         }),
       });
       if (!res.ok) {
@@ -1799,7 +1845,7 @@ export function ViontoPage() {
         body: JSON.stringify({
           projectId: selectedProjectId,
           versionId: selectedVersionId ?? undefined,
-          albumId: selectedAlbumId ?? undefined,
+          ...(!selectedVersionId && selectedAlbumId ? { albumId: selectedAlbumId } : {}),
           locale: locale.split("-")[0] ?? "en",
           mode: apiMode,
           visualStyle: selectedVisualStyle,
@@ -2573,7 +2619,14 @@ export function ViontoPage() {
                 <div className="mt-4" aria-label="Album management">
                   {/* Album selector bar */}
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-[var(--color-text-muted)]">Albums</p>
+                    <div>
+                      <p className="text-xs font-medium text-[var(--color-text-muted)]">Album for active version</p>
+                      {activeVersion && (
+                        <p className="text-[10px] text-[var(--color-text-muted)]">
+                          {activeVersion.name} renders from {selectedAlbum?.name ?? "the selected album"}.
+                        </p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1.5">
                       <select
                         value={albumCollectionFilter}
@@ -2619,7 +2672,7 @@ export function ViontoPage() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setSelectedAlbumId(album.id)}
+                              onClick={() => selectAlbumForActiveVersion(album.id)}
                               onDoubleClick={() => {
                                 if (!album.isBase) {
                                   setRenamingAlbumId(album.id);
@@ -2638,6 +2691,11 @@ export function ViontoPage() {
                               {!album.isBase && album.privacyLevel === "public" && <Globe size={9} className="opacity-50" />}
                               {album.isFavorite && <span className="text-[10px] text-[var(--color-accent)]">★</span>}
                               {album.name}
+                              {album.id === activeVersionAlbumId && (
+                                <span className="rounded bg-[var(--color-accent)]/10 px-1 text-[9px] text-[var(--color-accent)]">
+                                  linked
+                                </span>
+                              )}
                               <span className="rounded bg-[var(--color-accent)]/10 px-1 text-[9px] text-[var(--color-accent)]">
                                 {LIFECYCLE_LABELS[album.lifecycleStage]?.label ?? album.lifecycleStage}
                               </span>
