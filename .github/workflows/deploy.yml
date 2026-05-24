@@ -151,14 +151,18 @@ jobs:
             docker compose rm -f db-migrate || true
             echo "Docker disk usage before cleanup:"
             docker system df || true
-            # Only prune if disk is >80% full to avoid wiping caches every deploy
-            DISK_PCT=$(df -h / | awk 'NR==2 {gsub(/%/,""); print $5}')
-            if [ "$DISK_PCT" -gt 80 ] 2>/dev/null || [ -z "$DISK_PCT" ]; then
-              echo "Disk usage ${DISK_PCT:-unknown}%, pruning old images/containers..."
-              docker image prune -f --filter "until=72h" || true
+            # Always prune build cache older than 48h — this is the main disk consumer
+            docker builder prune -f --filter "until=48h" || true
+            # Aggressive cleanup when disk is >75%
+            DISK_PCT=$(df / | awk 'NR==2 {gsub(/%/,""); print $5}')
+            if [ "${DISK_PCT:-0}" -gt 75 ] 2>/dev/null; then
+              echo "Disk usage ${DISK_PCT}%, running aggressive cleanup..."
+              docker builder prune -f --filter "until=24h" || true
+              docker image prune -af --filter "until=72h" || true
               docker container prune -f || true
+              docker volume prune -f || true
             else
-              echo "Disk usage ${DISK_PCT}% — skipping aggressive prune to preserve build cache"
+              echo "Disk usage ${DISK_PCT}% — routine pre-build cleanup done"
             fi
             echo "Docker disk usage after cleanup:"
             docker system df || true
