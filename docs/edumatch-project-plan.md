@@ -2,7 +2,7 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Updated:** 2026-05-24
+**Updated:** 2026-05-25
 **Status:** Phase 7 in progress
 **Purpose:** Practice a production-shaped AI marketplace system inside the
 ASafariM Digital monorepo.
@@ -383,3 +383,25 @@ What I would do differently next time:
 - Build large Next.js app images sequentially on the small VPS instead of recreating all apps in one parallel Compose operation after a full cache prune.
 - Keep Docker health checks pinned to `127.0.0.1` in containers that bind to `0.0.0.0`.
 - Run the existing post-deploy prune routinely, and use a more aggressive BuildKit cache prune only when disk pressure is visible.
+
+### 2026-05-25 - Prisma 7 migration branch for the shared database package
+
+What actually happened:
+
+- Created GitHub issue #113 to track the Prisma 7 major-version migration instead of treating it as a routine dependency bump.
+- Upgraded `@asafarim/db` from Prisma 6.19.3 to 7.8.0 and added the required Postgres driver adapter.
+- Moved the datasource URL out of `schema.prisma` into `prisma.config.ts`, keeping a local fallback so Prisma generation and validation can run without a live database URL.
+- Wired `@prisma/adapter-pg` into the shared Prisma client constructor so Next.js builds no longer fail with the Prisma 7 client-engine adapter error.
+- Verified `pnpm install --frozen-lockfile`, Prisma schema validation, Prisma client generation, `@asafarim/db` typecheck, `@asafarim/auth` build, full repo typecheck, and lint.
+
+What surprised me:
+
+- The first update partially installed Prisma Client 7 while the Prisma CLI was still 6.19.3, which caused generation to fail until both packages were aligned.
+- Stale `.next/dev/types` files in EduMatch and Ops Hub caused unrelated TypeScript/build failures and had to be cleared before validation was meaningful.
+- Local full app builds reached page generation but then hit Redis connection noise and Next/Turbo finalization hangs, so app build validation was treated separately from the Prisma migration checks.
+
+What I would do differently next time:
+
+- Upgrade Prisma CLI, Prisma Client, and the required driver adapter in one dedicated branch from the start.
+- Clear generated Next.js caches before validating major dependency upgrades.
+- Run app builds with local service dependencies such as Redis available when validating changes that touch shared server-side packages.
