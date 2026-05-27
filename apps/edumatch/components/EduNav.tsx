@@ -336,7 +336,8 @@ function EduLogo() {
 
 /**
  * Controls that are always pinned in the navbar bar at every breakpoint.
- * Language selector + theme toggle are small enough to always stay visible.
+ * Language selector stays visible; theme is supplied through AppNavbar's
+ * dedicated themeToggler slot.
  */
 function CompactControls() {
   return (
@@ -344,7 +345,6 @@ function CompactControls() {
       {/* Show flag+lang on sm+, flag-only on xs */}
       <CountryLanguageSelector compact={false} className="hidden sm:block" />
       <CountryLanguageSelector compact={true} className="sm:hidden" />
-      <ThemeToggle />
     </>
   );
 }
