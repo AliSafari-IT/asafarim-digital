@@ -28,6 +28,7 @@
     "db:studio": "pnpm --filter @asafarim/db prisma studio",
     "db:push": "pnpm --filter @asafarim/db prisma db push",
     "db:reset": "pnpm --filter @asafarim/db prisma db reset",
+    "prerestart": "pnpm onVPS:prune",
     "rs": "pnpm onVPS:dockerRestart",
     "tc": "pnpm typecheck",
     "db": "docker compose up -d postgres",
