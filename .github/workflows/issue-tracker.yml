@@ -39,7 +39,8 @@ jobs:
           fi
           
           # Extract issue numbers from commit message / PR body (fixes #123, closes #123, #123)
-          ISSUES=$(echo "$MESSAGE" | grep -oE '#[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
+          # Exclude PR references in parentheses like "(#123)" 
+          ISSUES=$(echo "$MESSAGE" | sed 's/([^)]*)//g' | grep -oE '#[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
           # Fallback: extract leading issue number from branch name (e.g. "1-feat-..." → #1)
           if [ -z "$ISSUES" ]; then
