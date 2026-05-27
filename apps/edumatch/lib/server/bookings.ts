@@ -92,6 +92,10 @@ export async function cancelBooking(input: {
     throw new BookingTransitionError("Only the booking's tutor can cancel.");
   }
 
+  if (booking.status === "CANCELLED") {
+    throw new BookingTransitionError("Booking is already cancelled.");
+  }
+
   assertTransitionAllowed(booking.status as BookingStatus, "CANCELLED");
 
   if (!reason?.trim()) {

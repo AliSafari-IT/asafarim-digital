@@ -18,6 +18,8 @@ vi.mock("@asafarim/db", () => ({
   prisma: {
     eduStudentProfile: { findUnique: vi.fn() },
     eduTutorProfile: { findUnique: vi.fn() },
+    role: { findUnique: vi.fn() },
+    userRole: { upsert: vi.fn() },
   },
 }));
 
@@ -39,6 +41,9 @@ const tutorProfile = { userId: "u-tutor" } as never;
 beforeEach(() => {
   vi.mocked(prisma.eduStudentProfile.findUnique).mockReset();
   vi.mocked(prisma.eduTutorProfile.findUnique).mockReset();
+  vi.mocked(prisma.role.findUnique).mockReset();
+  vi.mocked(prisma.userRole.upsert).mockReset();
+  vi.mocked(prisma.role.findUnique).mockResolvedValue(null);
   vi.mocked(getAuthedUser).mockReset();
 });
 
