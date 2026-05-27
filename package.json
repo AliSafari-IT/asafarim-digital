@@ -20,6 +20,7 @@
     "onVPS:cleanup": "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh",
     "onVPS:cleanup:dry": "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh --dry-run",
     "onVPS:fixWorker": "cd /var/repos/asafarim-digital && ./scripts/fix-vionto-worker.sh",
+    "onVPS:quickFixWorker": "cd /var/repos/asafarim-digital && ./scripts/quick-worker-fix.sh",
     "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto vionto-worker",
     "onVPS:dockerPrune": "sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployPortal": "docker compose up -d --build portal && sh scripts/docker-post-deploy-prune.sh",
