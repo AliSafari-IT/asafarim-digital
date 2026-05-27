@@ -3,6 +3,17 @@ set -euo pipefail
 
 echo "🔧 Fixing Vionto Worker & Video Generation Issues..."
 
+# Load environment variables from .env file
+if [[ -f ".env" ]]; then
+    echo "📋 Loading environment variables from .env..."
+    set -a
+    source .env
+    set +a
+else
+    echo "❌ .env file not found in current directory"
+    exit 1
+fi
+
 # Check if required environment variables are set
 echo "📋 Checking required environment variables..."
 REQUIRED_VARS=(
