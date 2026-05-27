@@ -90,6 +90,45 @@ pnpm build
 .\start.ps1 build
 ```
 
+## VPS Management
+
+### Automated Storage Monitoring
+
+The VPS has automated storage monitoring that runs every 2 hours via GitHub Actions:
+- **Triggers cleanup when free space < 25GB**
+- **Removes Docker images older than 3 hours**
+- **Cleans build cache and unused resources**
+- **Monitors container health after cleanup**
+
+### Manual Cleanup Commands
+
+```bash
+# Smart cleanup (only if disk space < 25GB)
+pnpm onVPS:cleanup
+
+# Dry run (see what would be cleaned)
+pnpm onVPS:cleanup:dry
+
+# Force cleanup regardless of disk space
+ssh vps "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh --force"
+
+# Custom age threshold (e.g., 6 hours)
+ssh vps "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh --age 6"
+```
+
+### VPS Scripts
+
+```bash
+# Restart services (fast, uses existing images)
+pnpm rs
+
+# Full cleanup + restart (when disk space is low)
+pnpm prers
+
+# Aggressive cleanup (removes all unused containers/images)
+pnpm onVPS:prune
+```
+
 ## Environment Variables
 
 Create env files as needed:

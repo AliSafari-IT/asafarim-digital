@@ -1,0 +1,166 @@
+name: VPS Storage Monitor & Cleanup
+
+on:
+  schedule:
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      force_cleanup:
+        description: "Force cleanup regardless of disk space"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      dry_run:
+        description: "Show what would be cleaned without actually cleaning"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+env:
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  DEPLOY_PATH: /var/repos/asafarim-digital
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # Minimum free space in GB before cleanup is triggered
+  MIN_FREE_SPACE_GB: 25
+  # Age threshold for image cleanup (hours)
+  IMAGE_AGE_HOURS: 3
+
+jobs:
+  monitor-and-cleanup:
+    name: Monitor Storage & Cleanup Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Validate deployment secrets
+        run: |
+          test -n "${{ secrets.VPS_HOST }}"    || (echo "VPS_HOST is not set"    && exit 1)
+          test -n "${{ secrets.VPS_USER }}"    || (echo "VPS_USER is not set"    && exit 1)
+          test -n "${{ secrets.VPS_SSH_KEY }}" || (echo "VPS_SSH_KEY is not set" && exit 1)
+
+      - name: Check disk space
+        id: disk_check
+        run: |
+          echo "Checking disk space on VPS..."
+          
+          # Get available disk space in GB (convert from KB)
+          AVAILABLE_KB=$(ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "df / | tail -1 | awk '{print \$4}'")
+          AVAILABLE_GB=$((AVAILABLE_KB / 1024 / 1024))
+          
+          echo "Available disk space: ${AVAILABLE_GB}GB"
+          echo "available_gb=${AVAILABLE_GB}" >> $GITHUB_OUTPUT
+          
+          # Check if cleanup is needed
+          FORCE_CLEANUP="${{ github.event.inputs.force_cleanup || 'false' }}"
+          if [[ "$FORCE_CLEANUP" == "true" ]]; then
+            echo "Force cleanup enabled"
+            echo "cleanup_needed=true" >> $GITHUB_OUTPUT
+          elif [[ $AVAILABLE_GB -lt ${{ env.MIN_FREE_SPACE_GB }} ]]; then
+            echo "Disk space below threshold (${{ env.MIN_FREE_SPACE_GB }}GB), cleanup needed"
+            echo "cleanup_needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "Sufficient disk space, no cleanup needed"
+            echo "cleanup_needed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Show Docker usage before cleanup
+        if: steps.disk_check.outputs.cleanup_needed == 'true'
+        run: |
+          echo "=== Docker Usage Before Cleanup ==="
+          ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && docker system df"
+          
+          echo "=== Docker Images Age Analysis ==="
+          ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "docker images --format 'table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}' | head -20"
+
+      - name: Cleanup old Docker images
+        if: steps.disk_check.outputs.cleanup_needed == 'true'
+        run: |
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          IMAGE_AGE="${{ env.IMAGE_AGE_HOURS }}"
+          
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "=== DRY RUN: Showing what would be cleaned ==="
+            CLEANUP_CMD="echo 'Would run: docker image prune -af --filter \"until=${IMAGE_AGE}h\"'"
+          else
+            echo "=== Cleaning Docker images older than ${IMAGE_AGE} hours ==="
+            CLEANUP_CMD="docker image prune -af --filter \"until=${IMAGE_AGE}h\""
+          fi
+          
+          # Execute cleanup on VPS
+          ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && $CLEANUP_CMD"
+          
+          # Also cleanup build cache
+          if [[ "$DRY_RUN" == "true" ]]; then
+            echo "Would run: docker builder prune -af --filter \"until=${IMAGE_AGE}h\""
+          else
+            ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && docker builder prune -af --filter \"until=${IMAGE_AGE}h\""
+          fi
+
+      - name: Check disk space after cleanup
+        if: steps.disk_check.outputs.cleanup_needed == 'true'
+        run: |
+          echo "=== Disk Space After Cleanup ==="
+          
+          # Get updated disk space
+          AVAILABLE_KB=$(ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "df / | tail -1 | awk '{print \$4}'")
+          AVAILABLE_GB=$((AVAILABLE_KB / 1024 / 1024))
+          
+          echo "Available disk space after cleanup: ${AVAILABLE_GB}GB"
+          
+          # Show Docker usage after cleanup
+          echo "=== Docker Usage After Cleanup ==="
+          ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && docker system df"
+
+      - name: Check container health
+        if: steps.disk_check.outputs.cleanup_needed == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          echo "=== Checking Container Health ==="
+          ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && docker compose ps"
+          
+          # Check if any critical services are down
+          UNHEALTHY=$(ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "cd ${{ env.DEPLOY_PATH }} && docker compose ps --format json | jq -r 'select(.Health != \"healthy\" && .State != \"running\") | .Service' | wc -l")
+          
+          if [[ $UNHEALTHY -gt 0 ]]; then
+            echo "⚠️ Warning: $UNHEALTHY services may be unhealthy"
+            echo "Consider running: ssh ${{ env.VPS_USER }}@${{ env.VPS_HOST }} 'cd ${{ env.DEPLOY_PATH }} && docker compose up -d'"
+          else
+            echo "✅ All services appear healthy"
+          fi
+
+      - name: Send notification (optional)
+        if: steps.disk_check.outputs.cleanup_needed == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          AVAILABLE_BEFORE=${{ steps.disk_check.outputs.available_gb }}
+          AVAILABLE_AFTER=$(ssh -p 22 ${{ env.VPS_USER }}@${{ env.VPS_HOST }} "df / | tail -1 | awk '{print \$4}'" | awk '{print int($1/1024/1024)}')
+          
+          echo "🧹 Docker cleanup completed!"
+          echo "📊 Disk space: ${AVAILABLE_BEFORE}GB → ${AVAILABLE_AFTER}GB"
+          
+          # You can add Discord/Slack notifications here if desired
+          # Example:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"content":"🧹 VPS Docker cleanup completed. Disk space: '${AVAILABLE_BEFORE}'GB → '${AVAILABLE_AFTER}'GB"}' \
+          #   ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: No cleanup needed
+        if: steps.disk_check.outputs.cleanup_needed == 'false'
+        run: |
+          AVAILABLE_GB=${{ steps.disk_check.outputs.available_gb }}
+          echo "✅ Sufficient disk space available: ${AVAILABLE_GB}GB (threshold: ${{ env.MIN_FREE_SPACE_GB }}GB)"
+          echo "No cleanup action required."
