@@ -12,6 +12,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY packages/db/package.json ./packages/db/package.json
 COPY packages/db/prisma/ ./packages/db/prisma/
+COPY packages/db/prisma.config.ts ./packages/db/prisma.config.ts
 COPY packages/db/prisma/migrations/ ./packages/db/prisma/migrations/
 
 WORKDIR /app
@@ -20,4 +21,4 @@ RUN pnpm install --ignore-scripts --filter @asafarim/db
 
 WORKDIR /app/packages/db
 
-CMD ["sh", "-c", "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate deploy --schema=./prisma/schema.prisma"]
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy"]
