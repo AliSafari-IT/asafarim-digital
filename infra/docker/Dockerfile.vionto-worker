@@ -45,13 +45,15 @@ RUN adduser --system --uid 1001 worker
 COPY --from=builder /repo/packages/db/src ./node_modules/@asafarim/db/src
 COPY --from=builder /repo/packages/db/package.json ./node_modules/@asafarim/db/package.json
 COPY --from=builder /repo/packages/db/prisma ./prisma
+COPY --from=builder /repo/packages/db/prisma.config.ts ./prisma.config.ts
 
 # Install all external runtime deps and regenerate Prisma for Alpine (musl)
 RUN npm install \
-      @prisma/client@6.19.3 prisma@6.19.3 \
+      @prisma/client@7.8.0 prisma@7.8.0 \
+      @prisma/adapter-pg@7.8.0 \
       bullmq ioredis openai zod \
       @aws-sdk/client-s3 @aws-sdk/s3-request-presigner && \
-    npx prisma generate --schema=prisma/schema.prisma
+    npx prisma generate
 
 # The fully self-contained worker bundle
 COPY --from=builder /repo/apps/vionto/worker-dist ./worker-dist

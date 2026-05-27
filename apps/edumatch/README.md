@@ -11,6 +11,8 @@ Full roadmap: [docs/edumatch-project-plan.md](../../docs/edumatch-project-plan.m
 
 Current state: Phase 7 polish and release hardening.
 
+Last review: 2026-05-27.
+
 Completed:
 
 - Multi-role auth for students, tutors, and admins using shared ASafariM auth.
@@ -25,13 +27,29 @@ Completed:
 - Student and tutor dashboards, profile pages, checkout confirmation, bookings,
   earnings, legal pages, API docs, and admin tutor-matching diagnostics.
 - Playwright configuration and focused E2E coverage for core web flows.
+- Trust and safety groundwork including moderation helpers, notification
+  preferences, booking cancellation/dispute/resolve APIs, tutor verification
+  workflow, and audit event helpers.
 
 In progress:
 
-- API integration tests for financial and webhook edge cases.
+- Unit/API test stabilization after recent shared Prisma and route alias changes.
+- API integration tests for financial, booking, and webhook edge cases.
 - Real device validation for the Flutter app.
 - Accessibility, Lighthouse, and QA deployment polish.
 - TestFlight and Play Console internal tracks.
+
+Review findings from 2026-05-27:
+
+- `pnpm --filter edumatch typecheck` passes.
+- `pnpm --filter edumatch test` currently fails with 14 failed tests and one
+  failed API import suite.
+- The failures are concentrated in geocoding mocks, Prisma model mocks for
+  tutor/profile tests, `@/app/...` route alias resolution in Vitest,
+  already-cancelled booking behavior, and the plagiarism/detector-evasion
+  moderation rule.
+- README route/API maps were updated below to include trust, safety, booking,
+  notification preference, tutor settings, and tutor verification surfaces.
 
 ## Stack
 
@@ -103,8 +121,11 @@ pnpm --filter edumatch clean
 | `/tutor/quotes` | Tutor quote management |
 | `/tutor/bookings` | Tutor bookings |
 | `/tutor/earnings` | Wallet and earnings |
+| `/tutor/settings` | Tutor notification preferences |
 | `/tutor/connect/onboard` | Stripe Connect onboarding |
+| `/tutor/connect/success`, `/tutor/connect/refresh` | Stripe Connect return pages |
 | `/admin/tutor-matching` | Admin matching diagnostics |
+| `/admin/tutor-verifications` | Admin tutor verification queue |
 | `/privacy`, `/terms`, `/cookies` | Legal pages |
 
 ## API Surface
@@ -117,8 +138,10 @@ pnpm --filter edumatch clean
 | Tutor matching | `/api/tutors/nearby`, `/api/tutors/quote-requests` |
 | Quotes | `/api/inquiries/[id]/quote-request`, `/api/quote-requests/[id]/quotes`, `/api/quotes/[id]/accept`, `/api/quotes/[id]/decline`, `/api/quotes/[id]/pdf` |
 | Payments | `/api/tutors/connect/onboard`, `/api/quotes/[id]/checkout`, `/api/quotes/[id]/booking-status`, `/api/webhooks/stripe` |
+| Bookings | `/api/bookings/[id]/cancel`, `/api/bookings/[id]/dispute`, `/api/bookings/[id]/resolve` |
 | Tutor finance | `/api/tutors/wallet`, `/api/tutors/bookings`, `/api/tutors/quotes` |
-| Notifications | `/api/notifications`, `/api/notifications/[id]/mark-read` |
+| Tutor verification | `/api/admin/tutor-verifications`, `/api/admin/tutor-verifications/[id]` |
+| Notifications | `/api/notifications`, `/api/notifications/[id]/mark-read`, `/api/me/notification-preferences` |
 | Platform | `/api/health`, `/api/docs`, `/api/navigation` |
 
 ## Key Modules
@@ -132,6 +155,13 @@ pnpm --filter edumatch clean
 - `lib/server/wallet.ts`: wallet accounting and payout invariants.
 - `lib/server/pdf.ts`: quote PDF rendering and signed URL generation.
 - `lib/server/email.ts`: transactional email delivery.
+- `lib/server/moderation.ts`: academic-integrity and safety classification.
+- `lib/server/bookings.ts`: booking cancellation, dispute, and resolution
+  transitions.
+- `lib/server/tutor-verification.ts`: tutor verification state transitions.
+- `lib/server/notification-preferences.ts`: tutor/student notification settings.
+- `lib/server/audit.ts`: append-only audit event recording for sensitive
+  flows.
 
 ## Environment
 
