@@ -18,21 +18,20 @@ export type GeocodeResult = {
 
 export type GeocodeError = { error: string };
 
-const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-
 /**
  * Geocode a human-readable address to lat/lng.
  * Returns null in dev mode if API key is not configured.
  */
 export async function geocodeAddress(address: string): Promise<GeocodeResult | GeocodeError | null> {
-  if (!GOOGLE_API_KEY) {
+  const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!googleApiKey) {
     // Dev fallback: return null to signal "geocoding unavailable"
     return null;
   }
 
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
   url.searchParams.set("address", address);
-  url.searchParams.set("key", GOOGLE_API_KEY);
+  url.searchParams.set("key", googleApiKey);
 
   const res = await fetch(url.toString());
   const data = (await res.json()) as {
@@ -74,11 +73,12 @@ export async function reverseGeocode(
   lat: number,
   lng: number,
 ): Promise<Pick<GeocodeResult, "formattedAddress" | "placeId" | "types"> | GeocodeError | null> {
-  if (!GOOGLE_API_KEY) return null;
+  const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!googleApiKey) return null;
 
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
   url.searchParams.set("latlng", `${lat},${lng}`);
-  url.searchParams.set("key", GOOGLE_API_KEY);
+  url.searchParams.set("key", googleApiKey);
 
   const res = await fetch(url.toString());
   const data = (await res.json()) as {

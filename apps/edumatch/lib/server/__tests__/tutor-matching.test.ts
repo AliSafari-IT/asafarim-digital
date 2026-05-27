@@ -11,8 +11,11 @@ import { prisma } from "@asafarim/db";
 // Mock Prisma
 vi.mock("@asafarim/db", () => ({
   prisma: {
-    $queryRaw: vi.fn(),
-    $executeRaw: vi.fn(),
+    eduTutorProfile: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
   },
 }));
 
@@ -34,11 +37,12 @@ describe("findNearbyTutors", () => {
         ratingAvg: 4.8,
         ratingCount: 12,
         verifiedAt: new Date(),
-        distanceMeters: 5000,
+        homeLat: 51.552366140432586,
+        homeLng: -0.1278,
       },
     ];
 
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce(mockResults);
+    vi.mocked(prisma.eduTutorProfile.findMany).mockResolvedValueOnce(mockResults as never);
 
     const result = await findNearbyTutors({
       studentLocation: { lat: 51.5074, lng: -0.1278 }, // London
@@ -54,7 +58,7 @@ describe("findNearbyTutors", () => {
   });
 
   it("returns empty array when no tutors found", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([]);
+    vi.mocked(prisma.eduTutorProfile.findMany).mockResolvedValueOnce([]);
 
     const result = await findNearbyTutors({
       studentLocation: { lat: 0, lng: 0 },
@@ -67,9 +71,13 @@ describe("findNearbyTutors", () => {
   });
 
   it("converts distance from meters to km with precision", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([
-      { ...mockTutor(), distanceMeters: 12345 },
-    ]);
+    vi.mocked(prisma.eduTutorProfile.findMany).mockResolvedValueOnce([
+      {
+        ...mockTutor(),
+        homeLat: 40.82380717154044,
+        homeLng: -74.006,
+      },
+    ] as never);
 
     const result = await findNearbyTutors({
       studentLocation: { lat: 40.7128, lng: -74.006 }, // NYC
@@ -192,7 +200,12 @@ describe("scoreTutors", () => {
 
 describe("canTutorServiceLocation", () => {
   it("returns true when student is within tutor's service radius", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([{ withinRadius: true }]);
+    vi.mocked(prisma.eduTutorProfile.findUnique).mockResolvedValueOnce({
+      onlineOnly: false,
+      serviceRadiusKm: 25,
+      homeLat: 51.5074,
+      homeLng: -0.1278,
+    } as never);
 
     const result = await canTutorServiceLocation("tutor-1", { lat: 51.5, lng: -0.1 });
 
@@ -200,14 +213,24 @@ describe("canTutorServiceLocation", () => {
   });
 
   it("returns false when outside service radius", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([{ withinRadius: false }]);
+    vi.mocked(prisma.eduTutorProfile.findUnique).mockResolvedValueOnce({
+      onlineOnly: false,
+      serviceRadiusKm: 25,
+      homeLat: 51.5074,
+      homeLng: -0.1278,
+    } as never);
 
     const result = await canTutorServiceLocation("tutor-1", { lat: 60, lng: 0 });
     expect(result).toBe(false);
   });
 
   it("returns false when tutor has no location", async () => {
-    vi.mocked(prisma.$queryRaw).mockResolvedValueOnce([]);
+    vi.mocked(prisma.eduTutorProfile.findUnique).mockResolvedValueOnce({
+      onlineOnly: false,
+      serviceRadiusKm: 25,
+      homeLat: null,
+      homeLng: null,
+    } as never);
 
     const result = await canTutorServiceLocation("tutor-no-location", { lat: 51.5, lng: -0.1 });
     expect(result).toBe(false);
@@ -216,11 +239,14 @@ describe("canTutorServiceLocation", () => {
 
 describe("updateTutorLocation", () => {
   it("updates tutor home location with PostGIS point", async () => {
-    vi.mocked(prisma.$executeRaw).mockResolvedValueOnce(1);
+    vi.mocked(prisma.eduTutorProfile.update).mockResolvedValueOnce({} as never);
 
     await updateTutorLocation("tutor-1", { lat: 51.5074, lng: -0.1278 });
 
-    expect(prisma.$executeRaw).toHaveBeenCalled();
+    expect(prisma.eduTutorProfile.update).toHaveBeenCalledWith({
+      where: { userId: "tutor-1" },
+      data: { homeLat: 51.5074, homeLng: -0.1278 },
+    });
   });
 });
 
@@ -236,6 +262,7 @@ function mockTutor() {
     ratingAvg: 4.5,
     ratingCount: 10,
     verifiedAt: new Date(),
-    distanceMeters: 5000,
+    homeLat: 40.75791045708758,
+    homeLng: -74.006,
   };
 }

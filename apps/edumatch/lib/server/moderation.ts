@@ -73,6 +73,7 @@ const REFUSE_RULES: Rule[] = [
     reason: "Plagiarism / detector-evasion request.",
     patterns: [
       /\b(?:rewrite|paraphrase|reword)\s+(?:this|it|my essay|my paper)\s+(?:so|to)\s+(?:that\s+)?(?:my\s+)?(?:professor|teacher|instructor|turnitin|ai detector|gptzero)\b/i,
+      /\b(?:professor|teacher|instructor)\s+can(?:not|'t|n['’]t)\s+tell\s+(?:it(?:'s| is)|this\s+is)\s+ai\b/i,
       /\b(?:bypass|fool|evade|trick|defeat)\s+(?:turnitin|ai detector|gptzero|plagiarism)\b/i,
       /\b(?:undetectable|uncatchable)\s+(?:by|to)\s+(?:turnitin|ai|plagiarism)\b/i,
       /\bmake\s+(?:this|it)\s+(?:look|seem)\s+human(?:-written)?\b/i,
