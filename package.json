@@ -19,7 +19,7 @@
     "onVPS:prune": "cd /var/repos/asafarim-digital && docker system prune -af --volumes && docker builder prune -af",
     "onVPS:cleanup": "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh",
     "onVPS:cleanup:dry": "cd /var/repos/asafarim-digital && ./scripts/vps-cleanup.sh --dry-run",
-    "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto",
+    "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto vionto-worker",
     "onVPS:dockerPrune": "sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployPortal": "docker compose up -d --build portal && sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployVionto": "docker compose up -d --build vionto vionto-worker && sh scripts/docker-post-deploy-prune.sh",
