@@ -16,6 +16,7 @@
     "dev:ops": "turbo dev --filter=ops-hub",
     "dev:vionto": "turbo dev --filter=vionto",
     "dev:vionto:worker": "pnpm --dir apps/vionto worker:dev",
+    "onVPS:prune": "cd /var/repos/asafarim-digital && docker compose down && docker system prune -af --volumes && docker builder prune -af && docker compose up -d",
     "onVPS:dockerRestart": "docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto",
     "onVPS:dockerPrune": "sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployPortal": "docker compose up -d --build portal && sh scripts/docker-post-deploy-prune.sh",
