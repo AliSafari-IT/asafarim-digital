@@ -127,6 +127,12 @@ pnpm --filter edumatch clean
 | `/admin` | Admin overview dashboard |
 | `/admin/tutor-verifications` | Admin tutor verification queue |
 | `/admin/tutor-matching` | Admin matching diagnostics |
+| `/admin/disputes` | Dispute resolution workbench |
+| `/admin/bookings` | Booking search and detail view |
+| `/admin/payments` | Transaction and wallet overview |
+| `/admin/inquiries` | Inquiry and AI safety browser |
+| `/admin/users` | User, student, and tutor directory |
+| `/admin/audit` | Audit event log viewer |
 | `/privacy`, `/terms`, `/cookies` | Legal pages |
 
 ## API Surface
@@ -143,11 +149,20 @@ pnpm --filter edumatch clean
 | Tutor finance | `/api/tutors/wallet`, `/api/tutors/bookings`, `/api/tutors/quotes` |
 | Admin — verification | `/api/admin/tutor-verifications`, `/api/admin/tutor-verifications/[id]` |
 | Admin — matching | `/api/admin/tutor-matching/debug` |
+| Admin — overview | `/api/admin/overview` |
+| Admin — disputes | `/api/admin/disputes`, `/api/admin/disputes/[id]` |
+| Admin — bookings | `/api/admin/bookings` |
+| Admin — transactions | `/api/admin/transactions` |
+| Admin — users | `/api/admin/users` |
+| Admin — inquiries | `/api/admin/inquiries` |
+| Admin — audit | `/api/admin/audit` |
 | Notifications | `/api/notifications`, `/api/notifications/[id]/mark-read`, `/api/me/notification-preferences` |
 | Platform | `/api/health`, `/api/docs`, `/api/navigation` |
 
 ## Key Modules
 
+- `lib/server/admin-queries.ts`: Admin dashboard aggregations and paginated
+  queries for all admin workbenches.
 - `lib/server/profiles.ts`: EduMatch role resolution and role guards.
 - `lib/server/ai-orchestrator.ts`: multimodal AI processing and provider
   fallback.

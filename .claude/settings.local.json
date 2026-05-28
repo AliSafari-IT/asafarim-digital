@@ -18,7 +18,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(pnpm --filter edumatch typecheck)",
-      "PowerShell(pnpm --filter edumatch list @asafarim/navigation 2>&1)"
+      "PowerShell(pnpm --filter edumatch list @asafarim/navigation 2>&1)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }
