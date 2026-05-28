@@ -351,111 +351,12 @@ function CompactControls() {
 }
 
 /**
- * Student-specific quick actions for the mobile drawer.
- * These are the primary actions students need quick access to.
- *
- * Notes:
- * - Uses `mounted` guard to avoid hydration mismatch (useSession returns
- *   nothing during SSR but data on the client).
- * - `lg:hidden` keeps this block out of the desktop navbar rail; it only
- *   renders inside the mobile (<lg) hamburger drawer.
- */
-function StudentDrawerActions() {
-  const [mounted, setMounted] = useState(false);
-  const { data: session } = useSession();
-  const pathname = usePathname();
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent hydration mismatch: render nothing until client mount
-  if (!mounted) return null;
-
-  // Only show for students
-  const isStudent = session?.user?.roles?.includes("edumatch_student");
-  if (!isStudent) return null;
-
-  const actions = [
-    {
-      id: "ask-question",
-      label: t("edumatch.drawer.askQuestion"),
-      href: "/student/inquiry/new",
-      icon: "helpCircle",
-      variant: "primary" as const,
-    },
-    {
-      id: "my-inquiries",
-      label: t("edumatch.drawer.myInquiries"),
-      href: "/student",
-      icon: "inbox",
-      variant: "default" as const,
-    },
-    {
-      id: "my-profile",
-      label: t("edumatch.drawer.myProfile"),
-      href: "/student/profile",
-      icon: "user",
-      variant: "default" as const,
-    },
-  ];
-
-  return (
-    <div className="lg:hidden border-b border-[var(--color-border)] pb-4 mb-4">
-      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-        {t("edumatch.drawer.studentActions")}
-      </p>
-      <div className="space-y-1 px-2">
-        {actions.map((action) => {
-          const Icon = getNavIcon(action.icon);
-          const isActive = pathname === action.href || pathname.startsWith(`${action.href}/`);
-          const isPrimary = action.variant === "primary";
-
-          return (
-            <Link
-              key={action.id}
-              href={action.href}
-              className={[
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                isPrimary
-                  ? "bg-[var(--color-primary)] text-white hover:opacity-90"
-                  : isActive
-                    ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]",
-              ].join(" ")}
-            >
-              <span className={isPrimary ? "text-white" : ""}><Icon /></span>
-              <span className="truncate">{action.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/**
  * Right content that lives on the desktop navbar rail and in the mobile
- * drawer — student actions + app switcher + user account menu.
- *
- * IMPORTANT: This entire tree uses client-only hooks (useSession,
- * usePathname, etc.). We gate it behind a `mounted` check so the server
- * and the client render identical markup during hydration. Without this,
- * AppNavbar receives different children on server vs client and throws a
- * hydration mismatch.
+ * drawer — app switcher + user account menu.
  */
 function DrawerContent() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
   return (
     <>
-      <StudentDrawerActions />
       <AppSwitcher current="edumatch" variant="default" />
       <UserMenu />
     </>
@@ -507,27 +408,86 @@ const renderLink: RenderLink = ({ item, children }) => {
 
 // EduMatch-specific wrapper around AppNavbar
 export function EduNav() {
+  const [mounted, setMounted] = useState(false);
+  const [viewType, setViewType] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const { t } = useTranslation();
   const { items, error } = useNavigation("edumatch" as AppCode, "header");
+
+  useEffect(() => {
+    const updateViewType = () => {
+      const width = window.innerWidth;
+      setViewType(width < 768 ? "mobile" : width < 1024 ? "tablet" : "desktop");
+    };
+
+    updateViewType();
+    setMounted(true);
+    window.addEventListener("resize", updateViewType);
+    return () => window.removeEventListener("resize", updateViewType);
+  }, []);
 
   if (error) {
     console.error("Navigation fetch error:", error);
   }
 
-  const navItems = useMemo(() => toNavItems(items), [items]);
+  const navItems = useMemo(() => {
+    const resolvedItems = toNavItems(items);
+    const isStudent = session?.user?.roles?.includes("edumatch_student");
+    const isMobileDrawer = viewType !== "desktop";
+
+    if (!mounted || !isStudent || !isMobileDrawer) {
+      return resolvedItems;
+    }
+
+    const HelpIcon = getNavIcon("helpCircle");
+    const InboxIcon = getNavIcon("inbox");
+    const UserIcon = getNavIcon("user");
+
+    return [
+      {
+        id: "student-actions",
+        label: t("edumatch.drawer.studentActions"),
+        children: [
+          {
+            id: "student-ask-question",
+            label: t("edumatch.drawer.askQuestion"),
+            href: "/student/inquiry/new",
+            icon: <HelpIcon />,
+          },
+          {
+            id: "student-my-inquiries",
+            label: t("edumatch.drawer.myInquiries"),
+            href: "/student",
+            icon: <InboxIcon />,
+          },
+          {
+            id: "student-my-profile",
+            label: t("edumatch.drawer.myProfile"),
+            href: "/student/profile",
+            icon: <UserIcon />,
+          },
+        ],
+      },
+      ...resolvedItems,
+    ] satisfies NavItem[];
+  }, [items, mounted, session?.user?.roles, t, viewType]);
+
+  if (!mounted) return null;
 
   return (
     <AppNavbar
       sticky
       bordered
       fullWidth
+      viewType={viewType}
       currentPath={pathname}
       renderLink={renderLink}
       logo={<EduLogo />}
       navItems={navItems}
       countryLangSelector={<CompactControls />}
       themeToggler={<ThemeToggle />}
-      actions={<DrawerContent />}
+      actions={viewType === "desktop" ? <DrawerContent /> : undefined}
       className="bg-[var(--color-surface)]/80 backdrop-blur-xl"
     />
   );
