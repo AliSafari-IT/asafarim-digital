@@ -24,10 +24,10 @@ type TutorRow = {
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  NEEDS_CHANGES: "bg-orange-100 text-orange-800",
-  VERIFIED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
+  PENDING: "bg-yellow-500/15 text-yellow-400",
+  NEEDS_CHANGES: "bg-orange-500/15 text-orange-400",
+  VERIFIED: "bg-green-500/15 text-green-400",
+  REJECTED: "bg-red-500/15 text-red-400",
 };
 
 export default function AdminTutorVerificationsPage() {
@@ -91,57 +91,55 @@ export default function AdminTutorVerificationsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 sm:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Tutor Verifications
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Review tutor profiles and approve, reject, or request changes.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {(["OPEN", "VERIFIED", "ALL"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium border ${
-                  filter === f
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">
+            Tutor Verifications
+          </h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+            Review tutor profiles and approve, reject, or request changes.
+          </p>
         </div>
-
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <p className="text-sm text-gray-600">Loading…</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-sm text-gray-600">No tutors in this view.</p>
-        ) : (
-          <div className="space-y-4">
-            {filtered.map((r) => (
-              <TutorRowCard
-                key={r.tutorId}
-                row={r}
-                busy={busyId === r.tutorId}
-                onSetStatus={setStatus}
-              />
-            ))}
-          </div>
-        )}
+        <div className="flex gap-2">
+          {(["OPEN", "VERIFIED", "ALL"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium border transition-colors ${
+                filter === f
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:bg-[var(--color-panel)]"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-[var(--color-text-muted)]">No tutors in this view.</p>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((r) => (
+            <TutorRowCard
+              key={r.tutorId}
+              row={r}
+              busy={busyId === r.tutorId}
+              onSetStatus={setStatus}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -165,17 +163,17 @@ function TutorRowCard({
   );
 
   const badge =
-    STATUS_BADGE[row.effectiveStatus] ?? "bg-gray-100 text-gray-800";
+    STATUS_BADGE[row.effectiveStatus] ?? "bg-[var(--color-surface)] text-[var(--color-text-muted)]";
 
   return (
     <div
       data-testid="tutor-verification-row"
-      className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
+      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-5 shadow-sm"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-900 truncate">
+            <h2 className="text-base font-semibold text-[var(--color-text)] truncate">
               {row.name ?? row.email ?? row.tutorId}
             </h2>
             <span
@@ -184,18 +182,18 @@ function TutorRowCard({
               {row.effectiveStatus}
             </span>
             {row.verifiedAt ? (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[var(--color-text-muted)]">
                 · verified{" "}
                 {new Date(row.verifiedAt).toLocaleDateString()}
               </span>
             ) : null}
           </div>
-          <p className="mt-1 text-xs text-gray-500">{row.email}</p>
-          <p className="mt-2 text-sm text-gray-700 line-clamp-3 whitespace-pre-wrap">
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.email}</p>
+          <p className="mt-2 text-sm text-[var(--color-text)] opacity-80 line-clamp-3 whitespace-pre-wrap">
             {row.bio ?? "(no bio)"}
           </p>
           {row.subjectsTaught.length > 0 && (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-[var(--color-text-muted)]">
               Subjects: {row.subjectsTaught.join(", ")}
             </p>
           )}
@@ -204,26 +202,26 @@ function TutorRowCard({
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
-          <label className="block text-xs font-medium text-gray-700">
+          <label className="block text-xs font-medium text-[var(--color-text-muted)]">
             Admin notes (internal)
           </label>
           <textarea
             value={adminNotes}
             onChange={(e) => setAdminNotes(e.target.value)}
             rows={2}
-            className="mt-1 w-full rounded border border-gray-300 p-2 text-sm"
+            className="mt-1 w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
             placeholder="Internal notes (not shown to tutor)"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700">
-            Message to tutor (used with “Needs changes”)
+          <label className="block text-xs font-medium text-[var(--color-text-muted)]">
+            Message to tutor (used with "Needs changes")
           </label>
           <textarea
             value={needsMsg}
             onChange={(e) => setNeedsMsg(e.target.value)}
             rows={2}
-            className="mt-1 w-full rounded border border-gray-300 p-2 text-sm"
+            className="mt-1 w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
             placeholder="What does the tutor need to fix?"
           />
         </div>
@@ -238,7 +236,7 @@ function TutorRowCard({
           }
           className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {busy ? "Working…" : "Verify"}
+          {busy ? "Working..." : "Verify"}
         </button>
         <button
           disabled={busy || !needsMsg.trim()}

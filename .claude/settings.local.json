@@ -16,7 +16,9 @@
       "PowerShell(New-Item -ItemType Directory -Path \"D:\\\\repos\\\\asafarim-digital\\\\packages\\\\db\\\\prisma\\\\migrations\\\\20260524120000_add_vionto_album_metadata_fields\" -Force)",
       "Bash(ssh vps *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(pnpm --filter edumatch typecheck)",
+      "PowerShell(pnpm --filter edumatch list @asafarim/navigation 2>&1)"
     ]
   }
 }

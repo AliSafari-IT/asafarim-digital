@@ -124,8 +124,9 @@ pnpm --filter edumatch clean
 | `/tutor/settings` | Tutor notification preferences |
 | `/tutor/connect/onboard` | Stripe Connect onboarding |
 | `/tutor/connect/success`, `/tutor/connect/refresh` | Stripe Connect return pages |
-| `/admin/tutor-matching` | Admin matching diagnostics |
+| `/admin` | Admin overview dashboard |
 | `/admin/tutor-verifications` | Admin tutor verification queue |
+| `/admin/tutor-matching` | Admin matching diagnostics |
 | `/privacy`, `/terms`, `/cookies` | Legal pages |
 
 ## API Surface
@@ -140,7 +141,8 @@ pnpm --filter edumatch clean
 | Payments | `/api/tutors/connect/onboard`, `/api/quotes/[id]/checkout`, `/api/quotes/[id]/booking-status`, `/api/webhooks/stripe` |
 | Bookings | `/api/bookings/[id]/cancel`, `/api/bookings/[id]/dispute`, `/api/bookings/[id]/resolve` |
 | Tutor finance | `/api/tutors/wallet`, `/api/tutors/bookings`, `/api/tutors/quotes` |
-| Tutor verification | `/api/admin/tutor-verifications`, `/api/admin/tutor-verifications/[id]` |
+| Admin — verification | `/api/admin/tutor-verifications`, `/api/admin/tutor-verifications/[id]` |
+| Admin — matching | `/api/admin/tutor-matching/debug` |
 | Notifications | `/api/notifications`, `/api/notifications/[id]/mark-read`, `/api/me/notification-preferences` |
 | Platform | `/api/health`, `/api/docs`, `/api/navigation` |
 
@@ -213,7 +215,13 @@ Auth roles are derived at runtime:
 
 - `STUDENT`: user has an `EduStudentProfile`.
 - `TUTOR`: user has an `EduTutorProfile`.
-- `ADMIN`: user has global `admin` or `superadmin` RBAC.
+- `ADMIN`: user has global `admin`, `superadmin`, or `edumatch_admin` RBAC role.
+
+Admin access is enforced at two levels:
+1. **Route guard** — `app/admin/layout.tsx` server-side checks redirect
+   unauthenticated and non-admin users before rendering any admin UI.
+2. **API guard** — all `/api/admin/*` routes use `requireRole("ADMIN")` from
+   `lib/server/profiles.ts`, returning 401/403 JSON responses.
 
 ## Documentation Tasks
 

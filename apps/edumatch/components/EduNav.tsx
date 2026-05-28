@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -435,9 +435,29 @@ export function EduNav() {
     const resolvedItems = toNavItems(items);
     const isStudent = session?.user?.roles?.includes("edumatch_student");
     const isTutor = session?.user?.roles?.includes("edumatch_tutor");
+    const isAdminUser = session?.user?.roles?.some((r: string) =>
+      ["admin", "superadmin", "edumatch_admin"].includes(r),
+    );
     const isMobileDrawer = viewType !== "desktop";
 
+    const adminItem: NavItem | null = isAdminUser
+      ? {
+          id: "admin-panel",
+          label: "Admin",
+          href: "/admin",
+          icon: (() => {
+            const ShieldIcon = getNavIcon("security");
+            return (
+              <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.25rem" }}>
+                <ShieldIcon />
+              </span>
+            );
+          })(),
+        }
+      : null;
+
     if (!mounted || !isMobileDrawer || (!isStudent && !isTutor)) {
+      if (adminItem) return [...resolvedItems, adminItem];
       return resolvedItems;
     }
 
@@ -446,34 +466,34 @@ export function EduNav() {
       const InboxIcon = getNavIcon("list");
       const UserIcon = getNavIcon("users");
       const duplicateHrefs = new Set(["/student/inquiry/new", "/student", "/student/profile"]);
+      const navIcon = (Icon: React.FC) => (
+        <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.25rem" }}>
+          <Icon />
+        </span>
+      );
 
       return [
         {
-          id: "student-actions",
-          label: t("edumatch.drawer.studentActions"),
-          children: [
-            {
-              id: "student-ask-question",
-              label: t("edumatch.drawer.askQuestion"),
-              href: "/student/inquiry/new",
-              icon: <HelpIcon />,
-            },
-            {
-              id: "student-my-inquiries",
-              label: t("edumatch.drawer.myInquiries"),
-              href: "/student?section=inquiries",
-              active: pathname === "/student",
-              icon: <InboxIcon />,
-            },
-            {
-              id: "student-my-profile",
-              label: t("edumatch.drawer.myProfile"),
-              href: "/student/profile",
-              icon: <UserIcon />,
-            },
-          ],
+          id: "student-ask-question",
+          label: t("edumatch.drawer.askQuestion"),
+          href: "/student/inquiry/new",
+          icon: navIcon(HelpIcon),
+        },
+        {
+          id: "student-my-inquiries",
+          label: t("edumatch.drawer.myInquiries"),
+          href: "/student?section=inquiries",
+          active: pathname === "/student",
+          icon: navIcon(InboxIcon),
+        },
+        {
+          id: "student-my-profile",
+          label: t("edumatch.drawer.myProfile"),
+          href: "/student/profile",
+          icon: navIcon(UserIcon),
         },
         ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
+        ...(adminItem ? [adminItem] : []),
       ] satisfies NavItem[];
     }
 
@@ -482,41 +502,41 @@ export function EduNav() {
     const BookingsIcon = getNavIcon("layers");
     const UserIcon = getNavIcon("user");
     const duplicateHrefs = new Set(["/tutor", "/tutor/requests", "/tutor/bookings", "/tutor/profile"]);
+    const navIcon = (Icon: React.FC) => (
+      <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.5rem", verticalAlign: "middle" }}>
+        <Icon />
+      </span>
+    );
 
     return [
       {
-        id: "tutor-actions",
-        label: t("edumatch.drawer.tutorActions"),
-        children: [
-          {
-            id: "tutor-dashboard",
-            label: t("edumatch.drawer.tutorDashboard"),
-            href: "/tutor",
-            icon: <DashboardIcon />,
-          },
-          {
-            id: "tutor-quote-requests",
-            label: t("edumatch.drawer.quoteRequests"),
-            href: "/tutor/requests",
-            icon: <RequestsIcon />,
-          },
-          {
-            id: "tutor-bookings",
-            label: t("edumatch.drawer.bookings"),
-            href: "/tutor/bookings",
-            icon: <BookingsIcon />,
-          },
-          {
-            id: "tutor-my-profile",
-            label: t("edumatch.drawer.myProfile"),
-            href: "/tutor/profile",
-            icon: <UserIcon />,
-          },
-        ],
+        id: "tutor-dashboard",
+        label: t("edumatch.drawer.tutorDashboard"),
+        href: "/tutor",
+        icon: navIcon(DashboardIcon),
+      },
+      {
+        id: "tutor-quote-requests",
+        label: t("edumatch.drawer.quoteRequests"),
+        href: "/tutor/requests",
+        icon: navIcon(RequestsIcon),
+      },
+      {
+        id: "tutor-bookings",
+        label: t("edumatch.drawer.bookings"),
+        href: "/tutor/bookings",
+        icon: navIcon(BookingsIcon),
+      },
+      {
+        id: "tutor-my-profile",
+        label: t("edumatch.drawer.myProfile"),
+        href: "/tutor/profile",
+        icon: navIcon(UserIcon),
       },
       ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
+      ...(adminItem ? [adminItem] : []),
     ] satisfies NavItem[];
-  }, [items, mounted, session?.user?.roles, t, viewType]);
+  }, [items, mounted, session?.user?.roles, t, viewType, pathname]);
 
   if (!mounted) return null;
 

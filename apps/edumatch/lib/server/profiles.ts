@@ -33,10 +33,14 @@ export type TutorContext = {
   profile: EduTutorProfile;
 };
 
-const ADMIN_ROLE_NAMES = new Set(["admin", "superadmin"]);
+const ADMIN_ROLE_NAMES = new Set(["admin", "superadmin", "edumatch_admin"]);
 
 export function isAdmin(user: AuthedUser): boolean {
   return user.roles.some((r) => ADMIN_ROLE_NAMES.has(r));
+}
+
+export async function requireEduAdmin(): Promise<{ user: AuthedUser; roles: EduRole[] }> {
+  return requireRole("ADMIN");
 }
 
 /** Fetch the EduStudentProfile for a user, or null if they aren't a student. */

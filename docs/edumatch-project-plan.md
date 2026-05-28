@@ -229,6 +229,12 @@ Deliverables:
 - Basic dispute intake form.
 - Notification preference center.
 - Audit events for quote, booking, payout, and admin actions.
+- **Admin panel foundation** (issue #123): shared admin shell with sidebar
+  navigation, overview dashboard, server-side route guard, normalized RBAC
+  (`edumatch_admin` role recognized alongside global `admin`/`superadmin`),
+  consistent `requireRole("ADMIN")` across all admin API routes, and
+  placeholder sections for upcoming admin modules (disputes, bookings,
+  payments, inquiries, users, audit).
 
 ### Phase 9 - Learning Experience Upgrade
 
