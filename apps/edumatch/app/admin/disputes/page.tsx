@@ -27,7 +27,7 @@ export default function DisputesPage() {
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  async function resolve(bookingId: string, resolution: "REFUND" | "NO_REFUND") {
+  async function resolve(bookingId: string, resolution: "REFUND" | "NO_REFUND" | "REQUEST_INFO") {
     setBusy(bookingId);
     setResolveError(null);
     try {
@@ -42,7 +42,7 @@ export default function DisputesPage() {
       }
       await reload();
     } catch (e) {
-      setResolveError(e instanceof Error ? e.message : t("edumatch.admin.disputes.resolveFailed"));
+      setResolveError(localizeAdminDisputeError(e, t));
     } finally {
       setBusy(null);
     }
@@ -111,6 +111,13 @@ export default function DisputesPage() {
               <div className="flex gap-2">
                 <button
                   disabled={busy === d.id}
+                  onClick={() => resolve(d.id, "REQUEST_INFO")}
+                  className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {busy === d.id ? t("edumatch.admin.disputes.working") : t("edumatch.admin.disputes.requestInfo")}
+                </button>
+                <button
+                  disabled={busy === d.id}
                   onClick={() => resolve(d.id, "REFUND")}
                   className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
@@ -130,4 +137,18 @@ export default function DisputesPage() {
       )}
     </div>
   );
+}
+
+function localizeAdminDisputeError(
+  error: unknown,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+) {
+  const message = error instanceof Error ? error.message : "";
+  if (/can only resolve disputed/i.test(message)) {
+    return t("edumatch.admin.disputes.error.notDisputed");
+  }
+  if (/notes are required|reason.*required|required/i.test(message)) {
+    return t("edumatch.admin.disputes.error.notesRequired");
+  }
+  return t("edumatch.admin.disputes.resolveFailed");
 }

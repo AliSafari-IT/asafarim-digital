@@ -105,6 +105,12 @@ export default function StudentDashboard() {
               : t("edumatch.student.createProfile")}
           </Link>
           <Link
+            href={`${EDUMATCH_URL}/student/bookings`}
+            className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
+          >
+            {t("edumatch.student.bookings.title")}
+          </Link>
+          <Link
             href={`${EDUMATCH_URL}/student/inquiry/new`}
             className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
           >

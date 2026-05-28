@@ -1,21 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireTutor } from "@/lib/server/profiles";
-import { handleEduError, serverError } from "@/lib/server";
 import { prisma } from "@asafarim/db";
+import { requireStudent } from "@/lib/server/profiles";
+import { handleEduError, serverError } from "@/lib/server";
 
 export const runtime = "nodejs";
 
-/**
- * GET /api/tutors/bookings
- *
- * List all bookings for the authenticated tutor.
- */
 export async function GET() {
   try {
-    const { user } = await requireTutor();
+    const { user } = await requireStudent();
 
     const bookings = await prisma.eduBooking.findMany({
-      where: { tutorId: user.id },
+      where: { studentId: user.id },
       orderBy: { scheduledAt: "desc" },
       include: {
         quote: {
@@ -29,12 +24,13 @@ export async function GET() {
             },
           },
         },
-        student: {
+        tutor: {
           select: { name: true },
         },
         transactions: {
           where: { type: "REFUND" },
-          select: { id: true },
+          select: { id: true, grossCents: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -45,10 +41,10 @@ export async function GET() {
       scheduledAt: b.scheduledAt,
       durationMinutes: b.durationMinutes,
       mode: b.mode,
-      totalCents: b.quote.hourlyRateCents * b.quote.estimatedHours,
+      totalCents: b.quote.totalCents,
       subject: b.quote.quoteRequest.inquiry.subject,
       gradeLevel: b.quote.quoteRequest.inquiry.gradeLevel,
-      studentName: b.student.name,
+      tutorName: b.tutor.name,
       disputeNotes: b.cancellationReason,
       refundRecorded: b.transactions.length > 0,
     }));
@@ -56,8 +52,8 @@ export async function GET() {
     return NextResponse.json({ items, total: items.length });
   } catch (error) {
     if (error instanceof Error && error.name === "EduAuthError") {
-      return handleEduError("tutors/bookings", error);
+      return handleEduError("student/bookings", error);
     }
-    return serverError("tutors/bookings", error);
+    return serverError("student/bookings", error);
   }
 }

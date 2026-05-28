@@ -27,6 +27,7 @@
 import { prisma } from "@asafarim/db";
 import type { EduBooking, EduTransaction } from "@asafarim/db";
 import { recordEduAuditEvent } from "./audit";
+import { createNotificationsForMany } from "./notifications";
 
 export type BookingStatus =
   | "SCHEDULED"
@@ -35,6 +36,9 @@ export type BookingStatus =
   | "DISPUTED";
 
 export type ActorRole = "STUDENT" | "TUTOR" | "ADMIN";
+export type DisputeResolution = "REFUND" | "NO_REFUND" | "REQUEST_INFO";
+
+export const DISPUTE_WINDOW_DAYS = 14;
 
 const ALLOWED_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   SCHEDULED: ["CANCELLED", "DISPUTED", "COMPLETED"],
@@ -69,6 +73,123 @@ async function loadBookingOrThrow(bookingId: string): Promise<EduBooking> {
   });
   if (!booking) throw new BookingTransitionError("Booking not found");
   return booking;
+}
+
+function encodeDisputeLine(label: string, actorRole: ActorRole, value: string) {
+  return `[${label}:${actorRole}] ${value.trim()}`;
+}
+
+function appendBookingNote(existing: string | null, note: string) {
+  return [existing?.trim(), note.trim()].filter(Boolean).join("\n");
+}
+
+function assertDisputeWindowOpen(booking: EduBooking): void {
+  const anchor = booking.completedAt ?? booking.scheduledAt;
+  if (!anchor) return;
+  const closesAt = new Date(anchor.getTime() + DISPUTE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  if (closesAt.getTime() < Date.now()) {
+    throw new BookingTransitionError(
+      `Disputes must be opened within ${DISPUTE_WINDOW_DAYS} days of the session.`,
+    );
+  }
+}
+
+async function loadBookingNotificationContext(bookingId: string) {
+  return prisma.eduBooking.findUnique({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      studentId: true,
+      tutorId: true,
+      student: { select: { name: true } },
+      tutor: { select: { name: true } },
+      quote: {
+        select: {
+          quoteRequest: {
+            select: {
+              inquiry: { select: { subject: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+async function notifyDisputeOpened(input: {
+  bookingId: string;
+  actorRole: ActorRole;
+  reason: string;
+}) {
+  const booking = await loadBookingNotificationContext(input.bookingId);
+  if (!booking) return;
+  const subject = booking.quote?.quoteRequest?.inquiry?.subject ?? "this booking";
+  const actor =
+    input.actorRole === "STUDENT"
+      ? (booking.student?.name ?? "A student")
+      : input.actorRole === "TUTOR"
+        ? (booking.tutor?.name ?? "A tutor")
+        : "An admin";
+  const recipientIds =
+    input.actorRole === "STUDENT"
+      ? [booking.tutorId]
+      : input.actorRole === "TUTOR"
+        ? [booking.studentId]
+        : [booking.studentId, booking.tutorId];
+
+  await createNotificationsForMany(recipientIds, "BOOKING_DISPUTED", {
+    title: "Booking dispute opened",
+    message: `${actor} opened a dispute for ${subject}.`,
+    actionUrl: input.actorRole === "TUTOR" ? "/student/bookings" : "/tutor/bookings",
+    meta: { bookingId: booking.id, subject },
+  }).catch(() => undefined);
+}
+
+async function notifyDisputeResponse(input: {
+  bookingId: string;
+  actorRole: ActorRole;
+}) {
+  const booking = await loadBookingNotificationContext(input.bookingId);
+  if (!booking) return;
+  const subject = booking.quote?.quoteRequest?.inquiry?.subject ?? "this booking";
+  const recipientIds =
+    input.actorRole === "STUDENT"
+      ? [booking.tutorId]
+      : input.actorRole === "TUTOR"
+        ? [booking.studentId]
+        : [booking.studentId, booking.tutorId];
+
+  await createNotificationsForMany(recipientIds, "DISPUTE_RESPONSE_ADDED", {
+    title: "Dispute response added",
+    message: `A new response was added to the dispute for ${subject}.`,
+    actionUrl: input.actorRole === "TUTOR" ? "/student/bookings" : "/tutor/bookings",
+    meta: { bookingId: booking.id, subject },
+  }).catch(() => undefined);
+}
+
+async function notifyDisputeResolved(input: {
+  bookingId: string;
+  resolution: DisputeResolution;
+}) {
+  const booking = await loadBookingNotificationContext(input.bookingId);
+  if (!booking) return;
+  const subject = booking.quote?.quoteRequest?.inquiry?.subject ?? "this booking";
+  await createNotificationsForMany(
+    [booking.studentId, booking.tutorId],
+    input.resolution === "REQUEST_INFO" ? "DISPUTE_INFO_REQUESTED" : "DISPUTE_RESOLVED",
+    {
+      title:
+        input.resolution === "REQUEST_INFO"
+          ? "More dispute information requested"
+          : "Dispute resolved",
+      message:
+        input.resolution === "REQUEST_INFO"
+          ? `An admin requested more information for the ${subject} dispute.`
+          : `The dispute for ${subject} has been resolved.`,
+      actionUrl: "/student/bookings",
+      meta: { bookingId: booking.id, subject, resolution: input.resolution },
+    },
+  ).catch(() => undefined);
 }
 
 /**
@@ -143,6 +264,10 @@ export async function disputeBooking(input: {
   if (actorRole === "TUTOR" && booking.tutorId !== actorId) {
     throw new BookingTransitionError("Only the booking's tutor can dispute.");
   }
+  if (booking.status === "DISPUTED") {
+    throw new BookingTransitionError("A dispute is already open for this booking.");
+  }
+  assertDisputeWindowOpen(booking);
 
   assertTransitionAllowed(booking.status as BookingStatus, "DISPUTED");
 
@@ -154,7 +279,10 @@ export async function disputeBooking(input: {
     where: { id: bookingId },
     data: {
       status: "DISPUTED",
-      cancellationReason: `[${actorRole} dispute] ${reason.trim()}`,
+      cancellationReason: appendBookingNote(
+        booking.cancellationReason,
+        encodeDisputeLine("DISPUTE", actorRole, reason),
+      ),
     },
   });
 
@@ -169,6 +297,60 @@ export async function disputeBooking(input: {
     reason: reason.trim(),
   });
 
+  await notifyDisputeOpened({ bookingId, actorRole, reason: reason.trim() });
+
+  return updated;
+}
+
+/**
+ * Add a party response to an open dispute. This intentionally uses the
+ * existing booking note field until a dedicated dispute thread model exists.
+ */
+export async function respondToDispute(input: {
+  bookingId: string;
+  actorId: string;
+  actorRole: Exclude<ActorRole, "ADMIN">;
+  message: string;
+}): Promise<EduBooking> {
+  const { bookingId, actorId, actorRole, message } = input;
+  const booking = await loadBookingOrThrow(bookingId);
+
+  if (booking.status !== "DISPUTED") {
+    throw new BookingTransitionError("Can only respond to open disputes.");
+  }
+  if (actorRole === "STUDENT" && booking.studentId !== actorId) {
+    throw new BookingTransitionError("Only the booking's student can respond.");
+  }
+  if (actorRole === "TUTOR" && booking.tutorId !== actorId) {
+    throw new BookingTransitionError("Only the booking's tutor can respond.");
+  }
+  if (!message?.trim()) {
+    throw new BookingTransitionError("Response message is required.");
+  }
+
+  const updated = await prisma.eduBooking.update({
+    where: { id: bookingId },
+    data: {
+      cancellationReason: appendBookingNote(
+        booking.cancellationReason,
+        encodeDisputeLine("RESPONSE", actorRole, message),
+      ),
+    },
+  });
+
+  await recordEduAuditEvent({
+    actorId,
+    actorRole,
+    action: "DISPUTE_RESPONSE_ADDED",
+    entity: "EduBooking",
+    entityId: bookingId,
+    prevState: "DISPUTED",
+    nextState: "DISPUTED",
+    reason: message.trim(),
+  });
+
+  await notifyDisputeResponse({ bookingId, actorRole });
+
   return updated;
 }
 
@@ -180,7 +362,7 @@ export async function disputeBooking(input: {
 export async function resolveDispute(input: {
   bookingId: string;
   adminId: string;
-  resolution: "REFUND" | "NO_REFUND";
+  resolution: DisputeResolution;
   reason: string;
   refundCents?: number;
 }): Promise<EduBooking> {
@@ -191,6 +373,36 @@ export async function resolveDispute(input: {
     throw new BookingTransitionError(
       `Can only resolve disputed bookings (current: ${booking.status})`,
     );
+  }
+  if (!reason?.trim()) {
+    throw new BookingTransitionError("Admin resolution notes are required.");
+  }
+
+  if (resolution === "REQUEST_INFO") {
+    const updated = await prisma.eduBooking.update({
+      where: { id: bookingId },
+      data: {
+        cancellationReason: appendBookingNote(
+          booking.cancellationReason,
+          encodeDisputeLine("ADMIN_REQUEST_INFO", "ADMIN", reason),
+        ),
+      },
+    });
+
+    await recordEduAuditEvent({
+      actorId: adminId,
+      actorRole: "ADMIN",
+      action: "DISPUTE_INFO_REQUESTED",
+      entity: "EduBooking",
+      entityId: bookingId,
+      prevState: "DISPUTED",
+      nextState: "DISPUTED",
+      reason,
+      metadata: { resolution },
+    });
+
+    await notifyDisputeResolved({ bookingId, resolution });
+    return updated;
   }
 
   const next: BookingStatus =
@@ -203,8 +415,8 @@ export async function resolveDispute(input: {
       cancelledAt: next === "CANCELLED" ? new Date() : booking.cancelledAt,
       cancellationReason:
         next === "CANCELLED"
-          ? `[ADMIN refund] ${reason}`
-          : `[ADMIN no-refund] ${reason}`,
+          ? appendBookingNote(booking.cancellationReason, encodeDisputeLine("ADMIN_REFUND", "ADMIN", reason))
+          : appendBookingNote(booking.cancellationReason, encodeDisputeLine("ADMIN_NO_REFUND", "ADMIN", reason)),
       completedAt: next === "COMPLETED" ? new Date() : booking.completedAt,
     },
   });
@@ -228,6 +440,8 @@ export async function resolveDispute(input: {
     reason,
     metadata: { resolution, refundCents: refundCents ?? null },
   });
+
+  await notifyDisputeResolved({ bookingId, resolution });
 
   return updated;
 }
