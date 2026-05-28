@@ -442,9 +442,9 @@ export function EduNav() {
     }
 
     if (isStudent) {
-      const HelpIcon = getNavIcon("helpCircle");
-      const InboxIcon = getNavIcon("inbox");
-      const UserIcon = getNavIcon("user");
+      const HelpIcon = getNavIcon("help");
+      const InboxIcon = getNavIcon("list");
+      const UserIcon = getNavIcon("users");
       const duplicateHrefs = new Set(["/student/inquiry/new", "/student", "/student/profile"]);
 
       return [
@@ -461,7 +461,8 @@ export function EduNav() {
             {
               id: "student-my-inquiries",
               label: t("edumatch.drawer.myInquiries"),
-              href: "/student",
+              href: "/student?section=inquiries",
+              active: pathname === "/student",
               icon: <InboxIcon />,
             },
             {

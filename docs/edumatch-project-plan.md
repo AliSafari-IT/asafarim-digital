@@ -449,6 +449,8 @@ What actually happened:
 - Corrected the implementation by prepending student actions to the `navItems` array only when the computed view is mobile/tablet.
 - Removed duplicated mobile drawer links by filtering existing header nav items whose `href` is already covered by primary role actions.
 - Added the same localized mobile drawer action pattern for tutor accounts.
+- Fixed student drawer active state so `My inquiries` no longer remains active on nested routes such as `/student/profile`.
+- Switched student drawer icons to supported shared icon keys and added drawer CSS alignment tweaks for icon/text vertical centering.
 - Passed an explicit client-computed `viewType` to `AppNavbar` so the package does not infer `"desktop"` during SSR and `"mobile"` during hydration.
 - Kept account/app switcher actions desktop-only to avoid crowding the mobile navbar.
 - Validated `pnpm --filter edumatch typecheck` passes.
