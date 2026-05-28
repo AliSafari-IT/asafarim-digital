@@ -21,14 +21,14 @@ export async function POST(
     if (!body?.resolution || !body?.reason) {
       return badRequest("resolution and reason are required");
     }
-    if (!["REFUND", "NO_REFUND"].includes(body.resolution)) {
-      return badRequest("resolution must be REFUND or NO_REFUND");
+    if (!["REFUND", "NO_REFUND", "REQUEST_INFO"].includes(body.resolution)) {
+      return badRequest("resolution must be REFUND, NO_REFUND, or REQUEST_INFO");
     }
 
     const booking = await resolveDispute({
       bookingId,
       adminId: user.id,
-      resolution: body.resolution as "REFUND" | "NO_REFUND",
+      resolution: body.resolution as "REFUND" | "NO_REFUND" | "REQUEST_INFO",
       reason: body.reason,
       refundCents: body.refundCents,
     });

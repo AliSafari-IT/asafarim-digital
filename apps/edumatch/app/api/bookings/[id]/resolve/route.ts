@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 /**
  * POST /api/bookings/:id/resolve  (ADMIN only)
  *
- * Body: { resolution: "REFUND" | "NO_REFUND", reason: string, refundCents?: number }
+ * Body: { resolution: "REFUND" | "NO_REFUND" | "REQUEST_INFO", reason: string, refundCents?: number }
  *
  * Resolves a disputed booking. REFUND cancels the booking and records a
  * REFUND EduTransaction (no Stripe call). NO_REFUND marks the booking
@@ -29,8 +29,13 @@ export async function POST(
       | null;
     const resolution = body?.resolution;
     const reason = body?.reason?.trim();
-    if (!resolution || (resolution !== "REFUND" && resolution !== "NO_REFUND")) {
-      return badRequest("resolution must be REFUND or NO_REFUND");
+    if (
+      !resolution ||
+      (resolution !== "REFUND" &&
+        resolution !== "NO_REFUND" &&
+        resolution !== "REQUEST_INFO")
+    ) {
+      return badRequest("resolution must be REFUND, NO_REFUND, or REQUEST_INFO");
     }
     if (!reason) return badRequest("reason is required");
 

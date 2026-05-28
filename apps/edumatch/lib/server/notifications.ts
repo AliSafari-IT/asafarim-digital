@@ -22,6 +22,8 @@ export type NotificationType =
   | "BOOKING_CONFIRMED"
   | "BOOKING_CANCELLED"
   | "BOOKING_DISPUTED"
+  | "DISPUTE_RESPONSE_ADDED"
+  | "DISPUTE_INFO_REQUESTED"
   | "DISPUTE_RESOLVED"
   | "AI_RESPONSE_READY"
   | "PAYOUT_SENT";
@@ -45,6 +47,8 @@ export function eventForNotificationType(
     case "BOOKING_CANCELLED":
       return "CANCELLATION_UPDATE";
     case "BOOKING_DISPUTED":
+    case "DISPUTE_RESPONSE_ADDED":
+    case "DISPUTE_INFO_REQUESTED":
     case "DISPUTE_RESOLVED":
       return "DISPUTE_UPDATE";
     case "AI_RESPONSE_READY":

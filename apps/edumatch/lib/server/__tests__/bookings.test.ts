@@ -5,6 +5,8 @@ vi.mock("@asafarim/db", () => ({
     eduBooking: { findUnique: vi.fn(), update: vi.fn() },
     eduTransaction: { create: vi.fn(), findFirst: vi.fn() },
     eduAuditEvent: { create: vi.fn() },
+    eduNotificationPreference: { findMany: vi.fn() },
+    eduNotification: { createMany: vi.fn() },
   },
 }));
 
@@ -12,6 +14,7 @@ import { prisma } from "@asafarim/db";
 import {
   cancelBooking,
   disputeBooking,
+  respondToDispute,
   resolveDispute,
   recordRefundTransaction,
   getRefundDisplayState,
@@ -36,6 +39,10 @@ beforeEach(() => {
   vi.mocked(prisma.eduTransaction.findFirst).mockReset();
   vi.mocked(prisma.eduAuditEvent.create).mockReset();
   vi.mocked(prisma.eduAuditEvent.create).mockResolvedValue({} as never);
+  vi.mocked(prisma.eduNotificationPreference.findMany).mockReset();
+  vi.mocked(prisma.eduNotificationPreference.findMany).mockResolvedValue([]);
+  vi.mocked(prisma.eduNotification.createMany).mockReset();
+  vi.mocked(prisma.eduNotification.createMany).mockResolvedValue({ count: 1 } as never);
 });
 
 describe("cancelBooking", () => {
@@ -130,6 +137,54 @@ describe("disputeBooking", () => {
     });
     expect(out.status).toBe("DISPUTED");
   });
+
+  it("rejects duplicate open disputes", async () => {
+    vi.mocked(prisma.eduBooking.findUnique).mockResolvedValue({
+      ...baseBooking,
+      status: "DISPUTED",
+      scheduledAt: new Date(),
+    } as never);
+    await expect(
+      disputeBooking({
+        bookingId: "b1",
+        actorId: "s1",
+        actorRole: "STUDENT",
+        reason: "Still unresolved",
+      }),
+    ).rejects.toBeInstanceOf(BookingTransitionError);
+  });
+});
+
+describe("respondToDispute", () => {
+  it("allows the tutor to respond to an open dispute", async () => {
+    vi.mocked(prisma.eduBooking.findUnique).mockResolvedValue({
+      ...baseBooking,
+      status: "DISPUTED",
+      cancellationReason: "[DISPUTE:STUDENT] Tutor did not arrive",
+    } as never);
+    vi.mocked(prisma.eduBooking.update).mockResolvedValue({
+      ...baseBooking,
+      status: "DISPUTED",
+      cancellationReason:
+        "[DISPUTE:STUDENT] Tutor did not arrive\n[RESPONSE:TUTOR] I was online",
+    } as never);
+
+    const out = await respondToDispute({
+      bookingId: "b1",
+      actorId: "t1",
+      actorRole: "TUTOR",
+      message: "I was online",
+    });
+
+    expect(out.status).toBe("DISPUTED");
+    expect(prisma.eduBooking.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          cancellationReason: expect.stringContaining("[RESPONSE:TUTOR] I was online"),
+        }),
+      }),
+    );
+  });
 });
 
 describe("resolveDispute", () => {
@@ -195,6 +250,35 @@ describe("resolveDispute", () => {
     });
     expect(out.status).toBe("COMPLETED");
     expect(prisma.eduTransaction.create).not.toHaveBeenCalled();
+  });
+
+  it("REQUEST_INFO keeps dispute open and records admin request", async () => {
+    vi.mocked(prisma.eduBooking.findUnique).mockResolvedValue({
+      ...baseBooking,
+      status: "DISPUTED",
+      cancellationReason: "[DISPUTE:STUDENT] Need review",
+    } as never);
+    vi.mocked(prisma.eduBooking.update).mockResolvedValue({
+      ...baseBooking,
+      status: "DISPUTED",
+    } as never);
+
+    const out = await resolveDispute({
+      bookingId: "b1",
+      adminId: "a1",
+      resolution: "REQUEST_INFO",
+      reason: "Please upload session notes",
+    });
+
+    expect(out.status).toBe("DISPUTED");
+    expect(prisma.eduTransaction.create).not.toHaveBeenCalled();
+    expect(prisma.eduBooking.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          cancellationReason: expect.stringContaining("[ADMIN_REQUEST_INFO:ADMIN] Please upload session notes"),
+        }),
+      }),
+    );
   });
 });
 
