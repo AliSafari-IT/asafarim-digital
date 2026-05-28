@@ -15,12 +15,12 @@ const adminNav: AdminNavItem[] = [
   { label: "Overview", href: "/admin", icon: "OV" },
   { label: "Tutor Verifications", href: "/admin/tutor-verifications", icon: "TV" },
   { label: "Matching Debug", href: "/admin/tutor-matching", icon: "MD" },
-  { label: "Disputes", href: "/admin/disputes", icon: "DS", disabled: true },
-  { label: "Bookings", href: "/admin/bookings", icon: "BK", disabled: true },
-  { label: "Payments", href: "/admin/payments", icon: "PY", disabled: true },
-  { label: "Inquiries", href: "/admin/inquiries", icon: "IQ", disabled: true },
-  { label: "Users & Tutors", href: "/admin/users", icon: "UT", disabled: true },
-  { label: "Audit Log", href: "/admin/audit", icon: "AU", disabled: true },
+  { label: "Disputes", href: "/admin/disputes", icon: "DS" },
+  { label: "Bookings", href: "/admin/bookings", icon: "BK" },
+  { label: "Payments", href: "/admin/payments", icon: "PY" },
+  { label: "Inquiries", href: "/admin/inquiries", icon: "IQ" },
+  { label: "Users & Tutors", href: "/admin/users", icon: "UT" },
+  { label: "Audit Log", href: "/admin/audit", icon: "AU" },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -66,6 +66,25 @@ export function AdminShell({
         </div>
       </header>
 
+      {/* Mobile nav — outside the sidebar flex so it stacks vertically */}
+      <div className="md:hidden border-b border-[var(--color-border)] overflow-x-auto">
+        <nav className="flex gap-1 p-2">
+          {adminNav.filter((i) => !i.disabled).map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
+                isActive(item.href, pathname)
+                  ? "bg-emerald-500/15 font-medium text-emerald-400"
+                  : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      </div>
+
       <div className="flex">
         {/* Desktop sidebar */}
         <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg)] md:block">
@@ -104,25 +123,6 @@ export function AdminShell({
             })}
           </nav>
         </aside>
-
-        {/* Mobile nav */}
-        <div className="w-full md:hidden border-b border-[var(--color-border)] overflow-x-auto">
-          <nav className="flex gap-1 p-2">
-            {adminNav.filter((i) => !i.disabled).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
-                  isActive(item.href, pathname)
-                    ? "bg-emerald-500/15 font-medium text-emerald-400"
-                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
 
         <main className="min-w-0 flex-1 p-4 sm:p-6">{children}</main>
       </div>
