@@ -1013,6 +1013,319 @@ async function seedOpsHub() {
   console.log(`    ✓ ${demoAutomations.length} automations seeded with runs`);
 }
 
+// ─── EduMatch Demo Data ────────────────────────────────────
+
+async function seedEduMatchDemo() {
+  console.log("  → Seeding EduMatch demo data...");
+
+  // Demo users
+  const demoUsers = [
+    {
+      email: "demo.student@example.com",
+      name: "Demo Student",
+      role: "edumatch_student",
+      studentProfile: {
+        gradeLevel: "UNDERGRAD",
+        subjectsOfInterest: ["Mathematics", "Computer Science"],
+        preferredLanguage: "en",
+      },
+    },
+    {
+      email: "demo.tutor@example.com",
+      name: "Demo Tutor",
+      role: "edumatch_tutor",
+      tutorProfile: {
+        bio: "Experienced math and CS tutor with 5+ years of teaching experience.",
+        subjects: ["Mathematics", "Computer Science", "Physics"],
+        levels: ["K12", "UNDERGRAD"],
+        hourlyRateCents: 5000, // $50/hour
+        serviceRadiusKm: 25,
+        lat: 40.7128, // NYC area
+        lng: -74.0060,
+        city: "New York",
+        country: "US",
+        stripeConnectStatus: "ACTIVE",
+        stripeConnectId: "acct_demo123",
+      },
+    },
+    {
+      email: "demo.admin@example.com",
+      name: "Demo Admin",
+      role: "edumatch_admin",
+    },
+  ];
+
+  const createdUsers: Record<string, { id: string; email: string; name: string }> = {};
+
+  // Create demo users and their profiles
+  for (const u of demoUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: { name: u.name },
+      create: {
+        email: u.email,
+        name: u.name,
+        emailVerified: new Date(),
+      },
+    });
+    createdUsers[u.email] = user;
+
+    // Assign role
+    const role = await prisma.role.findUnique({ where: { name: u.role } });
+    if (role) {
+      await prisma.userRole.upsert({
+        where: { userId_roleId: { userId: user.id, roleId: role.id } },
+        update: {},
+        create: { userId: user.id, roleId: role.id },
+      });
+    }
+
+    // Create student profile
+    if (u.studentProfile) {
+      await prisma.eduStudentProfile.upsert({
+        where: { userId: user.id },
+        update: {
+          gradeLevel: u.studentProfile.gradeLevel,
+          subjectsOfInterest: u.studentProfile.subjectsOfInterest,
+          preferredLanguage: u.studentProfile.preferredLanguage,
+        },
+        create: {
+          userId: user.id,
+          gradeLevel: u.studentProfile.gradeLevel,
+          subjectsOfInterest: u.studentProfile.subjectsOfInterest,
+          preferredLanguage: u.studentProfile.preferredLanguage,
+        },
+      });
+    }
+
+    // Create tutor profile
+    if (u.tutorProfile) {
+      await prisma.eduTutorProfile.upsert({
+        where: { userId: user.id },
+        update: {
+          bio: u.tutorProfile.bio,
+          subjects: u.tutorProfile.subjects,
+          levels: u.tutorProfile.levels,
+          hourlyRateCents: u.tutorProfile.hourlyRateCents,
+          serviceRadiusKm: u.tutorProfile.serviceRadiusKm,
+          lat: u.tutorProfile.lat,
+          lng: u.tutorProfile.lng,
+          city: u.tutorProfile.city,
+          country: u.tutorProfile.country,
+          stripeConnectStatus: u.tutorProfile.stripeConnectStatus,
+          stripeConnectId: u.tutorProfile.stripeConnectId,
+          verifiedAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          bio: u.tutorProfile.bio,
+          subjects: u.tutorProfile.subjects,
+          levels: u.tutorProfile.levels,
+          hourlyRateCents: u.tutorProfile.hourlyRateCents,
+          serviceRadiusKm: u.tutorProfile.serviceRadiusKm,
+          lat: u.tutorProfile.lat,
+          lng: u.tutorProfile.lng,
+          city: u.tutorProfile.city,
+          country: u.tutorProfile.country,
+          stripeConnectStatus: u.tutorProfile.stripeConnectStatus,
+          stripeConnectId: u.tutorProfile.stripeConnectId,
+          verifiedAt: new Date(),
+        },
+      });
+
+      // Create wallet for tutor with some balance
+      await prisma.eduWallet.upsert({
+        where: { tutorId: user.id },
+        update: {
+          balanceCents: 25000, // $250 available
+          pendingCents: 15000, // $150 pending
+          lifetimeEarningsCents: 75000, // $750 lifetime
+        },
+        create: {
+          tutorId: user.id,
+          balanceCents: 25000,
+          pendingCents: 15000,
+          lifetimeEarningsCents: 75000,
+          currency: "USD",
+          payoutThresholdCents: 5000,
+        },
+      });
+    }
+  }
+
+  // Create demo inquiry from student
+  const student = createdUsers["demo.student@example.com"];
+  const tutor = createdUsers["demo.tutor@example.com"];
+
+  if (student && tutor) {
+    // Create inquiry
+    const inquiry = await prisma.eduInquiry.upsert({
+      where: { id: "demo_inquiry_001" },
+      update: {},
+      create: {
+        id: "demo_inquiry_001",
+        studentId: student.id,
+        subject: "Mathematics",
+        gradeLevel: "UNDERGRAD",
+        description: "I need help understanding derivatives and integrals for my calculus exam. Specifically, I'm struggling with chain rule applications and integration by parts. I have a midterm next week and would appreciate a clear explanation with practice problems.",
+        status: "ANSWERED",
+        moderationOutcome: "ALLOW",
+        moderationCategory: "NONE",
+      },
+    });
+
+    // Create AI response for the inquiry
+    await prisma.eduAiResponse.upsert({
+      where: { id: "demo_ai_response_001" },
+      update: {},
+      create: {
+        id: "demo_ai_response_001",
+        inquiryId: inquiry.id,
+        modelUsed: "gpt-4o",
+        explanation: "Derivatives measure the rate of change of a function. The chain rule states that for a composite function f(g(x)), the derivative is f'(g(x)) * g'(x). Integration by parts uses the formula ∫u dv = uv - ∫v du, where you choose u and dv strategically to simplify the integral.",
+        studyPlan: "1. Review chain rule with 5 practice problems\n2. Practice integration by parts with polynomial and exponential functions\n3. Work through mixed problems combining both concepts",
+        nextSteps: "Try the practice problems in your textbook Chapter 4, sections 4.3 and 4.7. If you get stuck on specific problems, take screenshots and share them.",
+        moderationOutcome: "ALLOW",
+        tokensUsed: 450,
+        latencyMs: 1200,
+      },
+    });
+
+    // Create quote request
+    const quoteRequest = await prisma.eduQuoteRequest.upsert({
+      where: { id: "demo_quote_request_001" },
+      update: {},
+      create: {
+        id: "demo_quote_request_001",
+        inquiryId: inquiry.id,
+        studentId: student.id,
+        subject: "Mathematics",
+        level: "UNDERGRAD",
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        status: "FULFILLED",
+      },
+    });
+
+    // Create tutor quote
+    const quote = await prisma.eduQuote.upsert({
+      where: { id: "demo_quote_001" },
+      update: {},
+      create: {
+        id: "demo_quote_001",
+        quoteRequestId: quoteRequest.id,
+        tutorId: tutor.id,
+        hourlyRateCents: 5000,
+        estimatedHours: 2,
+        totalCents: 10000,
+        availability: "Available weekdays 6-9 PM EST and weekends 10 AM-4 PM EST",
+        tutorNote: "I have extensive experience teaching calculus and can help you master these concepts before your midterm. I'll provide custom practice problems and walk through them with you.",
+        status: "ACCEPTED",
+      },
+    });
+
+    // Create booking from accepted quote
+    const booking = await prisma.eduBooking.upsert({
+      where: { quoteId: quote.id },
+      update: {},
+      create: {
+        quoteId: quote.id,
+        studentId: student.id,
+        tutorId: tutor.id,
+        status: "CONFIRMED",
+        paymentStatus: "CAPTURED",
+        totalCents: 10000,
+        platformFeeCents: 1500, // 15% platform fee
+        tutorPayoutCents: 8500,
+        scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        mode: "ONLINE",
+        stripePaymentIntentId: "pi_demo_12345",
+      },
+    });
+
+    // Create transaction record
+    await prisma.eduTransaction.upsert({
+      where: { id: "demo_transaction_001" },
+      update: {},
+      create: {
+        id: "demo_transaction_001",
+        bookingId: booking.id,
+        tutorId: tutor.id,
+        kind: "BOOKING_CHARGE",
+        amountCents: 10000,
+        platformFeeCents: 1500,
+        tutorNetCents: 8500,
+        currency: "USD",
+        stripeChargeId: "ch_demo_12345",
+        description: "Payment for Calculus Tutoring Session",
+      },
+    });
+
+    // Create notifications for the demo flow
+    const notifications = [
+      {
+        id: "demo_notif_001",
+        userId: student.id,
+        type: "INQUIRY_ANSWERED",
+        title: "AI Response Ready",
+        message: "Your mathematics inquiry has been answered by AI.",
+        entityType: "EduInquiry",
+        entityId: inquiry.id,
+        read: true,
+      },
+      {
+        id: "demo_notif_002",
+        userId: student.id,
+        type: "QUOTE_RECEIVED",
+        title: "New Quote Received",
+        message: "Demo Tutor has submitted a quote for your calculus tutoring request.",
+        entityType: "EduQuote",
+        entityId: quote.id,
+        read: true,
+      },
+      {
+        id: "demo_notif_003",
+        userId: student.id,
+        type: "BOOKING_CONFIRMED",
+        title: "Booking Confirmed",
+        message: "Your tutoring session has been confirmed and payment processed.",
+        entityType: "EduBooking",
+        entityId: booking.id,
+        read: false,
+      },
+      {
+        id: "demo_notif_004",
+        userId: tutor.id,
+        type: "QUOTE_REQUEST",
+        title: "New Quote Request",
+        message: "A student is requesting quotes for mathematics tutoring.",
+        entityType: "EduQuoteRequest",
+        entityId: quoteRequest.id,
+        read: true,
+      },
+      {
+        id: "demo_notif_005",
+        userId: tutor.id,
+        type: "BOOKING_CONFIRMED",
+        title: "Booking Confirmed",
+        message: "Your quote was accepted! A booking has been confirmed.",
+        entityType: "EduBooking",
+        entityId: booking.id,
+        read: false,
+      },
+    ];
+
+    for (const n of notifications) {
+      await prisma.eduNotification.upsert({
+        where: { id: n.id },
+        update: {},
+        create: n,
+      });
+    }
+
+    console.log("    ✓ EduMatch demo data seeded (3 users, 1 inquiry, 1 AI response, 1 quote request, 1 quote, 1 booking, 5 notifications)");
+  }
+}
+
 // ─── Seed Runner ─────────────────────────────────────────────
 
 async function main() {
@@ -1126,6 +1439,9 @@ async function main() {
 
   // 7. Seed Ops Hub demo data
   await seedOpsHub();
+
+  // 7a. Seed EduMatch demo data
+  await seedEduMatchDemo();
 
   // 7b. Bootstrap superadmin(s) from SUPERADMIN_EMAILS env (comma-separated)
   const bootstrapEmails = (process.env.SUPERADMIN_EMAILS ?? "")

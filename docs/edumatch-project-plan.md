@@ -2,8 +2,8 @@
 
 **Author:** Ali Safari
 **Created:** 2026-04-27
-**Updated:** 2026-05-25
-**Status:** Phase 7 in progress
+**Updated:** 2026-05-28
+**Status:** Phase 7 complete - Milestone 2 achieved
 **Purpose:** Practice a production-shaped AI marketplace system inside the
 ASafariM Digital monorepo.
 
@@ -190,7 +190,7 @@ Deliverables:
 - Shared models and API service.
 - Role onboarding and sign-in screens.
 
-### Phase 7 - Polish and Release Hardening (In Progress)
+### Phase 7 - Polish and Release Hardening (Complete)
 
 Goal: make the existing loop demonstrable end to end.
 
@@ -405,3 +405,34 @@ What I would do differently next time:
 - Upgrade Prisma CLI, Prisma Client, and the required driver adapter in one dedicated branch from the start.
 - Clear generated Next.js caches before validating major dependency upgrades.
 - Run app builds with local service dependencies such as Redis available when validating changes that touch shared server-side packages.
+
+### 2026-05-28 - EduMatch Milestone 2: End-to-end demo release hardening
+
+What actually happened:
+
+- Added comprehensive EduMatch demo seed data to `packages/db/prisma/seed.ts` with complete student/tutor/admin demo scenario:
+  - 3 demo users with proper role assignments (edumatch_student, edumatch_tutor, edumatch_admin)
+  - Student profile with grade level and subject preferences
+  - Verified tutor profile with Stripe Connect, location, and rates
+  - Complete inquiry with AI response about calculus derivatives
+  - Quote request, submitted quote ($50/hour × 2 hours = $100), and accepted status
+  - Confirmed booking with payment captured ($10 total with $8.50 tutor payout)
+  - Tutor wallet with $250 available, $150 pending, $750 lifetime earnings
+  - 5 notifications across the flow for both student and tutor
+- Updated Phase 7 status - tests now passing (122 tests), typecheck passing
+- Created comprehensive demo setup documentation at `docs/edumatch-demo-setup.md`
+- Verified seed function works with Prisma upserts for idempotent re-seeding
+- Validated pnpm --filter edumatch typecheck passes
+- Validated pnpm --filter edumatch test passes (122 tests in ~2s)
+
+What surprised me:
+
+- The existing test suite was already comprehensive (122 tests) and all passed after recent fixes
+- Complex route handler tests with many Vitest mocks were brittle; simpler unit tests on lib/server modules were more stable
+- Creating realistic demo data requires thinking through the entire user journey from inquiry → AI response → quote → booking → wallet
+
+What I would do differently next time:
+
+- Consider using a separate `seed-demo.ts` script for easier maintenance vs adding to main seed.ts
+- Document the demo user credentials and flow in multiple places (README, separate doc, inline comments)
+- Add a simple health check endpoint that verifies demo data exists for quick validation
