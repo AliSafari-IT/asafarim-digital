@@ -436,3 +436,30 @@ What I would do differently next time:
 - Consider using a separate `seed-demo.ts` script for easier maintenance vs adding to main seed.ts
 - Document the demo user credentials and flow in multiple places (README, separate doc, inline comments)
 - Add a simple health check endpoint that verifies demo data exists for quick validation
+
+### 2026-05-28 - EduMatch Issue #119: Student mobile drawer navigation
+
+What actually happened:
+
+- Added primary student actions for mobile/tablet navigation:
+  - Ask a question
+  - My inquiries
+  - My profile
+- Initially placed the actions in the `AppNavbar` `actions` slot, which visually leaked into the navbar action area instead of the drawer.
+- Corrected the implementation by prepending student actions to the `navItems` array only when the computed view is mobile/tablet.
+- Removed duplicated mobile drawer links by filtering existing header nav items whose `href` is already covered by primary role actions.
+- Added the same localized mobile drawer action pattern for tutor accounts.
+- Passed an explicit client-computed `viewType` to `AppNavbar` so the package does not infer `"desktop"` during SSR and `"mobile"` during hydration.
+- Kept account/app switcher actions desktop-only to avoid crowding the mobile navbar.
+- Validated `pnpm --filter edumatch typecheck` passes.
+- Validated `pnpm --filter edumatch test` passes (122 tests).
+
+What surprised me:
+
+- The installed `@asafarim/navigation` package computes view type internally as `"desktop"` on the server, then switches to `"mobile"` on the client, which can trigger hydration mismatches in responsive layouts.
+- The `actions` slot is not drawer-only; it renders inside the navbar action area and should not be used for mobile drawer content.
+
+What I would do differently next time:
+
+- Inspect package component APIs and rendered markup before choosing an extension slot.
+- Prefer feeding drawer-only navigation through `navItems` when `AppNavbar` uses the same list for its mobile `AppDrawer`.

@@ -14,6 +14,7 @@ import {
   AppSwitcher,
   getNavIcon,
 } from "@asafarim/ui";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
@@ -407,27 +408,130 @@ const renderLink: RenderLink = ({ item, children }) => {
 
 // EduMatch-specific wrapper around AppNavbar
 export function EduNav() {
+  const [mounted, setMounted] = useState(false);
+  const [viewType, setViewType] = useState<"mobile" | "tablet" | "desktop">("desktop");
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const { t } = useTranslation();
   const { items, error } = useNavigation("edumatch" as AppCode, "header");
+
+  useEffect(() => {
+    const updateViewType = () => {
+      const width = window.innerWidth;
+      setViewType(width < 768 ? "mobile" : width < 1024 ? "tablet" : "desktop");
+    };
+
+    updateViewType();
+    setMounted(true);
+    window.addEventListener("resize", updateViewType);
+    return () => window.removeEventListener("resize", updateViewType);
+  }, []);
 
   if (error) {
     console.error("Navigation fetch error:", error);
   }
 
-  const navItems = useMemo(() => toNavItems(items), [items]);
+  const navItems = useMemo(() => {
+    const resolvedItems = toNavItems(items);
+    const isStudent = session?.user?.roles?.includes("edumatch_student");
+    const isTutor = session?.user?.roles?.includes("edumatch_tutor");
+    const isMobileDrawer = viewType !== "desktop";
+
+    if (!mounted || !isMobileDrawer || (!isStudent && !isTutor)) {
+      return resolvedItems;
+    }
+
+    if (isStudent) {
+      const HelpIcon = getNavIcon("helpCircle");
+      const InboxIcon = getNavIcon("inbox");
+      const UserIcon = getNavIcon("user");
+      const duplicateHrefs = new Set(["/student/inquiry/new", "/student", "/student/profile"]);
+
+      return [
+        {
+          id: "student-actions",
+          label: t("edumatch.drawer.studentActions"),
+          children: [
+            {
+              id: "student-ask-question",
+              label: t("edumatch.drawer.askQuestion"),
+              href: "/student/inquiry/new",
+              icon: <HelpIcon />,
+            },
+            {
+              id: "student-my-inquiries",
+              label: t("edumatch.drawer.myInquiries"),
+              href: "/student",
+              icon: <InboxIcon />,
+            },
+            {
+              id: "student-my-profile",
+              label: t("edumatch.drawer.myProfile"),
+              href: "/student/profile",
+              icon: <UserIcon />,
+            },
+          ],
+        },
+        ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
+      ] satisfies NavItem[];
+    }
+
+    const DashboardIcon = getNavIcon("overview");
+    const RequestsIcon = getNavIcon("chat");
+    const BookingsIcon = getNavIcon("layers");
+    const UserIcon = getNavIcon("user");
+    const duplicateHrefs = new Set(["/tutor", "/tutor/requests", "/tutor/bookings", "/tutor/profile"]);
+
+    return [
+      {
+        id: "tutor-actions",
+        label: t("edumatch.drawer.tutorActions"),
+        children: [
+          {
+            id: "tutor-dashboard",
+            label: t("edumatch.drawer.tutorDashboard"),
+            href: "/tutor",
+            icon: <DashboardIcon />,
+          },
+          {
+            id: "tutor-quote-requests",
+            label: t("edumatch.drawer.quoteRequests"),
+            href: "/tutor/requests",
+            icon: <RequestsIcon />,
+          },
+          {
+            id: "tutor-bookings",
+            label: t("edumatch.drawer.bookings"),
+            href: "/tutor/bookings",
+            icon: <BookingsIcon />,
+          },
+          {
+            id: "tutor-my-profile",
+            label: t("edumatch.drawer.myProfile"),
+            href: "/tutor/profile",
+            icon: <UserIcon />,
+          },
+        ],
+      },
+      ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
+    ] satisfies NavItem[];
+  }, [items, mounted, session?.user?.roles, t, viewType]);
+
+  if (!mounted) return null;
 
   return (
     <AppNavbar
       sticky
       bordered
       fullWidth
+      viewType={viewType}
       currentPath={pathname}
       renderLink={renderLink}
       logo={<EduLogo />}
       navItems={navItems}
       countryLangSelector={<CompactControls />}
       themeToggler={<ThemeToggle />}
-      actions={<DrawerContent />}
+      actions={viewType === "desktop" ? <DrawerContent /> : undefined}
       className="bg-[var(--color-surface)]/80 backdrop-blur-xl"
     />
   );
