@@ -12,7 +12,7 @@ export async function GET() {
     info: {
       title: "EduMatch API",
       version: "2.0.0",
-      description: "EduMatch Phase 2: Inquiry flow, AI responses, and tutor quote pipeline",
+      description: "EduMatch API: Inquiry flow, AI responses, tutor marketplace, trust/safety, and admin controls",
     },
     servers: [
       { url: "http://localhost:3005", description: "Local dev" },
@@ -317,6 +317,185 @@ export async function GET() {
           },
           responses: {
             "200": { description: "Profile created/updated" },
+          },
+        },
+      },
+      "/api/bookings/{id}/cancel": {
+        post: {
+          summary: "Cancel a booking (student, tutor, or admin)",
+          tags: ["Bookings", "Trust & Safety"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["reason"],
+                  properties: {
+                    reason: { type: "string", description: "Cancellation reason" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Booking cancelled" },
+            "400": { description: "Invalid transition or missing reason" },
+            "403": { description: "Not authorized to cancel this booking" },
+          },
+        },
+      },
+      "/api/bookings/{id}/dispute": {
+        post: {
+          summary: "Open a dispute on a booking",
+          tags: ["Bookings", "Trust & Safety"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["reason"],
+                  properties: {
+                    reason: { type: "string", description: "Dispute reason" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Dispute opened" },
+            "400": { description: "Invalid transition or missing reason" },
+            "403": { description: "Not authorized to dispute this booking" },
+          },
+        },
+      },
+      "/api/bookings/{id}/resolve": {
+        post: {
+          summary: "Admin resolves a booking dispute",
+          tags: ["Bookings", "Trust & Safety", "Admin"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["resolution", "reason"],
+                  properties: {
+                    resolution: { type: "string", enum: ["REFUND", "NO_REFUND"], description: "Resolution type" },
+                    reason: { type: "string", description: "Resolution reason" },
+                    refundCents: { type: "integer", description: "Refund amount in cents (if REFUND)" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Dispute resolved" },
+            "400": { description: "Invalid resolution" },
+            "403": { description: "Admin access required" },
+          },
+        },
+      },
+      "/api/admin/tutor-verifications": {
+        get: {
+          summary: "List tutor verification queue (admin only)",
+          tags: ["Admin", "Trust & Safety"],
+          security: [{ BearerAuth: [] }],
+          responses: {
+            "200": { description: "List of tutors with verification status" },
+            "403": { description: "Admin access required" },
+          },
+        },
+      },
+      "/api/admin/tutor-verifications/{id}": {
+        get: {
+          summary: "Get tutor verification details (admin only)",
+          tags: ["Admin", "Trust & Safety"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Tutor ID" },
+          ],
+          responses: {
+            "200": { description: "Verification details and history" },
+            "403": { description: "Admin access required" },
+          },
+        },
+        post: {
+          summary: "Update tutor verification status (admin only)",
+          tags: ["Admin", "Trust & Safety"],
+          security: [{ BearerAuth: [] }],
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" }, description: "Tutor ID" },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["status"],
+                  properties: {
+                    status: { type: "string", enum: ["PENDING", "NEEDS_CHANGES", "VERIFIED", "REJECTED"], description: "New verification status" },
+                    checklist: { type: "object", description: "Verification checklist items" },
+                    adminNotes: { type: "string", description: "Internal admin notes" },
+                    tutorMessage: { type: "string", description: "Message to tutor (for NEEDS_CHANGES)" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Verification status updated" },
+            "400": { description: "Invalid status" },
+            "403": { description: "Admin access required" },
+          },
+        },
+      },
+      "/api/me/notification-preferences": {
+        get: {
+          summary: "Get notification preferences",
+          tags: ["Notifications", "Preferences"],
+          security: [{ BearerAuth: [] }],
+          responses: {
+            "200": { description: "Notification preferences" },
+          },
+        },
+        post: {
+          summary: "Update notification preferences",
+          tags: ["Notifications", "Preferences"],
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    emailQuoteRequests: { type: "boolean" },
+                    emailBookings: { type: "boolean" },
+                    emailMessages: { type: "boolean" },
+                    emailMarketing: { type: "boolean" },
+                    pushEnabled: { type: "boolean" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "Preferences updated" },
           },
         },
       },
