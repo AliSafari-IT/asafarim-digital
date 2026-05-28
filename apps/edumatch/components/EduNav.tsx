@@ -353,11 +353,25 @@ function CompactControls() {
 /**
  * Student-specific quick actions for the mobile drawer.
  * These are the primary actions students need quick access to.
+ *
+ * Notes:
+ * - Uses `mounted` guard to avoid hydration mismatch (useSession returns
+ *   nothing during SSR but data on the client).
+ * - `lg:hidden` keeps this block out of the desktop navbar rail; it only
+ *   renders inside the mobile (<lg) hamburger drawer.
  */
 function StudentDrawerActions() {
+  const [mounted, setMounted] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch: render nothing until client mount
+  if (!mounted) return null;
 
   // Only show for students
   const isStudent = session?.user?.roles?.includes("edumatch_student");
@@ -388,7 +402,7 @@ function StudentDrawerActions() {
   ];
 
   return (
-    <div className="border-b border-[var(--color-border)] pb-4 mb-4">
+    <div className="lg:hidden border-b border-[var(--color-border)] pb-4 mb-4">
       <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
         {t("edumatch.drawer.studentActions")}
       </p>
@@ -412,7 +426,7 @@ function StudentDrawerActions() {
               ].join(" ")}
             >
               <span className={isPrimary ? "text-white" : ""}><Icon /></span>
-              <span>{action.label}</span>
+              <span className="truncate">{action.label}</span>
             </Link>
           );
         })}
