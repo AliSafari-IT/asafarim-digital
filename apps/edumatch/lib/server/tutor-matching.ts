@@ -13,6 +13,9 @@
 import { prisma } from "@asafarim/db";
 import type { GeoPoint } from "./geocoding";
 import { unverifiedTutorsExcluded } from "./tutor-verification";
+import type { ScoredTutor } from "@/lib/types/tutor-matching";
+
+export type { ScoredTutor } from "@/lib/types/tutor-matching";
 
 export type AvailabilitySlot = {
   start: string; // ISO datetime
@@ -27,25 +30,6 @@ export type TutorMatchInput = {
   maxDistanceKm?: number;
   preferOnline?: boolean;
   limit?: number;
-};
-
-export type ScoredTutor = {
-  userId: string;
-  bio: string | null;
-  subjectsTaught: string[];
-  levelsTaught: string[];
-  hourlyRateCents: number;
-  onlineOnly: boolean;
-  serviceRadiusKm: number;
-  ratingAvg: number;
-  ratingCount: number;
-  verifiedAt: Date | null;
-  // Computed match scores
-  distanceKm: number;
-  subjectMatch: boolean;
-  levelMatch: boolean;
-  availabilityScore: number;
-  compositeScore: number;
 };
 
 /**

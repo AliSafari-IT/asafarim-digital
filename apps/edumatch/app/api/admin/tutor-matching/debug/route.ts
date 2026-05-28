@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAuth, unauthorized } from "@/lib/server/auth";
-import { serverError } from "@/lib/server";
+import { requireRole } from "@/lib/server/profiles";
+import { handleEduError, serverError } from "@/lib/server";
 import { findBestTutors } from "@/lib/server/tutor-matching";
 
 export const runtime = "nodejs";
@@ -9,16 +9,10 @@ export const runtime = "nodejs";
  * POST /api/admin/tutor-matching/debug
  *
  * Admin-only endpoint to test tutor matching algorithm.
- * Requires the user to have the `edumatch_admin` role.
  */
 export async function POST(req: Request) {
   try {
-    const user = await requireAuth();
-
-    // Check for edumatch_admin role
-    if (!user.roles.includes("edumatch_admin")) {
-      return unauthorized();
-    }
+    await requireRole("ADMIN");
 
     const body = (await req.json().catch(() => ({}))) as {
       lat?: number;
@@ -50,7 +44,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ tutors });
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") return unauthorized();
+    if (error instanceof Error && error.name === "EduAuthError") {
+      return handleEduError("admin/tutor-matching/debug", error);
+    }
     return serverError("admin/tutor-matching/debug", error);
   }
 }
