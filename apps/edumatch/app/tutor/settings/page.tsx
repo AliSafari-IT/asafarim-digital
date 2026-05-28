@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type TutorProfile = {
   bio: string | null;
@@ -14,6 +15,7 @@ type TutorProfile = {
 };
 
 export default function TutorSettingsPage() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<TutorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -42,7 +44,7 @@ export default function TutorSettingsPage() {
         setLoading(false);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Failed to load profile");
+        setError(e instanceof Error ? e.message : t("edumatch.tutor.settings.loadFailed"));
         setLoading(false);
       });
   }, []);
@@ -62,10 +64,10 @@ export default function TutorSettingsPage() {
         }),
       });
       const data = await res.json() as { error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Failed to save");
+      if (!res.ok) throw new Error(data.error ?? t("edumatch.tutor.settings.saveFailed"));
       setSuccess(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save");
+      setError(e instanceof Error ? e.message : t("edumatch.tutor.settings.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -83,21 +85,21 @@ export default function TutorSettingsPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3 text-sm">
         <Link href="/tutor" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">Settings</span>
+        <span className="text-[var(--color-text)]">{t("edumatch.tutor.settings.title")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Settings</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-6">Configure your tutoring preferences.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.tutor.settings.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-6">{t("edumatch.tutor.settings.subtitle")}</p>
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
       {success && (
         <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-          Settings saved successfully.
+          {t("edumatch.tutor.settings.saved")}
         </div>
       )}
 
@@ -105,7 +107,7 @@ export default function TutorSettingsPage() {
 
         {/* Hourly rate */}
         <div>
-          <label className="block text-sm font-medium text-[var(--color-text)] mb-1">Default Hourly Rate (€)</label>
+          <label className="block text-sm font-medium text-[var(--color-text)] mb-1">{t("edumatch.tutor.settings.defaultRate")}</label>
           <input
             type="number"
             min={1}
@@ -114,14 +116,14 @@ export default function TutorSettingsPage() {
             onChange={(e) => setForm((f) => ({ ...f, hourlyRateCents: Math.round(parseFloat(e.target.value) * 100) }))}
             className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           />
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">Used as the default when submitting quotes.</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">{t("edumatch.tutor.settings.defaultRateHint")}</p>
         </div>
 
         {/* Online only toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-[var(--color-text)]">Online sessions only</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Only accept online tutoring requests.</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{t("edumatch.tutor.settings.onlineOnly")}</p>
+            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{t("edumatch.tutor.settings.onlineOnlyHint")}</p>
           </div>
           <button
             type="button"
@@ -138,7 +140,7 @@ export default function TutorSettingsPage() {
         {!form.onlineOnly && (
           <div>
             <label className="block text-sm font-medium text-[var(--color-text)] mb-1">
-              Service Radius: <span className="text-[var(--color-primary)]">{form.serviceRadiusKm} km</span>
+              {t("edumatch.tutor.settings.serviceRadius")}: <span className="text-[var(--color-primary)]">{form.serviceRadiusKm} km</span>
             </label>
             <input
               type="range"
@@ -160,14 +162,13 @@ export default function TutorSettingsPage() {
             href="/tutor/profile"
             className="text-sm text-[var(--color-primary)] hover:underline"
           >
-            Edit full profile →
-          </Link>
+            {t("edumatch.tutor.settings.editFullProfile")}</Link>
           <button
             onClick={saveSettings}
             disabled={saving}
             className="rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition"
           >
-            {saving ? "Saving…" : "Save Settings"}
+            {saving ? t("edumatch.profile.tutor.saving") : t("edumatch.tutor.settings.save")}
           </button>
         </div>
       </div>

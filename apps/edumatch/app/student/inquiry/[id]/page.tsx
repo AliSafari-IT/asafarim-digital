@@ -370,7 +370,7 @@ export default function InquiryDetail() {
             href="/student"
             className="text-[var(--color-primary)] hover:underline"
           >
-            ← Back to Dashboard
+            {t("edumatch.inquiry.detail.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -503,9 +503,9 @@ export default function InquiryDetail() {
           data-testid="ai-disclaimer"
           className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800"
           role="note"
-          aria-label="AI accuracy disclaimer"
+          aria-label={t("edumatch.inquiry.detail.disclaimerLabel")}
         >
-          <strong>Heads up:</strong> {AI_DISCLAIMER_TEXT}
+          <strong>{t("edumatch.inquiry.detail.headsUp")}</strong> {AI_DISCLAIMER_TEXT}
         </div>
 
         {/* Confidence indicator for AI responses */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type UserRow = {
   id: string;
@@ -17,6 +18,7 @@ type UserRow = {
 };
 
 export default function UsersPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [data, setData] = useState<{ items: UserRow[]; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,14 +49,14 @@ export default function UsersPage() {
       <div className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[var(--color-text)]">Users & Tutors</h1>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">Browse user accounts and profiles.</p>
+            <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("edumatch.admin.users.title")}</h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("edumatch.admin.users.subtitle")}</p>
           </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or email..."
+            placeholder={t("edumatch.admin.users.searchPlaceholder")}
             className="w-full sm:w-64 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
           />
         </div>
@@ -65,12 +67,12 @@ export default function UsersPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No users found.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.users.noUsers")}</p>
       ) : (
         <>
-          <p className="text-xs text-[var(--color-text-muted)] mb-3">{data.total} total</p>
+          <p className="text-xs text-[var(--color-text-muted)] mb-3">{t("edumatch.admin.common.total", { n: data.total })}</p>
 
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
@@ -83,10 +85,10 @@ export default function UsersPage() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {u.hasStudentProfile && (
-                      <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] text-blue-400">Student</span>
+                      <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] text-blue-400">{t("edumatch.admin.users.student")}</span>
                     )}
                     {u.hasTutorProfile && (
-                      <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">Tutor</span>
+                      <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">{t("edumatch.admin.users.tutor")}</span>
                     )}
                   </div>
                 </div>
@@ -101,13 +103,13 @@ export default function UsersPage() {
                   <span>
                     {u.hasTutorProfile ? (
                       u.tutorVerified ? (
-                        <span className="text-green-400">Verified tutor</span>
+                        <span className="text-green-400">{t("edumatch.admin.users.verifiedTutor")}</span>
                       ) : (
-                        <span className="text-yellow-400">Unverified tutor</span>
+                        <span className="text-yellow-400">{t("edumatch.admin.users.unverifiedTutor")}</span>
                       )
                     ) : null}
                   </span>
-                  <span>Joined {new Date(u.createdAt).toLocaleDateString()}</span>
+                  <span>{t("edumatch.admin.users.joined")} {new Date(u.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             ))}
@@ -118,12 +120,12 @@ export default function UsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Name</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Email</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Roles</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Profiles</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Tutor Status</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Joined</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.name")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.email")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.roles")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.profiles")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.tutorStatus")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.users.joined")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,10 +145,10 @@ export default function UsersPage() {
                     <td className="px-3 py-2">
                       <div className="flex gap-1">
                         {u.hasStudentProfile && (
-                          <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] text-blue-400">Student</span>
+                          <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] text-blue-400">{t("edumatch.admin.users.student")}</span>
                         )}
                         {u.hasTutorProfile && (
-                          <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">Tutor</span>
+                          <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-400">{t("edumatch.admin.users.tutor")}</span>
                         )}
                         {!u.hasStudentProfile && !u.hasTutorProfile && (
                           <span className="text-[var(--color-text-muted)] text-xs">-</span>
@@ -156,9 +158,9 @@ export default function UsersPage() {
                     <td className="px-3 py-2">
                       {u.hasTutorProfile ? (
                         u.tutorVerified ? (
-                          <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] text-green-400">Verified</span>
+                          <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] text-green-400">{t("edumatch.admin.users.verified")}</span>
                         ) : (
-                          <span className="rounded-full bg-yellow-500/15 px-1.5 py-0.5 text-[10px] text-yellow-400">Unverified</span>
+                          <span className="rounded-full bg-yellow-500/15 px-1.5 py-0.5 text-[10px] text-yellow-400">{t("edumatch.admin.users.unverified")}</span>
                         )
                       ) : (
                         <span className="text-[var(--color-text-muted)] text-xs">-</span>

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 export default function ConnectOnboardPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [onboarding, setOnboarding] = useState(false);
   const [status, setStatus] = useState<{
@@ -21,7 +23,7 @@ export default function ConnectOnboardPage() {
         setLoading(false);
       })
       .catch(() => {
-        setError("Failed to load onboarding status.");
+        setError(t("edumatch.connect.loadFailed"));
         setLoading(false);
       });
   }, []);
@@ -39,7 +41,7 @@ export default function ConnectOnboardPage() {
       const data = await res.json() as { url?: string; error?: string; alreadyOnboarded?: boolean };
 
       if (!res.ok) {
-        setError(data.error ?? "Failed to start onboarding.");
+        setError(data.error ?? t("edumatch.connect.startFailed"));
         setOnboarding(false);
         return;
       }
@@ -54,7 +56,7 @@ export default function ConnectOnboardPage() {
         window.location.href = data.url;
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("edumatch.inquiry.new.networkError"));
       setOnboarding(false);
     }
   }
@@ -75,13 +77,13 @@ export default function ConnectOnboardPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-6">
         <Link href="/tutor" className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Back to Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-2">Stripe Connect Setup</h1>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-2">{t("edumatch.connect.title")}</h1>
       <p className="text-[var(--color-text-muted)] mb-6">
-        Connect your bank account to receive payments from students. EduMatch uses Stripe Connect for secure, instant payouts.
+        {t("edumatch.connect.subtitle")}
       </p>
 
       {error && (
@@ -97,11 +99,11 @@ export default function ConnectOnboardPage() {
             {status?.hasAccount ? "✓" : "1"}
           </div>
           <div>
-            <h3 className="font-medium text-[var(--color-text)]">Create Stripe Account</h3>
+            <h3 className="font-medium text-[var(--color-text)]">{t("edumatch.connect.createAccount")}</h3>
             <p className="text-sm text-[var(--color-text-muted)]">
               {status?.hasAccount
-                ? "Your Stripe Connect account has been created."
-                : "Create your Stripe Connect Express account to receive payments."}
+                ? t("edumatch.connect.accountCreated")
+                : t("edumatch.connect.createAccountDesc")}
             </p>
           </div>
         </div>
@@ -112,11 +114,11 @@ export default function ConnectOnboardPage() {
             {status?.payoutEnabled ? "✓" : "2"}
           </div>
           <div className="flex-1">
-            <h3 className="font-medium text-[var(--color-text)]">Verify Identity & Bank</h3>
+            <h3 className="font-medium text-[var(--color-text)]">{t("edumatch.connect.verifyIdentity")}</h3>
             <p className="text-sm text-[var(--color-text-muted)]">
               {status?.payoutEnabled
-                ? "Your account is verified and ready to receive payouts."
-                : "Complete identity verification and add your bank account to enable payouts."}
+                ? t("edumatch.connect.verifiedDesc")
+                : t("edumatch.connect.verifyDesc")}
             </p>
             {!status?.payoutEnabled && status?.hasAccount && (
               <button
@@ -124,7 +126,7 @@ export default function ConnectOnboardPage() {
                 disabled={onboarding}
                 className="mt-3 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
               >
-                {onboarding ? "Loading..." : "Complete Verification"}
+                {onboarding ? t("common.loading") : t("edumatch.connect.completeVerification")}
               </button>
             )}
           </div>
@@ -136,11 +138,11 @@ export default function ConnectOnboardPage() {
             {isComplete ? "✓" : "3"}
           </div>
           <div>
-            <h3 className="font-medium text-[var(--color-text)]">Ready to Receive Payments</h3>
+            <h3 className="font-medium text-[var(--color-text)]">{t("edumatch.connect.readyTitle")}</h3>
             <p className="text-sm text-[var(--color-text-muted)]">
               {isComplete
-                ? "You're all set! Students can now book sessions with you."
-                : "Complete steps 1 and 2 to start receiving payments."}
+                ? t("edumatch.connect.readyDesc")
+                : t("edumatch.connect.readyPendingDesc")}
             </p>
           </div>
         </div>
@@ -156,14 +158,14 @@ export default function ConnectOnboardPage() {
               {onboarding ? (
                 <>
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Connecting to Stripe...
+                  {t("edumatch.connect.connecting")}
                 </>
               ) : (
-                "Connect with Stripe"
+                t("edumatch.connect.connectButton")
               )}
             </button>
             <p className="mt-3 text-xs text-center text-[var(--color-text-muted)]">
-              You'll be redirected to Stripe to complete the onboarding process securely.
+              {t("edumatch.connect.redirectNote")}
             </p>
           </div>
         )}
@@ -174,17 +176,16 @@ export default function ConnectOnboardPage() {
               href="/tutor"
               className="block w-full text-center rounded-lg bg-green-500 px-6 py-3 text-sm font-medium text-white hover:bg-green-600 transition"
             >
-              Go to Dashboard
+              {t("edumatch.hero.cta.dashboard")}
             </Link>
           </div>
         )}
       </div>
 
       <div className="mt-6 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-        <strong>Why Stripe Connect?</strong>
+        <strong>{t("edumatch.connect.whyTitle")}</strong>
         <p className="mt-1">
-          Stripe Connect handles all payment processing, identity verification, and bank transfers securely. 
-          EduMatch never stores your bank details. Payouts typically arrive in 1-2 business days.
+          {t("edumatch.connect.whyDesc")}
         </p>
       </div>
     </div>

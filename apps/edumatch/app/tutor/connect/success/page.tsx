@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 export default function ConnectSuccessPage() {
+  const { t } = useTranslation();
   const [checking, setChecking] = useState(true);
   const [status, setStatus] = useState<{ payoutEnabled: boolean } | null>(null);
 
@@ -31,7 +33,7 @@ export default function ConnectSuccessPage() {
           ✓
         </div>
         <h1 className="text-2xl font-bold text-green-800 mb-2">
-          Stripe Account Connected!
+          {t("edumatch.connect.successTitle")}
         </h1>
         <p className="text-green-700 mb-6">
           {checking
@@ -46,14 +48,14 @@ export default function ConnectSuccessPage() {
             href="/tutor"
             className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition"
           >
-            Go to Dashboard
+            {t("edumatch.hero.cta.dashboard")}
           </Link>
           {!status?.payoutEnabled && !checking && (
             <Link
               href="/tutor/connect/onboard"
               className="rounded-lg border border-green-300 px-6 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition"
             >
-              Check Status
+              {t("edumatch.connect.checkStatus")}
             </Link>
           )}
         </div>

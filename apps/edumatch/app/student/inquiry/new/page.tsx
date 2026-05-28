@@ -34,6 +34,22 @@ const SUBJECTS = [
   "Other",
 ];
 
+const SUBJECT_KEY_BY_LABEL: Record<string, string> = {
+  Mathematics: "mathematics",
+  Physics: "physics",
+  Chemistry: "chemistry",
+  Biology: "biology",
+  English: "english",
+  History: "history",
+  Geography: "geography",
+  "Computer Science": "computerScience",
+  Economics: "economics",
+  Art: "art",
+  Music: "music",
+  Languages: "languages",
+  Other: "other",
+};
+
 const MAX_CHARS = 4000;
 const MIN_CHARS = 10;
 
@@ -96,7 +112,7 @@ export default function NewInquiry() {
     if (!res.ok) {
       setError(
         (data.error ?? t("edumatch.inquiry.new.createFailed")) ||
-          "Failed to create inquiry.",
+          t("edumatch.inquiry.new.createFailed"),
       );
       setSubmitting(false);
       return;
@@ -129,7 +145,7 @@ export default function NewInquiry() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setProfileError(data.error ?? "Failed to create profile.");
+        setProfileError(data.error ?? t("edumatch.profile.student.createFailed"));
         setCreatingProfile(false);
         return;
       }

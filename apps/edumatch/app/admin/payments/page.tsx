@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "../useAdminFetch";
 
 type Transaction = {
@@ -33,6 +34,7 @@ function cents(c: number, cur = "EUR") {
 }
 
 export default function PaymentsPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"transactions" | "wallets">("transactions");
   const [typeFilter, setTypeFilter] = useState("");
 
@@ -46,22 +48,22 @@ export default function PaymentsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Payments & Transactions</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-4">Financial overview for the EduMatch marketplace.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.admin.payments.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">{t("edumatch.admin.payments.subtitle")}</p>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-6">
         <div className="flex gap-2">
-          {(["transactions", "wallets"] as const).map((t) => (
+          {(["transactions", "wallets"] as const).map((tabName) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabName}
+              onClick={() => setTab(tabName)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium border transition-colors ${
-                tab === t
+                tab === tabName
                   ? "bg-emerald-600 text-white border-emerald-600"
                   : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:bg-[var(--color-panel)]"
               }`}
             >
-              {t === "transactions" ? "Transactions" : "Wallets"}
+              {tabName === "transactions" ? t("edumatch.admin.payments.transactions") : t("edumatch.admin.payments.wallets")}
             </button>
           ))}
         </div>
@@ -71,8 +73,8 @@ export default function PaymentsPage() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="w-full sm:w-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
           >
-            {TX_TYPES.map((t) => (
-              <option key={t} value={t}>{t || "All types"}</option>
+            {TX_TYPES.map((txType) => (
+              <option key={txType} value={txType}>{txType || t("edumatch.admin.payments.allTypes")}</option>
             ))}
           </select>
         )}
@@ -83,27 +85,27 @@ export default function PaymentsPage() {
           {tx.error && <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{tx.error}</div>}
 
           {tx.loading ? (
-            <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
           ) : !tx.data || tx.data.items.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No transactions found.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.payments.noTransactions")}</p>
           ) : (
             <>
-              <p className="text-xs text-[var(--color-text-muted)] mb-3">{tx.data.total} total</p>
+              <p className="text-xs text-[var(--color-text-muted)] mb-3">{t("edumatch.admin.common.total", { n: tx.data.total })}</p>
 
               {/* Mobile cards */}
               <div className="space-y-3 md:hidden">
-                {tx.data.items.map((t) => (
-                  <div key={t.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+                {tx.data.items.map((transaction) => (
+                  <div key={transaction.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
-                        <TxBadge type={t.type} />
-                        <span className="font-semibold text-[var(--color-text)]">{cents(t.grossCents, t.currency)}</span>
+                        <TxBadge type={transaction.type} />
+                        <span className="font-semibold text-[var(--color-text)]">{cents(transaction.grossCents, transaction.currency)}</span>
                       </div>
-                      <span className="text-xs text-[var(--color-text-muted)]">{new Date(t.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs text-[var(--color-text-muted)]">{new Date(transaction.createdAt).toLocaleDateString()}</span>
                     </div>
                     <div className="text-xs text-[var(--color-text-muted)] space-y-0.5">
-                      <p>Tutor: {t.tutor.name ?? t.tutor.email}</p>
-                      <p>Fee: {cents(t.platformFeeCents, t.currency)} &middot; Net: {t.netCents < 0 ? "-" : ""}{cents(t.netCents, t.currency)}</p>
+                      <p>{t("edumatch.admin.payments.tutor")}: {transaction.tutor.name ?? transaction.tutor.email}</p>
+                      <p>{t("edumatch.admin.payments.fee")}: {cents(transaction.platformFeeCents, transaction.currency)} &middot; {t("edumatch.admin.payments.net")}: {transaction.netCents < 0 ? "-" : ""}{cents(transaction.netCents, transaction.currency)}</p>
                     </div>
                   </div>
                 ))}
@@ -114,12 +116,12 @@ export default function PaymentsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Type</th>
-                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Tutor</th>
-                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">Gross</th>
-                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">Fee</th>
-                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">Net</th>
-                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Date</th>
+                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.type")}</th>
+                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.tutor")}</th>
+                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.gross")}</th>
+                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.fee")}</th>
+                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.net")}</th>
+                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.date")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -143,9 +145,9 @@ export default function PaymentsPage() {
         <>
           {wallets.error && <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{wallets.error}</div>}
           {wallets.loading ? (
-            <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
           ) : !wallets.data || wallets.data.items.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No wallets found.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.payments.noWallets")}</p>
           ) : (
             <>
               {/* Mobile cards */}
@@ -155,16 +157,16 @@ export default function PaymentsPage() {
                     <p className="font-semibold text-[var(--color-text)] mb-2">{w.tutor.name ?? w.tutor.email}</p>
                     <div className="flex gap-4 text-xs">
                       <div>
-                        <p className="text-[var(--color-text-muted)]">Balance</p>
+                        <p className="text-[var(--color-text-muted)]">{t("edumatch.admin.payments.balance")}</p>
                         <p className="font-medium text-[var(--color-text)]">{cents(w.balanceCents, w.currency)}</p>
                       </div>
                       <div>
-                        <p className="text-[var(--color-text-muted)]">Pending</p>
+                        <p className="text-[var(--color-text-muted)]">{t("edumatch.admin.payments.pending")}</p>
                         <p className="font-medium text-yellow-400">{cents(w.pendingCents, w.currency)}</p>
                       </div>
                       <div>
-                        <p className="text-[var(--color-text-muted)]">Last payout</p>
-                        <p className="text-[var(--color-text)]">{w.lastPayoutAt ? new Date(w.lastPayoutAt).toLocaleDateString() : "Never"}</p>
+                        <p className="text-[var(--color-text-muted)]">{t("edumatch.admin.payments.lastPayout")}</p>
+                        <p className="text-[var(--color-text)]">{w.lastPayoutAt ? new Date(w.lastPayoutAt).toLocaleDateString() : t("edumatch.admin.payments.never")}</p>
                       </div>
                     </div>
                   </div>
@@ -176,10 +178,10 @@ export default function PaymentsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Tutor</th>
-                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">Balance</th>
-                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">Pending</th>
-                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Last Payout</th>
+                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.tutor")}</th>
+                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.balance")}</th>
+                      <th className="px-3 py-2 text-right font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.pending")}</th>
+                      <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.payments.lastPayout")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -188,7 +190,7 @@ export default function PaymentsPage() {
                         <td className="px-3 py-2 text-[var(--color-text)]">{w.tutor.name ?? w.tutor.email}</td>
                         <td className="px-3 py-2 text-right text-[var(--color-text)]">{cents(w.balanceCents, w.currency)}</td>
                         <td className="px-3 py-2 text-right text-yellow-400">{cents(w.pendingCents, w.currency)}</td>
-                        <td className="px-3 py-2 text-[var(--color-text-muted)]">{w.lastPayoutAt ? new Date(w.lastPayoutAt).toLocaleDateString() : "Never"}</td>
+                        <td className="px-3 py-2 text-[var(--color-text-muted)]">{w.lastPayoutAt ? new Date(w.lastPayoutAt).toLocaleDateString() : t("edumatch.admin.payments.never")}</td>
                       </tr>
                     ))}
                   </tbody>

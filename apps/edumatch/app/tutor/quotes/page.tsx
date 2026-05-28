@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Quote = {
   id: string;
@@ -26,6 +27,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function TutorQuotesPage() {
+  const { t } = useTranslation();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export default function TutorQuotesPage() {
         setLoading(false);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Failed to load quotes");
+        setError(e instanceof Error ? e.message : t("edumatch.tutor.quotes.loadFailed"));
         setLoading(false);
       });
   }, []);
@@ -61,24 +63,24 @@ export default function TutorQuotesPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3 text-sm">
         <Link href="/tutor" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">My Quotes</span>
+        <span className="text-[var(--color-text)]">{t("edumatch.tutor.quotes.title")}</span>
       </div>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">My Quotes</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("edumatch.tutor.quotes.title")}</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Quotes you've submitted to students.
+            {t("edumatch.tutor.quotes.subtitle")}
           </p>
         </div>
         <Link
           href="/tutor/requests"
           className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
         >
-          Browse Requests
+          {t("edumatch.tutor.quotes.browseRequests")}
         </Link>
       </div>
 
@@ -91,9 +93,9 @@ export default function TutorQuotesPage() {
       {/* Stats bar */}
       <div className="mb-6 grid grid-cols-3 gap-3">
         {[
-          { label: "Pending",  count: pending.length,  color: "text-amber-500" },
-          { label: "Accepted", count: accepted.length, color: "text-green-500" },
-          { label: "Total",    count: quotes.length,   color: "text-[var(--color-text)]" },
+          { label: t("edumatch.tutor.quotes.pending"),  count: pending.length,  color: "text-amber-500" },
+          { label: t("edumatch.tutor.quotes.accepted"), count: accepted.length, color: "text-green-500" },
+          { label: t("edumatch.tutor.quotes.total"),    count: quotes.length,   color: "text-[var(--color-text)]" },
         ].map(({ label, count, color }) => (
           <div key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4 text-center">
             <p className={`text-2xl font-bold ${color}`}>{count}</p>
@@ -104,20 +106,20 @@ export default function TutorQuotesPage() {
 
       {quotes.length === 0 ? (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-10 text-center">
-          <p className="text-[var(--color-text-muted)] text-sm">You haven't submitted any quotes yet.</p>
+          <p className="text-[var(--color-text-muted)] text-sm">{t("edumatch.tutor.quotes.empty")}</p>
           <Link
             href="/tutor/requests"
             className="mt-4 inline-block rounded-lg bg-[var(--color-primary)] px-5 py-2 text-sm font-medium text-white hover:opacity-90 transition"
           >
-            Browse Open Requests
+            {t("edumatch.tutor.quotes.browseOpen")}
           </Link>
         </div>
       ) : (
         <div className="space-y-6">
           {[
-            { title: "Pending", items: pending },
-            { title: "Accepted", items: accepted },
-            { title: "Other", items: other },
+            { title: t("edumatch.tutor.quotes.pending"), items: pending },
+            { title: t("edumatch.tutor.quotes.accepted"), items: accepted },
+            { title: t("edumatch.tutor.quotes.other"), items: other },
           ].map(({ title, items }) =>
             items.length === 0 ? null : (
               <section key={title}>
@@ -154,11 +156,11 @@ export default function TutorQuotesPage() {
                       </div>
                       {q.notes && (
                         <p className="mt-2 text-xs text-[var(--color-text-muted)] italic border-t border-[var(--color-border)] pt-2">
-                          Note: {q.notes}
+                          {t("edumatch.tutor.quotes.note")}: {q.notes}
                         </p>
                       )}
                       <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                        Submitted {new Date(q.createdAt).toLocaleDateString()}
+                        {t("edumatch.tutor.quotes.submitted")} {new Date(q.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   ))}

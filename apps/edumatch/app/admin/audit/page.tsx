@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "../useAdminFetch";
 
 type AuditEvent = {
@@ -33,6 +34,7 @@ function formatTime(iso: string) {
 }
 
 export default function AuditPage() {
+  const { t } = useTranslation();
   const [entityFilter, setEntityFilter] = useState("");
   const [actionFilter, setActionFilter] = useState("");
 
@@ -46,8 +48,8 @@ export default function AuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Audit Log</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-4">Append-only log of EduMatch state changes.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.admin.audit.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">{t("edumatch.admin.audit.subtitle")}</p>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 mb-6">
         <select
@@ -56,14 +58,14 @@ export default function AuditPage() {
           className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
         >
           {ENTITY_OPTIONS.map((e) => (
-            <option key={e} value={e}>{e || "All entities"}</option>
+            <option key={e} value={e}>{e || t("edumatch.admin.audit.allEntities")}</option>
           ))}
         </select>
         <input
           type="text"
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          placeholder="Filter by action..."
+          placeholder={t("edumatch.admin.audit.filterAction")}
           className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
         />
       </div>
@@ -71,9 +73,9 @@ export default function AuditPage() {
       {error && <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : !data || data.events.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No audit events found.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.audit.noEvents")}</p>
       ) : (
         <>
           {/* Mobile cards */}
@@ -86,22 +88,22 @@ export default function AuditPage() {
                 </div>
                 <div className="space-y-1 text-xs text-[var(--color-text-muted)]">
                   <p>
-                    <span className="font-medium">Entity:</span> {e.entity}
+                    <span className="font-medium">{t("edumatch.admin.audit.entity")}:</span> {e.entity}
                     {e.entityId && <span className="opacity-60"> {e.entityId.slice(0, 8)}...</span>}
                   </p>
                   {(e.prevState || e.nextState) && (
                     <p>
-                      <span className="font-medium">Transition:</span>{" "}
+                      <span className="font-medium">{t("edumatch.admin.audit.transition")}:</span>{" "}
                       {e.prevState && <span className="text-red-400">{e.prevState}</span>}
                       {e.prevState && e.nextState && " → "}
                       {e.nextState && <span className="text-green-400">{e.nextState}</span>}
                     </p>
                   )}
                   <p>
-                    <span className="font-medium">Actor:</span>{" "}
-                    {e.actor ? (e.actor.name ?? e.actor.email) : e.actorId ? e.actorId.slice(0, 8) : "system"}
+                    <span className="font-medium">{t("edumatch.admin.audit.actor")}:</span>{" "}
+                    {e.actor ? (e.actor.name ?? e.actor.email) : e.actorId ? e.actorId.slice(0, 8) : t("edumatch.admin.audit.system")}
                   </p>
-                  {e.reason && <p className="line-clamp-2"><span className="font-medium">Reason:</span> {e.reason}</p>}
+                  {e.reason && <p className="line-clamp-2"><span className="font-medium">{t("edumatch.admin.audit.reason")}:</span> {e.reason}</p>}
                   <p className="text-[var(--color-text-muted)] opacity-60">{formatTime(e.createdAt)}</p>
                 </div>
               </div>
@@ -113,13 +115,13 @@ export default function AuditPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Action</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Entity</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Transition</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Actor</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Role</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Reason</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Time</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.action")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.entity")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.transition")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.actor")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.role")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.reason")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.audit.time")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,7 +144,7 @@ export default function AuditPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-[var(--color-text-muted)]">
-                      {e.actor ? (e.actor.name ?? e.actor.email) : e.actorId ? e.actorId.slice(0, 8) : "system"}
+                      {e.actor ? (e.actor.name ?? e.actor.email) : e.actorId ? e.actorId.slice(0, 8) : t("edumatch.admin.audit.system")}
                     </td>
                     <td className="px-3 py-2">
                       {e.actorRole && <RoleBadge role={e.actorRole} />}

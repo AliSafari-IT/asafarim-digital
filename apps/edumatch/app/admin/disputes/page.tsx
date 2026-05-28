@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "../useAdminFetch";
 
 type Dispute = {
@@ -20,6 +21,7 @@ type Dispute = {
 };
 
 export default function DisputesPage() {
+  const { t } = useTranslation();
   const { data, loading, error, reload } = useAdminFetch<{ items: Dispute[]; total: number }>("/api/admin/disputes");
   const [busy, setBusy] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function DisputesPage() {
       }
       await reload();
     } catch (e) {
-      setResolveError(e instanceof Error ? e.message : "Failed to resolve");
+      setResolveError(e instanceof Error ? e.message : t("edumatch.admin.disputes.resolveFailed"));
     } finally {
       setBusy(null);
     }
@@ -48,8 +50,8 @@ export default function DisputesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Disputes</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-6">Disputed bookings requiring admin resolution.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.admin.disputes.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-6">{t("edumatch.admin.disputes.subtitle")}</p>
 
       {(error || resolveError) && (
         <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">
@@ -58,9 +60,9 @@ export default function DisputesPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No open disputes.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.disputes.noDisputes")}</p>
       ) : (
         <div className="space-y-4">
           {data.items.map((d) => (
@@ -71,7 +73,8 @@ export default function DisputesPage() {
                     {d.student.name ?? d.student.email} &rarr; {d.tutor.name ?? d.tutor.email}
                   </p>
                   <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                    Booking {d.id.slice(0, 8)}... &middot; {d.mode} &middot; Scheduled {new Date(d.scheduledAt).toLocaleDateString()}
+                    {t("edumatch.admin.disputes.booking")} {d.id.slice(0, 8)}... &middot; {d.mode} &middot;{" "}
+                    {t("edumatch.admin.disputes.scheduled")} {new Date(d.scheduledAt).toLocaleDateString()}
                   </p>
                 </div>
                 <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-xs font-medium text-orange-400">DISPUTED</span>
@@ -83,7 +86,9 @@ export default function DisputesPage() {
 
               {d.transactions.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs font-medium text-[var(--color-text-muted)] mb-1">Transactions</p>
+                  <p className="text-xs font-medium text-[var(--color-text-muted)] mb-1">
+                    {t("edumatch.admin.disputes.transactions")}
+                  </p>
                   {d.transactions.map((t) => (
                     <p key={t.id} className="text-xs text-[var(--color-text-muted)]">
                       {t.type}: &euro;{(t.grossCents / 100).toFixed(2)} ({new Date(t.createdAt).toLocaleDateString()})
@@ -93,13 +98,13 @@ export default function DisputesPage() {
               )}
 
               <div className="mb-3">
-                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">Admin resolution notes</label>
+                <label className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">{t("edumatch.admin.disputes.resolutionNotes")}</label>
                 <textarea
                   value={notes[d.id] ?? ""}
                   onChange={(e) => setNotes((n) => ({ ...n, [d.id]: e.target.value }))}
                   rows={2}
                   className="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
-                  placeholder="Reason for resolution..."
+                  placeholder={t("edumatch.admin.disputes.notesPlaceholder")}
                 />
               </div>
 
@@ -109,14 +114,14 @@ export default function DisputesPage() {
                   onClick={() => resolve(d.id, "REFUND")}
                   className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                 >
-                  {busy === d.id ? "Working..." : "Refund & Cancel"}
+                  {busy === d.id ? t("edumatch.admin.disputes.working") : t("edumatch.admin.disputes.refund")}
                 </button>
                 <button
                   disabled={busy === d.id}
                   onClick={() => resolve(d.id, "NO_REFUND")}
                   className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  No Refund (Complete)
+                  {t("edumatch.admin.disputes.noRefund")}
                 </button>
               </div>
             </div>

@@ -90,6 +90,7 @@ function ThemeToggle() {
 
 // User menu component
 function UserMenu() {
+  const { t } = useTranslation();
   const { data: session, status, update } = useSession();
   const [open, setOpen] = useState(false);
   const [dropPos, setDropPos] = useState<{ top: number; left: number }>({
@@ -137,7 +138,7 @@ function UserMenu() {
         href="/api/auth/signin"
         className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
       >
-        Sign in
+        {t("common.signIn")}
       </Link>
     );
   }
@@ -237,8 +238,8 @@ function UserMenu() {
                 }`}
               >
                 {session.user.emailVerified
-                  ? "Verified"
-                  : "Verification pending"}
+                  ? t("edumatch.nav.verified")
+                  : t("edumatch.nav.verificationPending")}
               </span>
             </div>
           </div>
@@ -249,7 +250,7 @@ function UserMenu() {
               onClick={() => setOpen(false)}
               className="block rounded-xl px-4 py-2.5 text-sm font-medium transition hover:bg-[var(--color-surface)]"
             >
-              Profile settings
+              {t("edumatch.nav.profileSettings")}
             </a>
             <button
               type="button"
@@ -263,7 +264,7 @@ function UserMenu() {
               }}
               className="cursor-pointer rounded-xl px-4 py-2.5 text-left text-sm font-medium transition hover:bg-[var(--color-surface)]"
             >
-              Refresh session
+              {t("edumatch.nav.refreshSession")}
             </button>
             <button
               type="button"
@@ -277,7 +278,7 @@ function UserMenu() {
               }}
               className="cursor-pointer rounded-xl px-4 py-2.5 text-left text-sm font-medium text-red-500 transition hover:bg-[var(--color-surface)]"
             >
-              Sign out
+              {t("common.signOut")}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "./useAdminFetch";
 
 type OverviewData = {
@@ -45,11 +46,11 @@ type OverviewData = {
 };
 
 const statCards = [
-  { key: "openVerifications" as const, label: "Open Verifications", href: "/admin/tutor-verifications", color: "text-yellow-400" },
-  { key: "disputedBookings" as const, label: "Open Disputes", href: "/admin/disputes", color: "text-red-400" },
-  { key: "refusedInquiries" as const, label: "Refused Inquiries", href: "/admin/inquiries?moderationOutcome=REFUSE", color: "text-orange-400" },
-  { key: "totalStudents" as const, label: "Students", href: "/admin/users", color: "text-emerald-400" },
-  { key: "totalTutors" as const, label: "Tutors", href: "/admin/users", color: "text-blue-400" },
+  { key: "openVerifications" as const, labelKey: "edumatch.admin.overview.openVerifications", href: "/admin/tutor-verifications", color: "text-yellow-400" },
+  { key: "disputedBookings" as const, labelKey: "edumatch.admin.overview.openDisputes", href: "/admin/disputes", color: "text-red-400" },
+  { key: "refusedInquiries" as const, labelKey: "edumatch.admin.overview.refusedInquiries", href: "/admin/inquiries?moderationOutcome=REFUSE", color: "text-orange-400" },
+  { key: "totalStudents" as const, labelKey: "edumatch.admin.overview.students", href: "/admin/users", color: "text-emerald-400" },
+  { key: "totalTutors" as const, labelKey: "edumatch.admin.overview.tutors", href: "/admin/users", color: "text-blue-400" },
 ];
 
 function formatDate(iso: string) {
@@ -61,10 +62,11 @@ function cents(c: number, currency = "EUR") {
 }
 
 export default function AdminOverviewPage() {
+  const { t } = useTranslation();
   const { data, loading, error } = useAdminFetch<OverviewData>("/api/admin/overview");
 
   if (loading) {
-    return <p className="text-sm text-[var(--color-text-muted)]">Loading dashboard...</p>;
+    return <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.overview.loading")}</p>;
   }
   if (error) {
     return <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>;
@@ -74,9 +76,9 @@ export default function AdminOverviewPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--color-text)]">EduMatch Admin</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("edumatch.admin.overview.title")}</h1>
         <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Manage tutors, verifications, disputes, and platform operations.
+          {t("edumatch.admin.overview.subtitle")}
         </p>
       </div>
 
@@ -88,7 +90,7 @@ export default function AdminOverviewPage() {
             href={s.href}
             className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4 transition hover:border-emerald-500/40"
           >
-            <p className="text-sm text-[var(--color-text-muted)]">{s.label}</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t(s.labelKey)}</p>
             <p className={`mt-1 text-2xl font-bold ${s.color}`}>{data[s.key]}</p>
           </Link>
         ))}
@@ -98,11 +100,11 @@ export default function AdminOverviewPage() {
         {/* Recent bookings */}
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[var(--color-text)]">Recent Bookings</h2>
-            <Link href="/admin/bookings" className="text-xs text-emerald-400 hover:underline">View all</Link>
+            <h2 className="font-semibold text-[var(--color-text)]">{t("edumatch.admin.overview.recentBookings")}</h2>
+            <Link href="/admin/bookings" className="text-xs text-emerald-400 hover:underline">{t("edumatch.admin.overview.viewAll")}</Link>
           </div>
           {data.recentBookings.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No bookings yet.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.overview.noBookings")}</p>
           ) : (
             <div className="space-y-2">
               {data.recentBookings.map((b) => (
@@ -125,11 +127,11 @@ export default function AdminOverviewPage() {
         {/* Recent inquiries */}
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[var(--color-text)]">Recent Inquiries</h2>
-            <Link href="/admin/inquiries" className="text-xs text-emerald-400 hover:underline">View all</Link>
+            <h2 className="font-semibold text-[var(--color-text)]">{t("edumatch.admin.overview.recentInquiries")}</h2>
+            <Link href="/admin/inquiries" className="text-xs text-emerald-400 hover:underline">{t("edumatch.admin.overview.viewAll")}</Link>
           </div>
           {data.recentInquiries.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No inquiries yet.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.overview.noInquiries")}</p>
           ) : (
             <div className="space-y-2">
               {data.recentInquiries.map((i) => (
@@ -153,11 +155,11 @@ export default function AdminOverviewPage() {
         {/* Recent transactions */}
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[var(--color-text)]">Recent Transactions</h2>
-            <Link href="/admin/payments" className="text-xs text-emerald-400 hover:underline">View all</Link>
+            <h2 className="font-semibold text-[var(--color-text)]">{t("edumatch.admin.overview.recentTransactions")}</h2>
+            <Link href="/admin/payments" className="text-xs text-emerald-400 hover:underline">{t("edumatch.admin.overview.viewAll")}</Link>
           </div>
           {data.recentTransactions.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No transactions yet.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.overview.noTransactions")}</p>
           ) : (
             <div className="space-y-2">
               {data.recentTransactions.map((t) => (
@@ -176,11 +178,11 @@ export default function AdminOverviewPage() {
         {/* Recent audit events */}
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-[var(--color-text)]">Recent Audit Events</h2>
-            <Link href="/admin/audit" className="text-xs text-emerald-400 hover:underline">View all</Link>
+            <h2 className="font-semibold text-[var(--color-text)]">{t("edumatch.admin.overview.recentAudit")}</h2>
+            <Link href="/admin/audit" className="text-xs text-emerald-400 hover:underline">{t("edumatch.admin.overview.viewAll")}</Link>
           </div>
           {data.recentAuditEvents.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)]">No audit events yet.</p>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.overview.noAudit")}</p>
           ) : (
             <div className="space-y-2">
               {data.recentAuditEvents.map((e) => (

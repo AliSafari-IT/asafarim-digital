@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Review = {
   id: string;
@@ -31,6 +32,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function AdminTutorVerificationsPage() {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<TutorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,10 +97,10 @@ export default function AdminTutorVerificationsPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text)]">
-            Tutor Verifications
+            {t("edumatch.admin.verifications.title")}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-1">
-            Review tutor profiles and approve, reject, or request changes.
+            {t("edumatch.admin.verifications.subtitle")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -125,9 +127,9 @@ export default function AdminTutorVerificationsPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No tutors in this view.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.verifications.noTutors")}</p>
       ) : (
         <div className="space-y-4">
           {filtered.map((r) => (
@@ -157,6 +159,7 @@ function TutorRowCard({
     extra?: { tutorMessage?: string; adminNotes?: string },
   ) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [needsMsg, setNeedsMsg] = useState("");
   const [adminNotes, setAdminNotes] = useState(
     row.latestReview?.adminNotes ?? "",
@@ -183,18 +186,18 @@ function TutorRowCard({
             </span>
             {row.verifiedAt ? (
               <span className="text-xs text-[var(--color-text-muted)]">
-                · verified{" "}
+                {t("edumatch.admin.verifications.verifiedDate")} {" "}
                 {new Date(row.verifiedAt).toLocaleDateString()}
               </span>
             ) : null}
           </div>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">{row.email}</p>
           <p className="mt-2 text-sm text-[var(--color-text)] opacity-80 line-clamp-3 whitespace-pre-wrap">
-            {row.bio ?? "(no bio)"}
+            {row.bio ?? t("edumatch.admin.verifications.noBio")}
           </p>
           {row.subjectsTaught.length > 0 && (
             <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-              Subjects: {row.subjectsTaught.join(", ")}
+              {t("edumatch.admin.verifications.subjects")}: {row.subjectsTaught.join(", ")}
             </p>
           )}
         </div>
@@ -203,26 +206,26 @@ function TutorRowCard({
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className="block text-xs font-medium text-[var(--color-text-muted)]">
-            Admin notes (internal)
+            {t("edumatch.admin.verifications.adminNotes")}
           </label>
           <textarea
             value={adminNotes}
             onChange={(e) => setAdminNotes(e.target.value)}
             rows={2}
             className="mt-1 w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
-            placeholder="Internal notes (not shown to tutor)"
+            placeholder={t("edumatch.admin.verifications.adminNotesPlaceholder")}
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-[var(--color-text-muted)]">
-            Message to tutor (used with "Needs changes")
+            {t("edumatch.admin.verifications.tutorMessage")}
           </label>
           <textarea
             value={needsMsg}
             onChange={(e) => setNeedsMsg(e.target.value)}
             rows={2}
             className="mt-1 w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
-            placeholder="What does the tutor need to fix?"
+            placeholder={t("edumatch.admin.verifications.tutorMessagePlaceholder")}
           />
         </div>
       </div>
@@ -236,7 +239,7 @@ function TutorRowCard({
           }
           className="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {busy ? "Working..." : "Verify"}
+          {busy ? t("edumatch.admin.verifications.working") : t("edumatch.admin.verifications.verify")}
         </button>
         <button
           disabled={busy || !needsMsg.trim()}
@@ -248,7 +251,7 @@ function TutorRowCard({
           }
           className="rounded-md bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
         >
-          Needs changes
+          {t("edumatch.admin.verifications.needsChanges")}
         </button>
         <button
           data-testid="reject-tutor"
@@ -258,7 +261,7 @@ function TutorRowCard({
           }
           className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
         >
-          Reject
+          {t("edumatch.admin.verifications.reject")}
         </button>
       </div>
     </div>

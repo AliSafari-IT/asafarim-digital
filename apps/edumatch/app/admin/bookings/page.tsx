@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "../useAdminFetch";
 
 type Booking = {
@@ -22,6 +23,7 @@ type Booking = {
 const STATUSES = ["", "SCHEDULED", "COMPLETED", "CANCELLED", "DISPUTED"] as const;
 
 export default function BookingsPage() {
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState("");
   const url = `/api/admin/bookings?limit=50${statusFilter ? `&status=${statusFilter}` : ""}`;
   const { data, loading, error } = useAdminFetch<{ items: Booking[]; total: number }>(url);
@@ -30,8 +32,8 @@ export default function BookingsPage() {
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">Bookings</h1>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">All EduMatch bookings.</p>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("edumatch.admin.bookings.title")}</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-1">{t("edumatch.admin.bookings.subtitle")}</p>
         </div>
         <select
           value={statusFilter}
@@ -39,7 +41,7 @@ export default function BookingsPage() {
           className="w-full sm:w-auto rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s || "All statuses"}</option>
+            <option key={s} value={s}>{s || t("edumatch.admin.bookings.allStatuses")}</option>
           ))}
         </select>
       </div>
@@ -49,12 +51,12 @@ export default function BookingsPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No bookings found.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.noBookings")}</p>
       ) : (
         <>
-          <p className="text-xs text-[var(--color-text-muted)] mb-3">{data.total} total</p>
+          <p className="text-xs text-[var(--color-text-muted)] mb-3">{t("edumatch.admin.common.total", { n: data.total })}</p>
 
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
@@ -85,13 +87,13 @@ export default function BookingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Student</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Tutor</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Status</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Mode</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Scheduled</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Duration</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Created</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.student")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.tutor")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.status")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.mode")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.scheduled")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.duration")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.created")}</th>
                 </tr>
               </thead>
               <tbody>

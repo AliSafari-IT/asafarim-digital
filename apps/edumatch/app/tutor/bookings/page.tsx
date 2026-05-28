@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Booking = {
   id: string;
@@ -24,6 +25,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function TutorBookingsPage() {
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function TutorBookingsPage() {
         setLoading(false);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Failed to load bookings");
+        setError(e instanceof Error ? e.message : t("edumatch.tutor.bookings.loadFailed"));
         setLoading(false);
       });
   }, []);
@@ -58,14 +60,14 @@ export default function TutorBookingsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3 text-sm">
         <Link href="/tutor" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">Bookings</span>
+        <span className="text-[var(--color-text)]">{t("edumatch.tutor.bookings.breadcrumb")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">My Bookings</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-6">Your scheduled and past tutoring sessions.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.tutor.bookings.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-6">{t("edumatch.tutor.bookings.subtitle")}</p>
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -73,15 +75,15 @@ export default function TutorBookingsPage() {
 
       {bookings.length === 0 ? (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-10 text-center">
-          <p className="text-[var(--color-text-muted)] text-sm">No bookings yet.</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">When students accept your quotes, bookings will appear here.</p>
+          <p className="text-[var(--color-text-muted)] text-sm">{t("edumatch.tutor.bookings.empty")}</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">{t("edumatch.tutor.bookings.emptyHint")}</p>
         </div>
       ) : (
         <div className="space-y-6">
           {[
-            { title: "Upcoming", items: upcoming },
-            { title: "Completed", items: completed },
-            { title: "Other", items: other },
+            { title: t("edumatch.tutor.bookings.upcoming"), items: upcoming },
+            { title: t("edumatch.tutor.bookings.completed"), items: completed },
+            { title: t("edumatch.tutor.bookings.other"), items: other },
           ].map(({ title, items }) =>
             items.length === 0 ? null : (
               <section key={title}>
@@ -106,7 +108,7 @@ export default function TutorBookingsPage() {
                             </span>
                           </div>
                           {b.studentName && (
-                            <p className="text-sm text-[var(--color-text-muted)]">Student: {b.studentName}</p>
+                            <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.bookings.student")}: {b.studentName}</p>
                           )}
                           {b.scheduledAt && (
                             <p className="text-sm text-[var(--color-text-muted)]">

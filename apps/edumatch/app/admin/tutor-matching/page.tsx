@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import type { ScoredTutor } from "@/lib/types/tutor-matching";
 
 export default function TutorMatchingDebugPage() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ScoredTutor[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,18 +50,18 @@ export default function TutorMatchingDebugPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">
-        Tutor Matching Debug
+        {t("edumatch.admin.matching.title")}
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
           <h2 className="text-lg font-semibold text-[var(--color-text)] mb-4">
-            Search Parameters
+            {t("edumatch.admin.matching.searchParams")}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Latitude
+                {t("edumatch.admin.matching.latitude")}
               </label>
               <input
                 type="number"
@@ -71,7 +73,7 @@ export default function TutorMatchingDebugPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Longitude
+                {t("edumatch.admin.matching.longitude")}
               </label>
               <input
                 type="number"
@@ -83,7 +85,7 @@ export default function TutorMatchingDebugPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Subject
+                {t("edumatch.admin.matching.subject")}
               </label>
               <input
                 type="text"
@@ -94,7 +96,7 @@ export default function TutorMatchingDebugPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Grade Level
+                {t("edumatch.admin.matching.gradeLevel")}
               </label>
               <input
                 type="text"
@@ -105,7 +107,7 @@ export default function TutorMatchingDebugPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Max Distance (km)
+                {t("edumatch.admin.matching.maxDistance")}
               </label>
               <input
                 type="number"
@@ -123,12 +125,12 @@ export default function TutorMatchingDebugPage() {
                 onChange={(e) => setParams({ ...params, preferOnline: e.target.checked })}
               />
               <label htmlFor="preferOnline" className="text-sm text-[var(--color-text)]">
-                Prefer Online-Only Tutors
+                {t("edumatch.admin.matching.preferOnline")}
               </label>
             </div>
             <div>
               <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">
-                Limit
+                {t("edumatch.admin.matching.limit")}
               </label>
               <input
                 type="number"
@@ -142,7 +144,7 @@ export default function TutorMatchingDebugPage() {
               disabled={loading}
               className="w-full rounded bg-emerald-600 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-50"
             >
-              {loading ? "Searching..." : "Find Tutors"}
+              {loading ? t("edumatch.admin.matching.searching") : t("edumatch.admin.matching.findTutors")}
             </button>
           </form>
           {error && (
@@ -152,15 +154,15 @@ export default function TutorMatchingDebugPage() {
 
         <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
           <h2 className="text-lg font-semibold text-[var(--color-text)] mb-4">
-            Results {results && `(${results.length})`}
+            {t("edumatch.admin.matching.results")} {results && `(${results.length})`}
           </h2>
           {results === null ? (
             <p className="text-sm text-[var(--color-text-muted)]">
-              Run a search to see results.
+              {t("edumatch.admin.matching.runSearch")}
             </p>
           ) : results.length === 0 ? (
             <p className="text-sm text-[var(--color-text-muted)]">
-              No tutors found.
+              {t("edumatch.admin.matching.noTutors")}
             </p>
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto">
@@ -174,38 +176,38 @@ export default function TutorMatchingDebugPage() {
                       #{i + 1} {tutor.userId}
                     </span>
                     <span className="text-sm rounded bg-emerald-500/15 px-2 py-1 text-emerald-400">
-                      Score: {tutor.compositeScore.toFixed(3)}
+                      {t("edumatch.admin.matching.score")}: {tutor.compositeScore.toFixed(3)}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm text-[var(--color-text)]">
                     <div>
-                      <span className="font-medium text-[var(--color-text-muted)]">Distance:</span>{" "}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.distance")}:</span>{" "}
                       {tutor.distanceKm} km
                     </div>
                     <div>
-                      <span className="font-medium text-[var(--color-text-muted)]">Rate:</span>{" "}
-                      &euro;{(tutor.hourlyRateCents / 100).toFixed(0)}/hr
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.rate")}:</span>{" "}
+                      &euro;{(tutor.hourlyRateCents / 100).toFixed(0)}/{t("edumatch.admin.matching.hour")}
                     </div>
                     <div>
-                      <span className="font-medium text-[var(--color-text-muted)]">Rating:</span>{" "}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.rating")}:</span>{" "}
                       {tutor.ratingAvg.toFixed(1)} ({tutor.ratingCount})
                     </div>
                     <div>
-                      <span className="font-medium text-[var(--color-text-muted)]">Online Only:</span>{" "}
-                      {tutor.onlineOnly ? "Yes" : "No"}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.onlineOnly")}:</span>{" "}
+                      {tutor.onlineOnly ? t("common.yes") : t("common.no")}
                     </div>
                     <div className="col-span-2">
-                      <span className="font-medium text-[var(--color-text-muted)]">Subjects:</span>{" "}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.subjects")}:</span>{" "}
                       {tutor.subjectsTaught.join(", ")}
                     </div>
                     <div className="col-span-2">
-                      <span className="font-medium text-[var(--color-text-muted)]">Levels:</span>{" "}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.levels")}:</span>{" "}
                       {tutor.levelsTaught.join(", ")}
                     </div>
                     <div className="col-span-2">
-                      <span className="font-medium text-[var(--color-text-muted)]">Subject Match:</span>{" "}
+                      <span className="font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.subjectMatch")}:</span>{" "}
                       {tutor.subjectMatch ? "✓" : "✗"}
-                      <span className="ml-2 font-medium text-[var(--color-text-muted)]">Level Match:</span>{" "}
+                      <span className="ml-2 font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.matching.levelMatch")}:</span>{" "}
                       {tutor.levelMatch ? "✓" : "✗"}
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { useAdminFetch } from "../useAdminFetch";
 
 type Inquiry = {
@@ -19,6 +20,7 @@ const STATUS_OPTIONS = ["", "NEW", "AI_RESPONDED", "TUTOR_REQUESTED", "BOOKED", 
 const MOD_OPTIONS = ["", "ALLOW", "REVIEW", "REFUSE"] as const;
 
 export default function InquiriesPage() {
+  const { t } = useTranslation();
   const [statusFilter, setStatusFilter] = useState("");
   const [modFilter, setModFilter] = useState("");
 
@@ -32,8 +34,8 @@ export default function InquiriesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Inquiries & AI Safety</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-4">Student inquiries, AI responses, and moderation.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.admin.inquiries.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-4">{t("edumatch.admin.inquiries.subtitle")}</p>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 mb-6">
         <select
@@ -42,7 +44,7 @@ export default function InquiriesPage() {
           className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
         >
           {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s || "All statuses"}</option>
+            <option key={s} value={s}>{s || t("edumatch.admin.inquiries.allStatuses")}</option>
           ))}
         </select>
         <select
@@ -51,7 +53,7 @@ export default function InquiriesPage() {
           className="rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text)]"
         >
           {MOD_OPTIONS.map((m) => (
-            <option key={m} value={m}>{m ? `Moderation: ${m}` : "All moderation"}</option>
+            <option key={m} value={m}>{m ? `${t("edumatch.admin.inquiries.moderation")}: ${m}` : t("edumatch.admin.inquiries.allModeration")}</option>
           ))}
         </select>
       </div>
@@ -59,12 +61,12 @@ export default function InquiriesPage() {
       {error && <div className="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>}
 
       {loading ? (
-        <p className="text-sm text-[var(--color-text-muted)]">Loading...</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.common.loading")}</p>
       ) : !data || data.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">No inquiries found.</p>
+        <p className="text-sm text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.noInquiries")}</p>
       ) : (
         <>
-          <p className="text-xs text-[var(--color-text-muted)] mb-3">{data.total} total</p>
+          <p className="text-xs text-[var(--color-text-muted)] mb-3">{t("edumatch.admin.common.total", { n: data.total })}</p>
 
           {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
@@ -82,7 +84,7 @@ export default function InquiriesPage() {
                     <ModBadge outcome={i.moderationOutcome} category={i.moderationCategory} />
                   )}
                   {i.aiResponses[0] && (
-                    <span className="text-[var(--color-text-muted)]">AI: {i.aiResponses[0].modelUsed}</span>
+                    <span className="text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.aiModel")}: {i.aiResponses[0].modelUsed}</span>
                   )}
                   <span className="text-[var(--color-text-muted)] ml-auto">{new Date(i.createdAt).toLocaleDateString()}</span>
                 </div>
@@ -95,13 +97,13 @@ export default function InquiriesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Subject</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Grade</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Student</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Status</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Moderation</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">AI Model</th>
-                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">Created</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.subject")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.grade")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.student")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.status")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.moderation")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.aiModel")}</th>
+                  <th className="px-3 py-2 text-left font-medium text-[var(--color-text-muted)]">{t("edumatch.admin.inquiries.created")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 export default function BookingConfirmationPage() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const quoteId = searchParams.get("quoteId");
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading");
@@ -44,7 +46,7 @@ export default function BookingConfirmationPage() {
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
             <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[var(--color-primary)] mx-auto mb-4"></div>
-            <p className="text-[var(--color-text-muted)]">Confirming your booking...</p>
+            <p className="text-[var(--color-text-muted)]">{t("edumatch.booking.confirmation.confirming")}</p>
           </div>
         </div>
       </div>
@@ -58,15 +60,15 @@ export default function BookingConfirmationPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white text-2xl">
             ✕
           </div>
-          <h1 className="text-xl font-bold text-red-800 mb-2">Payment Error</h1>
+          <h1 className="text-xl font-bold text-red-800 mb-2">{t("edumatch.booking.confirmation.errorTitle")}</h1>
           <p className="text-red-700 mb-6">
-            We couldn't confirm your booking. Please check your payment method and try again.
+            {t("edumatch.booking.confirmation.errorDesc")}
           </p>
           <Link
             href={quoteId ? `/student/checkout/${quoteId}` : "/student"}
             className="rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-700 transition"
           >
-            Try Again
+            {t("edumatch.booking.confirmation.tryAgain")}
           </Link>
         </div>
       </div>
@@ -80,9 +82,9 @@ export default function BookingConfirmationPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500 text-white text-2xl">
             ⏳
           </div>
-          <h1 className="text-xl font-bold text-amber-800 mb-2">Payment Processing</h1>
+          <h1 className="text-xl font-bold text-amber-800 mb-2">{t("edumatch.booking.confirmation.pendingTitle")}</h1>
           <p className="text-amber-700 mb-6">
-            Your payment is being processed. This usually takes a few moments.
+            {t("edumatch.booking.confirmation.pendingDesc")}
           </p>
           <div className="h-2 w-32 bg-amber-200 rounded-full mx-auto overflow-hidden">
             <div className="h-full w-1/2 bg-amber-500 animate-pulse"></div>
@@ -98,9 +100,9 @@ export default function BookingConfirmationPage() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white text-3xl">
           ✓
         </div>
-        <h1 className="text-2xl font-bold text-green-800 mb-2">Booking Confirmed!</h1>
+        <h1 className="text-2xl font-bold text-green-800 mb-2">{t("edumatch.booking.confirmation.successTitle")}</h1>
         <p className="text-green-700 mb-6">
-          Your session has been scheduled. The tutor has been notified and will contact you shortly.
+          {t("edumatch.booking.confirmation.successDesc")}
         </p>
 
         <div className="flex gap-3 justify-center">
@@ -108,23 +110,23 @@ export default function BookingConfirmationPage() {
             href="/student"
             className="rounded-lg bg-green-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-green-700 transition"
           >
-            View My Bookings
+            {t("edumatch.booking.confirmation.viewBookings")}
           </Link>
           <Link
             href="/student/inquiry/new"
             className="rounded-lg border border-green-300 px-6 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition"
           >
-            Ask Another Question
+            {t("edumatch.booking.confirmation.askAnother")}
           </Link>
         </div>
       </div>
 
       <div className="mt-6 rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-        <strong>What's next?</strong>
+        <strong>{t("edumatch.booking.confirmation.nextTitle")}</strong>
         <ul className="mt-2 list-disc list-inside space-y-1">
-          <li>The tutor will confirm the session time</li>
-          <li>You'll receive a calendar invite</li>
-          <li>Payment will be held until the session is completed</li>
+          <li>{t("edumatch.booking.confirmation.nextTutor")}</li>
+          <li>{t("edumatch.booking.confirmation.nextCalendar")}</li>
+          <li>{t("edumatch.booking.confirmation.nextPayment")}</li>
         </ul>
       </div>
     </div>

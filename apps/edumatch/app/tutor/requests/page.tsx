@@ -79,7 +79,7 @@ export default function TutorRequestsPage() {
     }
 
     loadRequests().catch((e: unknown) => {
-      setError(e instanceof Error ? e.message : "Failed to load requests");
+        setError(e instanceof Error ? e.message : t("edumatch.requests.loadFailed"));
       setLoading(false);
     });
   }, []);
@@ -199,8 +199,7 @@ export default function TutorRequestsPage() {
                   href="/tutor/profile"
                   className="ml-1 font-semibold underline hover:text-amber-900"
                 >
-                  Update tutor profile →
-                </Link>
+                  {t("edumatch.requests.updateProfile")}</Link>
               )}
             </div>
             <button
@@ -274,7 +273,7 @@ export default function TutorRequestsPage() {
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-xs text-[var(--color-text-muted)]">
-                        Requested{" "}
+                        {t("edumatch.requests.requested")}{" "}
                         {new Date(req.requestedAt).toLocaleDateString()}
                       </span>
                       <span className="text-xs font-medium text-[var(--color-primary)]">
@@ -289,7 +288,7 @@ export default function TutorRequestsPage() {
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)] p-5 bg-[var(--color-surface)]">
                       <h3 className="text-sm font-semibold text-[var(--color-text)] mb-4">
-                        Submit Your Quote
+                        {t("edumatch.requests.submitYourQuote")}
                       </h3>
 
                       {/* Rate + hours */}
@@ -335,7 +334,7 @@ export default function TutorRequestsPage() {
 
                       {/* Total preview */}
                       <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm">
-                        <span className="text-green-600">Total: </span>
+                        <span className="text-green-600">{t("edumatch.quotes.total")}: </span>
                         <span className="font-bold text-green-700">
                           €
                           {(
@@ -427,7 +426,7 @@ export default function TutorRequestsPage() {
                           onChange={(e) =>
                             setForm(req.id, { notes: e.target.value })
                           }
-                          placeholder="Any extra info for the student…"
+                          placeholder={t("edumatch.requests.notesPlaceholder")}
                           className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                         />
                       </div>
@@ -446,7 +445,7 @@ export default function TutorRequestsPage() {
                           onClick={() => setExpandedId(null)}
                           className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
                         >
-                          Cancel
+                          {t("common.cancel")}
                         </button>
                       </div>
                     </div>
@@ -480,7 +479,7 @@ export default function TutorRequestsPage() {
                     </span>
                   </div>
                   <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                    ✓ Quote Sent
+{t("edumatch.requests.quoteSent")}
                   </span>
                 </div>
               </div>

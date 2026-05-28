@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type Transaction = {
   id: string;
@@ -20,6 +21,7 @@ type Wallet = {
 };
 
 export default function TutorEarningsPage() {
+  const { t } = useTranslation();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,7 @@ export default function TutorEarningsPage() {
         setLoading(false);
       })
       .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Failed to load earnings");
+        setError(e instanceof Error ? e.message : t("edumatch.tutor.earnings.loadFailed"));
         setLoading(false);
       });
   }, []);
@@ -60,14 +62,14 @@ export default function TutorEarningsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center gap-3 text-sm">
         <Link href="/tutor" className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">
-          ← Dashboard
+          {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">Earnings</span>
+        <span className="text-[var(--color-text)]">{t("edumatch.tutor.earnings.title")}</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">Earnings</h1>
-      <p className="text-sm text-[var(--color-text-muted)] mb-6">Your income and payout history.</p>
+      <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">{t("edumatch.tutor.earnings.title")}</h1>
+      <p className="text-sm text-[var(--color-text-muted)] mb-6">{t("edumatch.tutor.earnings.subtitle")}</p>
 
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -76,10 +78,10 @@ export default function TutorEarningsPage() {
       {/* Stats */}
       <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Available Balance", value: wallet?.balanceCents ?? 0, color: "text-green-500" },
-          { label: "Pending (24h)",     value: wallet?.pendingCents ?? 0,  color: "text-amber-500" },
-          { label: "Total Earned",      value: totalEarned,                color: "text-[var(--color-text)]" },
-          { label: "Total Paid Out",    value: totalPaidOut,               color: "text-[var(--color-text)]" },
+          { label: t("edumatch.tutor.earnings.available"), value: wallet?.balanceCents ?? 0, color: "text-green-500" },
+          { label: t("edumatch.tutor.earnings.pending24"),     value: wallet?.pendingCents ?? 0,  color: "text-amber-500" },
+          { label: t("edumatch.tutor.earnings.totalEarned"),      value: totalEarned,                color: "text-[var(--color-text)]" },
+          { label: t("edumatch.tutor.earnings.totalPaidOut"),    value: totalPaidOut,               color: "text-[var(--color-text)]" },
         ].map(({ label, value, color }) => (
           <div key={label} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
             <p className={`text-xl font-bold ${color}`}>€{(value / 100).toFixed(2)}</p>
@@ -89,11 +91,11 @@ export default function TutorEarningsPage() {
       </div>
 
       {/* Transaction history */}
-      <h2 className="mb-3 text-base font-semibold text-[var(--color-text)]">Transaction History</h2>
+      <h2 className="mb-3 text-base font-semibold text-[var(--color-text)]">{t("edumatch.tutor.earnings.history")}</h2>
 
       {transactions.length === 0 ? (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] p-8 text-center text-sm text-[var(--color-text-muted)]">
-          No transactions yet. Complete a booking to see your earnings here.
+          {t("edumatch.tutor.earnings.empty")}
         </div>
       ) : (
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-panel)] overflow-hidden">

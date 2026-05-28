@@ -21,6 +21,22 @@ const SUBJECTS_OF_INTEREST = [
   "Other",
 ];
 
+const SUBJECT_KEY_BY_LABEL: Record<string, string> = {
+  Mathematics: "mathematics",
+  Physics: "physics",
+  Chemistry: "chemistry",
+  Biology: "biology",
+  English: "english",
+  History: "history",
+  Geography: "geography",
+  "Computer Science": "computerScience",
+  Economics: "economics",
+  Art: "art",
+  Music: "music",
+  Languages: "languages",
+  Other: "other",
+};
+
 type Profile = {
   gradeLevel: "K12" | "UNDERGRAD" | "GRAD";
   subjectsOfInterest: string[];
@@ -105,7 +121,7 @@ export default function StudentProfilePage() {
       const data = (await res.json()) as { error?: string };
 
       if (!res.ok) {
-        setError(data.error ?? "Failed to save profile.");
+        setError(data.error ?? t("edumatch.profile.student.saveFailed"));
         setSaving(false);
         return;
       }
@@ -211,7 +227,7 @@ export default function StudentProfilePage() {
                       : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]"
                   }`}
                 >
-                  {s}
+                  {t(`edumatch.subject.${SUBJECT_KEY_BY_LABEL[s]}`)}
                 </button>
               );
             })}

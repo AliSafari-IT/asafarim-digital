@@ -5,6 +5,7 @@ import { CommonSidebar, SidebarLayout } from "@asafarim/ui";
 import type { AppCode } from "@asafarim/types";
 import { useNavigation } from "@asafarim/ui";
 import Link from "next/link";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 interface EduSidebarProps {
   children: React.ReactNode;
@@ -13,6 +14,8 @@ interface EduSidebarProps {
 
 // Header component for sidebar
 function SidebarHeader({ userRole }: { userRole?: "student" | "tutor" }) {
+  const { t } = useTranslation();
+
   return (
     <Link href="/" className="flex items-center gap-2">
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 text-xs font-bold text-white">
@@ -23,7 +26,7 @@ function SidebarHeader({ userRole }: { userRole?: "student" | "tutor" }) {
       )}
       {userRole && (
         <span className="text-sm font-semibold text-[var(--color-text)]">
-          {userRole === "student" ? "Student" : "Tutor"}
+          {userRole === "student" ? t("edumatch.nav.student") : t("edumatch.nav.tutor")}
         </span>
       )}
     </Link>

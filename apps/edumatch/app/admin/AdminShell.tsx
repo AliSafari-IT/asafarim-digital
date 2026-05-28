@@ -3,24 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useTranslation } from "@asafarim/shared-i18n";
 
 type AdminNavItem = {
-  label: string;
+  labelKey: string;
   href: string;
   icon: string;
   disabled?: boolean;
 };
 
 const adminNav: AdminNavItem[] = [
-  { label: "Overview", href: "/admin", icon: "OV" },
-  { label: "Tutor Verifications", href: "/admin/tutor-verifications", icon: "TV" },
-  { label: "Matching Debug", href: "/admin/tutor-matching", icon: "MD" },
-  { label: "Disputes", href: "/admin/disputes", icon: "DS" },
-  { label: "Bookings", href: "/admin/bookings", icon: "BK" },
-  { label: "Payments", href: "/admin/payments", icon: "PY" },
-  { label: "Inquiries", href: "/admin/inquiries", icon: "IQ" },
-  { label: "Users & Tutors", href: "/admin/users", icon: "UT" },
-  { label: "Audit Log", href: "/admin/audit", icon: "AU" },
+  { labelKey: "edumatch.admin.nav.overview", href: "/admin", icon: "OV" },
+  { labelKey: "edumatch.admin.nav.verifications", href: "/admin/tutor-verifications", icon: "TV" },
+  { labelKey: "edumatch.admin.nav.matching", href: "/admin/tutor-matching", icon: "MD" },
+  { labelKey: "edumatch.admin.nav.disputes", href: "/admin/disputes", icon: "DS" },
+  { labelKey: "edumatch.admin.nav.bookings", href: "/admin/bookings", icon: "BK" },
+  { labelKey: "edumatch.admin.nav.payments", href: "/admin/payments", icon: "PY" },
+  { labelKey: "edumatch.admin.nav.inquiries", href: "/admin/inquiries", icon: "IQ" },
+  { labelKey: "edumatch.admin.nav.users", href: "/admin/users", icon: "UT" },
+  { labelKey: "edumatch.admin.nav.audit", href: "/admin/audit", icon: "AU" },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -38,6 +39,7 @@ export function AdminShell({
   userRoles: string[];
 }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
@@ -48,11 +50,11 @@ export function AdminShell({
               href="/"
               className="text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)]"
             >
-              &larr; EduMatch
+              &larr; {t("edumatch.admin.backToApp")}
             </Link>
             <span className="text-[var(--color-border)]">|</span>
             <h1 className="text-base font-semibold text-[var(--color-text)]">
-              Admin Panel
+              {t("edumatch.admin.title")}
             </h1>
           </div>
           <div className="flex items-center gap-3 text-sm">
@@ -66,7 +68,7 @@ export function AdminShell({
         </div>
       </header>
 
-      {/* Mobile nav — outside the sidebar flex so it stacks vertically */}
+      {/* Mobile nav */}
       <div className="md:hidden border-b border-[var(--color-border)] overflow-x-auto">
         <nav className="flex gap-1 p-2">
           {adminNav.filter((i) => !i.disabled).map((item) => (
@@ -79,7 +81,7 @@ export function AdminShell({
                   : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
               }`}
             >
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           ))}
         </nav>
@@ -100,7 +102,7 @@ export function AdminShell({
                     <span className="text-xs font-semibold tracking-[0.08em] opacity-50">
                       {item.icon}
                     </span>
-                    {item.label}
+                    {t(item.labelKey)}
                   </span>
                 );
               }
@@ -117,7 +119,7 @@ export function AdminShell({
                   <span className="text-xs font-semibold tracking-[0.08em]">
                     {item.icon}
                   </span>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               );
             })}
