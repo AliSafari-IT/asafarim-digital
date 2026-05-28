@@ -14,6 +14,7 @@ import {
   AppSwitcher,
   getNavIcon,
 } from "@asafarim/ui";
+import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
@@ -350,12 +351,84 @@ function CompactControls() {
 }
 
 /**
+ * Student-specific quick actions for the mobile drawer.
+ * These are the primary actions students need quick access to.
+ */
+function StudentDrawerActions() {
+  const { data: session } = useSession();
+  const pathname = usePathname();
+  const { t } = useTranslation();
+
+  // Only show for students
+  const isStudent = session?.user?.roles?.includes("edumatch_student");
+  if (!isStudent) return null;
+
+  const actions = [
+    {
+      id: "ask-question",
+      label: t("edumatch.drawer.askQuestion"),
+      href: "/student/inquiry/new",
+      icon: "helpCircle",
+      variant: "primary" as const,
+    },
+    {
+      id: "my-inquiries",
+      label: t("edumatch.drawer.myInquiries"),
+      href: "/student",
+      icon: "inbox",
+      variant: "default" as const,
+    },
+    {
+      id: "my-profile",
+      label: t("edumatch.drawer.myProfile"),
+      href: "/student/profile",
+      icon: "user",
+      variant: "default" as const,
+    },
+  ];
+
+  return (
+    <div className="border-b border-[var(--color-border)] pb-4 mb-4">
+      <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+        {t("edumatch.drawer.studentActions")}
+      </p>
+      <div className="space-y-1 px-2">
+        {actions.map((action) => {
+          const Icon = getNavIcon(action.icon);
+          const isActive = pathname === action.href || pathname.startsWith(`${action.href}/`);
+          const isPrimary = action.variant === "primary";
+
+          return (
+            <Link
+              key={action.id}
+              href={action.href}
+              className={[
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                isPrimary
+                  ? "bg-[var(--color-primary)] text-white hover:opacity-90"
+                  : isActive
+                    ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                    : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]",
+              ].join(" ")}
+            >
+              <span className={isPrimary ? "text-white" : ""}><Icon /></span>
+              <span>{action.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Right content that lives on the desktop navbar rail and in the mobile
- * drawer — app switcher + user account menu.
+ * drawer — student actions + app switcher + user account menu.
  */
 function DrawerContent() {
   return (
     <>
+      <StudentDrawerActions />
       <AppSwitcher current="edumatch" variant="default" />
       <UserMenu />
     </>

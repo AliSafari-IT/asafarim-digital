@@ -13,6 +13,12 @@ export const edumatchDictionaries: Dictionaries = {
     "edumatch.nav.signIn": "Sign In",
     "edumatch.nav.signOut": "Sign Out",
 
+    // Mobile Drawer
+    "edumatch.drawer.studentActions": "Student actions",
+    "edumatch.drawer.askQuestion": "Ask a question",
+    "edumatch.drawer.myInquiries": "My inquiries",
+    "edumatch.drawer.myProfile": "My profile",
+
     // Hero
     "edumatch.hero.badge": "Now Live — Get AI Help Instantly",
     "edumatch.hero.title": "Get Unstuck with AI + Expert Tutors",
@@ -361,6 +367,12 @@ export const edumatchDictionaries: Dictionaries = {
     "edumatch.nav.tutor": "Tutor",
     "edumatch.nav.signIn": "Inloggen",
     "edumatch.nav.signOut": "Uitloggen",
+
+    // Mobile Drawer
+    "edumatch.drawer.studentActions": "Student acties",
+    "edumatch.drawer.askQuestion": "Stel een vraag",
+    "edumatch.drawer.myInquiries": "Mijn vragen",
+    "edumatch.drawer.myProfile": "Mijn profiel",
 
     // Hero
     "edumatch.hero.badge": "Nu Live — Krijg Direct AI Hulp",
