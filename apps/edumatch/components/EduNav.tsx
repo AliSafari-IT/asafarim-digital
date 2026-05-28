@@ -438,8 +438,21 @@ function StudentDrawerActions() {
 /**
  * Right content that lives on the desktop navbar rail and in the mobile
  * drawer — student actions + app switcher + user account menu.
+ *
+ * IMPORTANT: This entire tree uses client-only hooks (useSession,
+ * usePathname, etc.). We gate it behind a `mounted` check so the server
+ * and the client render identical markup during hydration. Without this,
+ * AppNavbar receives different children on server vs client and throws a
+ * hydration mismatch.
  */
 function DrawerContent() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <>
       <StudentDrawerActions />
