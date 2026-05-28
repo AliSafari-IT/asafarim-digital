@@ -18,6 +18,10 @@ export const edumatchDictionaries: Dictionaries = {
     "edumatch.drawer.askQuestion": "Ask a question",
     "edumatch.drawer.myInquiries": "My inquiries",
     "edumatch.drawer.myProfile": "My profile",
+    "edumatch.drawer.tutorActions": "Tutor actions",
+    "edumatch.drawer.tutorDashboard": "Tutor dashboard",
+    "edumatch.drawer.quoteRequests": "Quote requests",
+    "edumatch.drawer.bookings": "Bookings",
 
     // Hero
     "edumatch.hero.badge": "Now Live — Get AI Help Instantly",
@@ -373,6 +377,10 @@ export const edumatchDictionaries: Dictionaries = {
     "edumatch.drawer.askQuestion": "Stel een vraag",
     "edumatch.drawer.myInquiries": "Mijn vragen",
     "edumatch.drawer.myProfile": "Mijn profiel",
+    "edumatch.drawer.tutorActions": "Tutor acties",
+    "edumatch.drawer.tutorDashboard": "Tutor dashboard",
+    "edumatch.drawer.quoteRequests": "Offerteverzoeken",
+    "edumatch.drawer.bookings": "Boekingen",
 
     // Hero
     "edumatch.hero.badge": "Nu Live — Krijg Direct AI Hulp",

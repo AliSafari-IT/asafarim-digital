@@ -447,6 +447,8 @@ What actually happened:
   - My profile
 - Initially placed the actions in the `AppNavbar` `actions` slot, which visually leaked into the navbar action area instead of the drawer.
 - Corrected the implementation by prepending student actions to the `navItems` array only when the computed view is mobile/tablet.
+- Removed duplicated mobile drawer links by filtering existing header nav items whose `href` is already covered by primary role actions.
+- Added the same localized mobile drawer action pattern for tutor accounts.
 - Passed an explicit client-computed `viewType` to `AppNavbar` so the package does not infer `"desktop"` during SSR and `"mobile"` during hydration.
 - Kept account/app switcher actions desktop-only to avoid crowding the mobile navbar.
 - Validated `pnpm --filter edumatch typecheck` passes.

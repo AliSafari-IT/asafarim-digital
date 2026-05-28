@@ -434,42 +434,86 @@ export function EduNav() {
   const navItems = useMemo(() => {
     const resolvedItems = toNavItems(items);
     const isStudent = session?.user?.roles?.includes("edumatch_student");
+    const isTutor = session?.user?.roles?.includes("edumatch_tutor");
     const isMobileDrawer = viewType !== "desktop";
 
-    if (!mounted || !isStudent || !isMobileDrawer) {
+    if (!mounted || !isMobileDrawer || (!isStudent && !isTutor)) {
       return resolvedItems;
     }
 
-    const HelpIcon = getNavIcon("helpCircle");
-    const InboxIcon = getNavIcon("inbox");
+    if (isStudent) {
+      const HelpIcon = getNavIcon("helpCircle");
+      const InboxIcon = getNavIcon("inbox");
+      const UserIcon = getNavIcon("user");
+      const duplicateHrefs = new Set(["/student/inquiry/new", "/student", "/student/profile"]);
+
+      return [
+        {
+          id: "student-actions",
+          label: t("edumatch.drawer.studentActions"),
+          children: [
+            {
+              id: "student-ask-question",
+              label: t("edumatch.drawer.askQuestion"),
+              href: "/student/inquiry/new",
+              icon: <HelpIcon />,
+            },
+            {
+              id: "student-my-inquiries",
+              label: t("edumatch.drawer.myInquiries"),
+              href: "/student",
+              icon: <InboxIcon />,
+            },
+            {
+              id: "student-my-profile",
+              label: t("edumatch.drawer.myProfile"),
+              href: "/student/profile",
+              icon: <UserIcon />,
+            },
+          ],
+        },
+        ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
+      ] satisfies NavItem[];
+    }
+
+    const DashboardIcon = getNavIcon("overview");
+    const RequestsIcon = getNavIcon("chat");
+    const BookingsIcon = getNavIcon("layers");
     const UserIcon = getNavIcon("user");
+    const duplicateHrefs = new Set(["/tutor", "/tutor/requests", "/tutor/bookings", "/tutor/profile"]);
 
     return [
       {
-        id: "student-actions",
-        label: t("edumatch.drawer.studentActions"),
+        id: "tutor-actions",
+        label: t("edumatch.drawer.tutorActions"),
         children: [
           {
-            id: "student-ask-question",
-            label: t("edumatch.drawer.askQuestion"),
-            href: "/student/inquiry/new",
-            icon: <HelpIcon />,
+            id: "tutor-dashboard",
+            label: t("edumatch.drawer.tutorDashboard"),
+            href: "/tutor",
+            icon: <DashboardIcon />,
           },
           {
-            id: "student-my-inquiries",
-            label: t("edumatch.drawer.myInquiries"),
-            href: "/student",
-            icon: <InboxIcon />,
+            id: "tutor-quote-requests",
+            label: t("edumatch.drawer.quoteRequests"),
+            href: "/tutor/requests",
+            icon: <RequestsIcon />,
           },
           {
-            id: "student-my-profile",
+            id: "tutor-bookings",
+            label: t("edumatch.drawer.bookings"),
+            href: "/tutor/bookings",
+            icon: <BookingsIcon />,
+          },
+          {
+            id: "tutor-my-profile",
             label: t("edumatch.drawer.myProfile"),
-            href: "/student/profile",
+            href: "/tutor/profile",
             icon: <UserIcon />,
           },
         ],
       },
-      ...resolvedItems,
+      ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
     ] satisfies NavItem[];
   }, [items, mounted, session?.user?.roles, t, viewType]);
 
