@@ -30,7 +30,7 @@ function ThemeToggle() {
 
   useEffect(() => {
     setTheme(initializeTheme());
-    const unsubscribe = subscribeThemeChanges((next) => {
+    const unsubscribe = subscribeThemeChanges((next: Theme) => {
       setTheme(next);
       applyTheme(next);
     });
