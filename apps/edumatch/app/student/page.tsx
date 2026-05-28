@@ -15,7 +15,7 @@ type Inquiry = {
 };
 
 export default function StudentDashboard() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data: session, status } = useSession();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +108,12 @@ export default function StudentDashboard() {
             href={`${EDUMATCH_URL}/student/bookings`}
             className="rounded-lg border border-[var(--color-border-strong)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface)] transition"
           >
-            {t("edumatch.student.bookings.title")}
+            {tx(t, locale, "edumatch.student.bookings.title", {
+              en: "My Bookings",
+              nl: "Mijn boekingen",
+              fr: "Mes réservations",
+              de: "Meine Buchungen",
+            })}
           </Link>
           <Link
             href={`${EDUMATCH_URL}/student/inquiry/new`}
@@ -162,6 +167,18 @@ export default function StudentDashboard() {
       )}
     </div>
   );
+}
+
+function tx(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  locale: string,
+  key: string,
+  fallback: Record<string, string>,
+) {
+  const value = t(key);
+  if (value !== key) return value;
+  const base = locale.toLowerCase().split("-")[0];
+  return fallback[base] ?? fallback.en ?? key;
 }
 
 function StatusBadge({

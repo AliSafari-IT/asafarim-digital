@@ -27,6 +27,12 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function StudentBookingsPage() {
   const { t, locale } = useTranslation();
+  const bookingTitle = tx(t, locale, "edumatch.student.bookings.title", {
+    en: "My Bookings",
+    nl: "Mijn boekingen",
+    fr: "Mes réservations",
+    de: "Meine Buchungen",
+  });
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,10 +102,10 @@ export default function StudentBookingsPage() {
           {t("edumatch.inquiry.detail.backToDashboard")}
         </Link>
         <span className="text-[var(--color-text-muted)]">/</span>
-        <span className="text-[var(--color-text)]">{t("edumatch.student.bookings.title")}</span>
+        <span className="text-[var(--color-text)]">{bookingTitle}</span>
       </div>
 
-      <h1 className="mb-1 text-2xl font-bold text-[var(--color-text)]">{t("edumatch.student.bookings.title")}</h1>
+      <h1 className="mb-1 text-2xl font-bold text-[var(--color-text)]">{bookingTitle}</h1>
       <p className="mb-6 text-sm text-[var(--color-text-muted)]">{t("edumatch.student.bookings.subtitle")}</p>
 
       {error && (
