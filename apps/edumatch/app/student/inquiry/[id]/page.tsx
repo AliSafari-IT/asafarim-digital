@@ -75,6 +75,38 @@ export default function InquiryDetail() {
    * the server-side AI_DISCLAIMER constant in lib/server/moderation.ts.
    */
   const AI_DISCLAIMER_TEXT = t("edumatch.inquiry.detail.disclaimer");
+
+  /**
+   * Confidence levels for AI responses based on moderation outcome and content.
+   */
+  const getConfidenceInfo = (outcome: typeof moderationOutcome, hasResponse: boolean) => {
+    if (!hasResponse) return null;
+    if (outcome?.outcome === "REVIEW") {
+      return {
+        level: "medium" as const,
+        label: t("edumatch.inquiry.detail.confidence.medium"),
+        color: "text-amber-600 bg-amber-50 border-amber-200",
+        icon: "⚠️",
+        message: t("edumatch.inquiry.detail.confidence.reviewMessage"),
+      };
+    }
+    if (outcome?.outcome === "REFUSE") {
+      return {
+        level: "low" as const,
+        label: t("edumatch.inquiry.detail.confidence.low"),
+        color: "text-red-600 bg-red-50 border-red-200",
+        icon: "🚫",
+        message: t("edumatch.inquiry.detail.confidence.refuseMessage"),
+      };
+    }
+    return {
+      level: "high" as const,
+      label: t("edumatch.inquiry.detail.confidence.high"),
+      color: "text-blue-600 bg-blue-50 border-blue-200",
+      icon: "✓",
+      message: t("edumatch.inquiry.detail.confidence.standardMessage"),
+    };
+  };
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -470,9 +502,33 @@ export default function InquiryDetail() {
         <div
           data-testid="ai-disclaimer"
           className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-800"
+          role="note"
+          aria-label="AI accuracy disclaimer"
         >
           <strong>Heads up:</strong> {AI_DISCLAIMER_TEXT}
         </div>
+
+        {/* Confidence indicator for AI responses */}
+        {hasAiResponse && (
+          <div
+            data-testid="ai-confidence"
+            className={`mb-4 rounded-lg border px-4 py-3 text-sm ${getConfidenceInfo(moderationOutcome, hasAiResponse)?.color}`}
+            role="status"
+            aria-live="polite"
+            aria-label={`AI response confidence: ${getConfidenceInfo(moderationOutcome, hasAiResponse)?.label}`}
+          >
+            <div className="flex items-center gap-2 font-medium">
+              <span aria-hidden="true">{getConfidenceInfo(moderationOutcome, hasAiResponse)?.icon}</span>
+              <span>{getConfidenceInfo(moderationOutcome, hasAiResponse)?.label}</span>
+            </div>
+            <p className="mt-1 text-sm opacity-90">
+              {getConfidenceInfo(moderationOutcome, hasAiResponse)?.message}
+            </p>
+            <p className="mt-2 text-xs opacity-75">
+              {t("edumatch.inquiry.detail.confidence.verifySuggestion")}
+            </p>
+          </div>
+        )}
 
         {/* Moderation refusal banner */}
         {moderationOutcome && moderationOutcome.outcome === "REFUSE" && (
