@@ -370,7 +370,7 @@ function DrawerContent() {
  * - `resolvedHref` (if present) wins over the raw href
  * - children are recursively mapped
  */
-function toNavItems(items: ResolvedNavItem[]): NavItem[] {
+function toNavItems(items: ResolvedNavItem[], pathname?: string): NavItem[] {
   return items.map((r) => {
     const href = r.resolvedHref || r.href;
     const Icon = r.icon ? getNavIcon(r.icon) : null;
@@ -378,9 +378,10 @@ function toNavItems(items: ResolvedNavItem[]): NavItem[] {
       id: r.id,
       label: r.label,
       href,
+      active: pathname ? pathname === href : undefined,
       icon: Icon ? <Icon /> : undefined,
       external: r.target === "_blank" || /^https?:\/\//.test(href),
-      children: r.children ? toNavItems(r.children) : undefined,
+      children: r.children ? toNavItems(r.children, pathname) : undefined,
     } satisfies NavItem;
   });
 }
@@ -433,7 +434,7 @@ export function EduNav() {
   }
 
   const navItems = useMemo(() => {
-    const resolvedItems = toNavItems(items);
+    const resolvedItems = toNavItems(items, pathname);
     const isStudent = session?.user?.roles?.includes("edumatch_student");
     const isTutor = session?.user?.roles?.includes("edumatch_tutor");
     const isAdminUser = session?.user?.roles?.some((r: string) =>
@@ -446,6 +447,7 @@ export function EduNav() {
           id: "admin-panel",
           label: "Admin",
           href: "/admin",
+          active: pathname === "/admin",
           icon: (() => {
             const ShieldIcon = getNavIcon("security");
             return (
@@ -470,6 +472,7 @@ export function EduNav() {
         id: "my-profile",
         label: t("edumatch.drawer.myProfile"),
         href: profileHref,
+        active: pathname === profileHref,
         icon: (
           <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.25rem" }}>
             <ProfileIcon />
@@ -496,6 +499,7 @@ export function EduNav() {
           id: "student-ask-question",
           label: t("edumatch.drawer.askQuestion"),
           href: "/student/inquiry/new",
+          active: pathname === "/student/inquiry/new",
           icon: navIcon(HelpIcon),
         },
         {
@@ -509,6 +513,7 @@ export function EduNav() {
           id: "student-my-profile",
           label: t("edumatch.drawer.myProfile"),
           href: "/student/profile",
+          active: pathname === "/student/profile",
           icon: navIcon(UserIcon),
         },
         ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
@@ -532,24 +537,28 @@ export function EduNav() {
         id: "tutor-dashboard",
         label: t("edumatch.drawer.tutorDashboard"),
         href: "/tutor",
+        active: pathname === "/tutor",
         icon: navIcon(DashboardIcon),
       },
       {
         id: "tutor-quote-requests",
         label: t("edumatch.drawer.quoteRequests"),
         href: "/tutor/requests",
+        active: pathname === "/tutor/requests",
         icon: navIcon(RequestsIcon),
       },
       {
         id: "tutor-bookings",
         label: t("edumatch.drawer.bookings"),
         href: "/tutor/bookings",
+        active: pathname === "/tutor/bookings",
         icon: navIcon(BookingsIcon),
       },
       {
         id: "tutor-my-profile",
         label: t("edumatch.drawer.myProfile"),
         href: "/tutor/profile",
+        active: pathname === "/tutor/profile",
         icon: navIcon(UserIcon),
       },
       ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
@@ -565,7 +574,6 @@ export function EduNav() {
       bordered
       fullWidth
       viewType={viewType}
-      currentPath={pathname}
       renderLink={renderLink}
       logo={<EduLogo />}
       navItems={navItems}
