@@ -105,8 +105,11 @@ function uploadFile(
       } else {
         let message = `Upload failed (${xhr.status})`;
         try {
-          const d = JSON.parse(xhr.responseText) as { error?: string };
-          if (d.error) message = d.error;
+          const d = JSON.parse(xhr.responseText) as {
+            error?: string;
+            message?: string; // dev-mode detail from serverError
+          };
+          message = d.message ?? d.error ?? message;
         } catch { /* ignore */ }
         reject(new Error(message));
       }

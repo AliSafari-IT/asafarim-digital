@@ -149,7 +149,6 @@ export async function createPresignedUploadUrl(
     Bucket: handle.config.bucket,
     Key: key,
     ContentType: input.contentType,
-    ContentLength: input.sizeBytes,
   });
 
   const uploadUrl = await getSignedUrl(handle.client, command, {
@@ -162,6 +161,45 @@ export async function createPresignedUploadUrl(
     publicUrl: `${handle.config.publicUrl.replace(/\/$/, "")}/${key}`,
     headers,
     expiresInSec: PRESIGN_EXPIRES_SEC,
+    isLocalStub: false,
+  };
+}
+
+/**
+ * Upload a buffer directly to storage using the S3 SDK — no presigned URL
+ * round-trip needed. Used by the server-side proxy upload route so the
+ * browser never makes a cross-origin PUT request.
+ */
+export async function directUpload(
+  userId: string,
+  filename: string,
+  contentType: AllowedMime,
+  data: ArrayBuffer,
+): Promise<{ key: string; publicUrl: string; isLocalStub: boolean }> {
+  if (data.byteLength > MAX_FILE_BYTES) {
+    throw new Error(`File exceeds ${MAX_FILE_BYTES} bytes`);
+  }
+
+  const key = buildAttachmentKey(userId, filename);
+  const handle = getClient();
+
+  if (!handle) {
+    return { key, publicUrl: `local-stub://${key}`, isLocalStub: true };
+  }
+
+  await handle.client.send(
+    new PutObjectCommand({
+      Bucket: handle.config.bucket,
+      Key: key,
+      ContentType: contentType,
+      ContentLength: data.byteLength,
+      Body: Buffer.from(data),
+    }),
+  );
+
+  return {
+    key,
+    publicUrl: `${handle.config.publicUrl.replace(/\/$/, "")}/${key}`,
     isLocalStub: false,
   };
 }

@@ -8,7 +8,7 @@ import {
   MIN_FILE_BYTES,
   type AllowedMime,
 } from "@/lib/server/validation";
-import { createPresignedUploadUrl } from "@/lib/server/storage";
+import { directUpload } from "@/lib/server/storage";
 
 export const runtime = "nodejs";
 
@@ -44,30 +44,17 @@ export async function POST(req: Request) {
     if (file.size > MAX_FILE_BYTES) return badRequest("File exceeds 50 MB limit");
     if (file.size < MIN_FILE_BYTES) return badRequest("File is empty");
 
-    const presigned = await createPresignedUploadUrl({
-      userId: user.id,
-      filename: file.name,
-      contentType: file.type as AllowedMime,
-      sizeBytes: file.size,
-    });
-
-    if (!presigned.isLocalStub) {
-      const buffer = await file.arrayBuffer();
-      const putRes = await fetch(presigned.uploadUrl, {
-        method: "PUT",
-        headers: presigned.headers,
-        body: buffer,
-      });
-      if (!putRes.ok) {
-        throw new Error(
-          `Storage PUT failed: ${putRes.status} ${putRes.statusText}`,
-        );
-      }
-    }
+    const buffer = await file.arrayBuffer();
+    const { key, publicUrl } = await directUpload(
+      user.id,
+      file.name,
+      file.type as AllowedMime,
+      buffer,
+    );
 
     return NextResponse.json({
-      key: presigned.key,
-      url: presigned.publicUrl,
+      key,
+      url: publicUrl,
       mime: file.type,
       sizeBytes: file.size,
       filename: file.name,
