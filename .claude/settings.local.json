@@ -27,7 +27,14 @@
       "Bash(ls -la /d/repos/asafarim-digital/.env*)",
       "Bash(node -e ' *)",
       "Bash(pnpm typecheck *)",
-      "Bash(pnpm test *)"
+      "Bash(pnpm test *)",
+      "Bash(curl -s -o /dev/null -w \"edumatch bucket HTTP %{http_code}\\\\n\" https://asafarim-edumatch.fra1.digitaloceanspaces.com/)",
+      "Bash(curl -s https://asafarim-edumatch.fra1.digitaloceanspaces.com/)",
+      "Bash(curl -s -o /dev/null -w \"vionto bucket HTTP %{http_code}\\\\n\" https://asafarim-vionto.fra1.digitaloceanspaces.com/)",
+      "Bash(cd /d/repos/asafarim-digital/apps/edumatch)",
+      "Bash(sed -n '1,12p' lib/server/quotes.ts)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }
