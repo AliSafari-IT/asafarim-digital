@@ -25,6 +25,11 @@ export const ALLOWED_MIME_TYPES = [
   // text (allow paste-as-file fallback)
   "text/plain",
   "application/pdf",
+  // Microsoft Office documents (assignments, worksheets, slide decks)
+  "application/msword", // .doc
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
 ] as const;
 
 export type AllowedMime = (typeof ALLOWED_MIME_TYPES)[number];
