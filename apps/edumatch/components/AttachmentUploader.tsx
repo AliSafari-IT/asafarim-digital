@@ -52,15 +52,6 @@ type UploadItem = {
   attachment?: UploadedAttachment; // set once the upload settles
 };
 
-type PresignResponse = {
-  key: string;
-  uploadUrl: string;
-  publicUrl: string;
-  headers: Record<string, string>;
-  expiresInSec: number;
-  isLocalStub: boolean;
-};
-
 export function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -84,71 +75,45 @@ function FileTypeIcon({ mime }: { mime: string }) {
 }
 
 /**
- * Upload a single file: presign → PUT to storage → resolve a persisted
- * attachment descriptor. In local-dev stub mode (`isLocalStub`) we skip the
- * real PUT — the storage layer trusts the client there so the dev loop works
- * without DO-Spaces credentials.
+ * POST the file to our own proxy endpoint (`/api/uploads/upload`).
+ * The server presigns and PUTs to storage — the browser never makes a
+ * cross-origin request, so no CORS configuration is needed on the bucket.
+ * XHR is used so we can report real upload-to-server progress.
  */
-async function uploadFile(
+function uploadFile(
   file: File,
   onProgress: (pct: number) => void,
 ): Promise<UploadedAttachment> {
-  const presignRes = await fetch("/api/uploads/presign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: file.name,
-      contentType: file.type,
-      sizeBytes: file.size,
-    }),
-  });
-
-  if (!presignRes.ok) {
-    const data = (await presignRes.json().catch(() => null)) as {
-      error?: string;
-    } | null;
-    throw new Error(data?.error ?? `Presign failed (${presignRes.status})`);
-  }
-
-  const presigned = (await presignRes.json()) as PresignResponse;
-
-  if (!presigned.isLocalStub) {
-    await putWithProgress(presigned.uploadUrl, file, presigned.headers, onProgress);
-  } else {
-    onProgress(100);
-  }
-
-  return {
-    key: presigned.key,
-    url: presigned.publicUrl,
-    mime: file.type,
-    sizeBytes: file.size,
-    filename: file.name,
-  };
-}
-
-/** PUT via XHR so we can report real upload progress. */
-function putWithProgress(
-  url: string,
-  file: File,
-  headers: Record<string, string>,
-  onProgress: (pct: number) => void,
-): Promise<void> {
   return new Promise((resolve, reject) => {
+    const body = new FormData();
+    body.append("file", file);
+
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url, true);
-    for (const [k, v] of Object.entries(headers)) {
-      xhr.setRequestHeader(k, v);
-    }
+    xhr.open("POST", "/api/uploads/upload", true);
+
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
+
     xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed (${xhr.status})`));
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as UploadedAttachment);
+        } catch {
+          reject(new Error("Invalid response from upload"));
+        }
+      } else {
+        let message = `Upload failed (${xhr.status})`;
+        try {
+          const d = JSON.parse(xhr.responseText) as { error?: string };
+          if (d.error) message = d.error;
+        } catch { /* ignore */ }
+        reject(new Error(message));
+      }
     };
+
     xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.send(file);
+    xhr.send(body);
   });
 }
 
