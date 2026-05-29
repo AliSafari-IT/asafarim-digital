@@ -25,6 +25,7 @@
     "onVPS:dockerPrune": "sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployPortal": "docker compose up -d --build portal && sh scripts/docker-post-deploy-prune.sh",
     "onVPS:deployVionto": "docker compose up -d --build vionto vionto-worker && sh scripts/docker-post-deploy-prune.sh",
+    "onVPS:deployEdumatch": "docker compose up -d --build edumatch && sh scripts/docker-post-deploy-prune.sh",
     "db:generate": "pnpm --filter @asafarim/db prisma generate",
     "db:migrate": "pnpm --filter @asafarim/db prisma migrate dev",
     "db:migrate:deploy": "npx dotenv-cli -e .env -- pnpm --filter @asafarim/db exec prisma migrate deploy",
