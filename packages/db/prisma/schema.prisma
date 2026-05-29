@@ -73,6 +73,8 @@ model User {
   eduNotificationPrefs          EduNotificationPreference?
   eduTutorVerifications         EduTutorVerification[]     @relation("EduTutorVerificationTutor")
   eduTutorVerificationsReviewed EduTutorVerification[]     @relation("EduTutorVerificationReviewer")
+  eduVerificationMessages       EduVerificationMessage[]   @relation("EduVerificationMessageTutor")
+  eduVerificationMessagesSent   EduVerificationMessage[]   @relation("EduVerificationMessageSender")
   eduAuditEventsActor           EduAuditEvent[]            @relation("EduAuditActor")
 
   // Vionto
@@ -1125,6 +1127,28 @@ model EduTutorVerification {
   @@index([tutorId])
   @@index([status])
   @@index([reviewerId])
+  @@index([createdAt])
+}
+
+// A two-way message thread between admins and a tutor about that tutor's
+// verification. The thread is keyed by `tutorId` (the verification subject).
+// `senderRole` records whether a message came from an ADMIN or the TUTOR.
+// `readAt` is stamped when the *other* party reads the message, powering
+// unread badges on both the admin panel and the tutor's verification page.
+model EduVerificationMessage {
+  id         String    @id @default(cuid())
+  tutorId    String
+  senderId   String
+  senderRole String // ADMIN | TUTOR
+  body       String    @db.Text
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  tutor  User @relation("EduVerificationMessageTutor", fields: [tutorId], references: [id], onDelete: Cascade)
+  sender User @relation("EduVerificationMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([tutorId])
+  @@index([senderId])
   @@index([createdAt])
 }
 
