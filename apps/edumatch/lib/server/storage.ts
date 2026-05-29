@@ -91,7 +91,7 @@ function getClient(): { client: S3Client; config: StorageConfig } | null {
       accessKeyId: config.accessKey,
       secretAccessKey: config.secretKey,
     },
-    forcePathStyle: false,
+    forcePathStyle: true,
   });
 
   cachedClient = { client, config };
