@@ -1141,6 +1141,10 @@ model EduVerificationMessage {
   senderId   String
   senderRole String // ADMIN | TUTOR
   body       String    @db.Text
+  // Optional attachments: array of { key, mime, filename, sizeBytes }. Keys are
+  // storage object keys scoped to the uploader; URLs are signed on read because
+  // the bucket is private.
+  attachments Json?
   readAt     DateTime?
   createdAt  DateTime  @default(now())
 

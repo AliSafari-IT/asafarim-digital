@@ -46,16 +46,21 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const { user } = await requireTutor();
-    const body = (await req.json().catch(() => null)) as { body?: string } | null;
-    if (!body?.body?.trim()) {
-      return badRequest("Message body is required.");
+    const body = (await req.json().catch(() => null)) as
+      | { body?: string; attachments?: unknown }
+      | null;
+    const hasAttachments =
+      Array.isArray(body?.attachments) && body.attachments.length > 0;
+    if (!body?.body?.trim() && !hasAttachments) {
+      return badRequest("Message body or an attachment is required.");
     }
     try {
       await postVerificationMessage({
         tutorId: user.id,
         senderId: user.id,
         senderRole: "TUTOR",
-        body: body.body,
+        body: body?.body ?? "",
+        attachments: body?.attachments,
       });
     } catch (e) {
       return badRequest(e instanceof Error ? e.message : "Invalid message.");
