@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@asafarim/shared-i18n";
@@ -64,6 +64,7 @@ export default function StudentProfilePage() {
   const [exists, setExists] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const noticeRef = useRef<HTMLDivElement>(null);
 
   const [gradeLevel, setGradeLevel] = useState<"K12" | "UNDERGRAD" | "GRAD">(
     "K12",
@@ -96,6 +97,7 @@ export default function StudentProfilePage() {
           }
         }
       })
+      .catch(() => { /* profile fetch failed — leave form in create mode */ })
       .finally(() => setLoading(false));
   }, []);
 
@@ -128,9 +130,11 @@ export default function StudentProfilePage() {
 
       setSuccess(true);
       setExists(true);
-      setTimeout(() => setSuccess(false), 3000);
+      noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => setSuccess(false), 4000);
     } catch {
       setError(t("edumatch.inquiry.new.networkError"));
+      noticeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     } finally {
       setSaving(false);
     }
@@ -168,17 +172,19 @@ export default function StudentProfilePage() {
           : t("edumatch.profile.student.subtitle.create")}
       </p>
 
-      {error && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
-          {t("edumatch.profile.student.savedOk")}
-        </div>
-      )}
+      <div ref={noticeRef}>
+        {error && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm font-medium text-green-700 flex items-center gap-2">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden="true"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" /></svg>
+            {t("edumatch.profile.student.savedOk")}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grade Level */}
