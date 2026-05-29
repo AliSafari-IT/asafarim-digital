@@ -38,10 +38,6 @@ export async function GET(req: Request) {
       }
     }
 
-    if (!location) {
-      return badRequest("Provide lat/lng or ensure profile has a geocoded address.");
-    }
-
     const requests = await listAvailableQuoteRequestsForTutor(user.id, location, maxDistanceKm);
 
     return NextResponse.json({

@@ -329,7 +329,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
  */
 export async function listAvailableQuoteRequestsForTutor(
   tutorId: string,
-  location: { lat: number; lng: number },
+  location: { lat: number; lng: number } | null,
   maxDistanceKm: number = 50,
 ) {
   const tutor = await prisma.eduTutorProfile.findUnique({
@@ -391,12 +391,12 @@ export async function listAvailableQuoteRequestsForTutor(
     const sp = profileMap.get(req.inquiry.studentId);
 
     let distanceKm = 0;
-    if (sp?.homeLat != null && sp?.homeLng != null) {
+    if (location && sp?.homeLat != null && sp?.homeLng != null) {
       distanceKm = Math.round(haversineKm(location.lat, location.lng, sp.homeLat, sp.homeLng) * 10) / 10;
     }
 
-    // Skip if tutor is location-bound and student is too far
-    if (!tutor.onlineOnly && sp?.homeLat != null && distanceKm > maxDistanceKm) {
+    // Skip if tutor is location-bound, both locations are known, and student is too far
+    if (location && !tutor.onlineOnly && sp?.homeLat != null && distanceKm > maxDistanceKm) {
       continue;
     }
 
