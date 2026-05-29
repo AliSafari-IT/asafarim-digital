@@ -13,6 +13,14 @@ type Review = {
   createdAt: string;
 };
 
+type ThreadMessage = {
+  id: string;
+  senderRole: "ADMIN" | "TUTOR";
+  senderName: string | null;
+  body: string;
+  createdAt: string;
+};
+
 type TutorRow = {
   tutorId: string;
   name: string | null;
@@ -165,6 +173,57 @@ function TutorRowCard({
     row.latestReview?.adminNotes ?? "",
   );
 
+  // Verification conversation thread (lazy-loaded on expand).
+  const [threadOpen, setThreadOpen] = useState(false);
+  const [messages, setMessages] = useState<ThreadMessage[] | null>(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [followup, setFollowup] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const loadThread = useCallback(async () => {
+    setThreadLoading(true);
+    try {
+      const res = await fetch(
+        `/api/admin/tutor-verifications/${row.tutorId}/messages`,
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { messages: ThreadMessage[] };
+        setMessages(data.messages);
+      }
+    } finally {
+      setThreadLoading(false);
+    }
+  }, [row.tutorId]);
+
+  function toggleThread() {
+    const next = !threadOpen;
+    setThreadOpen(next);
+    if (next && messages === null) void loadThread();
+  }
+
+  async function sendFollowup() {
+    const body = followup.trim();
+    if (!body || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(
+        `/api/admin/tutor-verifications/${row.tutorId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body }),
+        },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { messages: ThreadMessage[] };
+        setMessages(data.messages);
+        setFollowup("");
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
   const badge =
     STATUS_BADGE[row.effectiveStatus] ?? "bg-[var(--color-surface)] text-[var(--color-text-muted)]";
 
@@ -263,6 +322,85 @@ function TutorRowCard({
         >
           {t("edumatch.admin.verifications.reject")}
         </button>
+      </div>
+
+      {/* Conversation thread with the tutor */}
+      <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+        <button
+          onClick={toggleThread}
+          className="text-sm font-medium text-[var(--color-primary)] hover:underline"
+        >
+          {threadOpen
+            ? t("edumatch.admin.verifications.hideConversation")
+            : t("edumatch.admin.verifications.showConversation")}
+        </button>
+
+        {threadOpen && (
+          <div className="mt-3">
+            <div className="max-h-72 space-y-2 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              {threadLoading ? (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {t("edumatch.admin.common.loading")}
+                </p>
+              ) : messages && messages.length > 0 ? (
+                messages.map((m) => {
+                  const mine = m.senderRole === "ADMIN";
+                  return (
+                    <div
+                      key={m.id}
+                      className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3 py-1.5 text-sm ${
+                          mine
+                            ? "bg-emerald-600 text-white"
+                            : "bg-[var(--color-panel)] text-[var(--color-text)] border border-[var(--color-border)]"
+                        }`}
+                      >
+                        <div
+                          className={`mb-0.5 text-[10px] ${
+                            mine ? "text-white/70" : "text-[var(--color-text-muted)]"
+                          }`}
+                        >
+                          {mine
+                            ? t("edumatch.admin.verifications.fromAdmin")
+                            : m.senderName ?? t("edumatch.admin.verifications.fromTutor")}
+                          {" · "}
+                          {new Date(m.createdAt).toLocaleString()}
+                        </div>
+                        <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-xs text-[var(--color-text-muted)]">
+                  {t("edumatch.admin.verifications.noMessages")}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-end gap-2">
+              <textarea
+                value={followup}
+                onChange={(e) => setFollowup(e.target.value)}
+                rows={2}
+                maxLength={4000}
+                placeholder={t("edumatch.admin.verifications.followupPlaceholder")}
+                className="flex-1 resize-none rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
+              />
+              <button
+                onClick={() => void sendFollowup()}
+                disabled={!followup.trim() || sending}
+                className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {sending
+                  ? t("edumatch.admin.verifications.working")
+                  : t("edumatch.admin.verifications.sendMessage")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
