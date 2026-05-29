@@ -57,6 +57,35 @@ const DEFAULT_FORM: QuoteForm = {
   slots: [{ start: "", end: "", mode: "ONLINE" }],
 };
 
+/** Minimum duration of an availability slot, in minutes. */
+const MIN_SLOT_MINUTES = 30;
+
+/** Format a Date into a `datetime-local` value (local time, no timezone). */
+function toLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
+}
+
+/** Add minutes to a `datetime-local` value, returning a new value (or ""). */
+function addMinutes(value: string, mins: number): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMinutes(d.getMinutes() + mins);
+  return toLocalInput(d);
+}
+
+/** Whether `end` is at least MIN_SLOT_MINUTES after `start`. */
+function slotDurationOk(start: string, end: string): boolean {
+  if (!start || !end) return false;
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  if (Number.isNaN(s) || Number.isNaN(e)) return false;
+  return e - s >= MIN_SLOT_MINUTES * 60 * 1000;
+}
+
 export default function TutorRequestsPage() {
   const { t } = useTranslation();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
@@ -129,6 +158,20 @@ export default function TutorRequestsPage() {
     setForm(id, { slots });
   }
 
+  /**
+   * Changing the start time also enforces the end-time floor: if the current
+   * end is empty or now earlier than start + MIN_SLOT_MINUTES, snap it forward
+   * so the slot stays valid.
+   */
+  function setSlotStart(id: string, idx: number, start: string) {
+    const f = getForm(id);
+    const current = f.slots[idx]?.end ?? "";
+    const minEnd = addMinutes(start, MIN_SLOT_MINUTES);
+    const end =
+      start && (!current || current < minEnd) ? minEnd : current;
+    setSlot(id, idx, { start, end });
+  }
+
   function addSlot(id: string) {
     const f = getForm(id);
     if (f.slots.length >= 5) return;
@@ -147,6 +190,12 @@ export default function TutorRequestsPage() {
     const slots = f.slots.filter((s) => s.start && s.end);
     if (slots.length === 0) {
       setError(t("edumatch.requests.noSlotError"));
+      return;
+    }
+    if (!slots.every((s) => slotDurationOk(s.start, s.end))) {
+      setError(
+        t("edumatch.requests.slotDurationError", { n: MIN_SLOT_MINUTES }),
+      );
       return;
     }
 
@@ -430,19 +479,30 @@ export default function TutorRequestsPage() {
                                 type="datetime-local"
                                 value={slot.start}
                                 onChange={(e) =>
-                                  setSlot(req.id, idx, {
-                                    start: e.target.value,
-                                  })
+                                  setSlotStart(req.id, idx, e.target.value)
                                 }
+                                aria-label={t("edumatch.requests.slots.start")}
                                 className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
                               />
                               <input
                                 type="datetime-local"
                                 value={slot.end}
+                                disabled={!slot.start}
+                                min={
+                                  slot.start
+                                    ? addMinutes(slot.start, MIN_SLOT_MINUTES)
+                                    : undefined
+                                }
                                 onChange={(e) =>
                                   setSlot(req.id, idx, { end: e.target.value })
                                 }
-                                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                                aria-label={t("edumatch.requests.slots.end")}
+                                title={
+                                  !slot.start
+                                    ? t("edumatch.requests.slots.pickStartFirst")
+                                    : undefined
+                                }
+                                className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
                               />
                               <select
                                 value={slot.mode}
