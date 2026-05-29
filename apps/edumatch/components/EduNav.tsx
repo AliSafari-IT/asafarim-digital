@@ -18,6 +18,7 @@ import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
+import NotificationBell from "./NotificationBell";
 
 const portalUrl =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
@@ -358,6 +359,7 @@ function CompactControls() {
 function DrawerContent() {
   return (
     <>
+      <NotificationBell />
       <AppSwitcher current="edumatch" variant="default" />
       <UserMenu />
     </>
@@ -525,6 +527,7 @@ export function EduNav() {
     const RequestsIcon = getNavIcon("chat");
     const BookingsIcon = getNavIcon("layers");
     const UserIcon = getNavIcon("user");
+    const VerifyIcon = getNavIcon("security");
     const duplicateHrefs = new Set(["/tutor", "/tutor/requests", "/tutor/bookings", "/tutor/profile"]);
     const navIcon = (Icon: React.FC) => (
       <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.5rem", verticalAlign: "middle" }}>
@@ -560,6 +563,13 @@ export function EduNav() {
         href: "/tutor/profile",
         active: pathname === "/tutor/profile",
         icon: navIcon(UserIcon),
+      },
+      {
+        id: "tutor-verification",
+        label: t("edumatch.drawer.verification"),
+        href: "/tutor/verification",
+        active: pathname === "/tutor/verification",
+        icon: navIcon(VerifyIcon),
       },
       ...resolvedItems.filter((item) => !item.href || !duplicateHrefs.has(item.href)),
       ...(adminItem ? [adminItem] : []),

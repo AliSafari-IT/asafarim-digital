@@ -9,7 +9,12 @@ vi.mock("@asafarim/db", () => ({
   Prisma: { JsonNull: Symbol("JsonNull") },
 }));
 
+vi.mock("../verification-messages", () => ({
+  postVerificationMessage: vi.fn().mockResolvedValue({ id: "m1" }),
+}));
+
 import { prisma } from "@asafarim/db";
+import { postVerificationMessage } from "../verification-messages";
 import {
   requestVerification,
   setTutorVerificationStatus,
@@ -23,6 +28,7 @@ beforeEach(() => {
   vi.mocked(prisma.eduTutorProfile.update).mockReset();
   vi.mocked(prisma.eduAuditEvent.create).mockReset();
   vi.mocked(prisma.eduAuditEvent.create).mockResolvedValue({} as never);
+  vi.mocked(postVerificationMessage).mockClear();
   vi.unstubAllEnvs();
 });
 
@@ -110,6 +116,36 @@ describe("setTutorVerificationStatus", () => {
       data: { tutorMessage: string };
     };
     expect(verifyCall.data.tutorMessage).toMatch(/ID photo/);
+  });
+
+  it("NEEDS_CHANGES seeds the tutor message into the verification thread", async () => {
+    vi.mocked(prisma.eduTutorVerification.create).mockResolvedValue({
+      id: "v1",
+    } as never);
+    await setTutorVerificationStatus({
+      tutorId: "t1",
+      reviewerId: "a1",
+      status: "NEEDS_CHANGES",
+      tutorMessage: "Please add a current ID photo.",
+    });
+    expect(postVerificationMessage).toHaveBeenCalledWith({
+      tutorId: "t1",
+      senderId: "a1",
+      senderRole: "ADMIN",
+      body: "Please add a current ID photo.",
+    });
+  });
+
+  it("does not seed a thread message when no tutorMessage is given", async () => {
+    vi.mocked(prisma.eduTutorVerification.create).mockResolvedValue({
+      id: "v1",
+    } as never);
+    await setTutorVerificationStatus({
+      tutorId: "t1",
+      reviewerId: "a1",
+      status: "VERIFIED",
+    });
+    expect(postVerificationMessage).not.toHaveBeenCalled();
   });
 });
 

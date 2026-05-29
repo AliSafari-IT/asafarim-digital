@@ -19,6 +19,7 @@
 
 import { prisma, Prisma } from "@asafarim/db";
 import { recordEduAuditEvent } from "./audit";
+import { postVerificationMessage } from "./verification-messages";
 
 export type TutorVerificationStatus =
   | "PENDING"
@@ -141,6 +142,17 @@ export async function setTutorVerificationStatus(
       verifiedAt: status === "VERIFIED" ? now : null,
     },
   });
+
+  // If the admin included a message to the tutor, surface it in the two-way
+  // verification thread (this also notifies the tutor in-app + by email).
+  if (tutorMessage && tutorMessage.trim()) {
+    await postVerificationMessage({
+      tutorId,
+      senderId: reviewerId,
+      senderRole: "ADMIN",
+      body: tutorMessage,
+    });
+  }
 
   // Audit event keyed off the new status.
   const action =
