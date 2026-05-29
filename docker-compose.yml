@@ -259,6 +259,9 @@ services:
       # ${DO_SPACES_BUCKET}). The access key is account-wide, so KEY/SECRET
       # are shared; only the bucket differs.
       - DO_SPACES_BUCKET=${EDUMATCH_DO_SPACES_BUCKET:-asafarim-edumatch}
+      # Access key id: code reads DO_SPACES_ACCESS_KEY || DO_SPACES_KEY, so
+      # either var may carry the valid id. Forward both for dev/prod parity.
+      - DO_SPACES_ACCESS_KEY=${DO_SPACES_ACCESS_KEY}
       - DO_SPACES_KEY=${DO_SPACES_KEY}
       - DO_SPACES_SECRET=${DO_SPACES_SECRET}
       # Redis
