@@ -67,13 +67,25 @@ function readConfig(): StorageConfig | null {
     return null;
   }
 
+  // The S3 SDK needs the *regional* endpoint (no bucket) and then derives the
+  // bucket host itself (virtual-hosted addressing). But operators commonly set
+  // DO_SPACES_ENDPOINT to the bucket-scoped URL (e.g.
+  // https://my-bucket.fra1.digitaloceanspaces.com). Normalize both forms:
+  // strip a leading "<bucket>." label so we never double it.
+  const url = new URL(DO_SPACES_ENDPOINT);
+  if (url.hostname.startsWith(`${DO_SPACES_BUCKET}.`)) {
+    url.hostname = url.hostname.slice(DO_SPACES_BUCKET.length + 1);
+  }
+  const regionalEndpoint = `${url.protocol}//${url.hostname}`;
+  const virtualHostedBase = `${url.protocol}//${DO_SPACES_BUCKET}.${url.hostname}`;
+
   return {
-    endpoint: DO_SPACES_ENDPOINT,
+    endpoint: regionalEndpoint,
     region: DO_SPACES_REGION,
     bucket: DO_SPACES_BUCKET,
     accessKey: DO_SPACES_KEY,
     secretKey: DO_SPACES_SECRET,
-    publicUrl: DO_SPACES_PUBLIC_URL ?? `${DO_SPACES_ENDPOINT.replace(/\/$/, "")}/${DO_SPACES_BUCKET}`,
+    publicUrl: DO_SPACES_PUBLIC_URL ?? virtualHostedBase,
   };
 }
 
@@ -91,7 +103,7 @@ function getClient(): { client: S3Client; config: StorageConfig } | null {
       accessKeyId: config.accessKey,
       secretAccessKey: config.secretKey,
     },
-    forcePathStyle: true,
+    forcePathStyle: false,
   });
 
   cachedClient = { client, config };
