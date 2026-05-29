@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@asafarim/db", () => ({
+  Prisma: {
+    JsonNull: null,
+  },
   prisma: {
     eduVerificationMessage: {
       create: vi.fn(),
@@ -20,9 +23,17 @@ vi.mock("../audit", () => ({
   recordEduAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../storage", () => ({
+  isKeyOwnedBy: vi.fn((key: string, userId: string) =>
+    key.startsWith(`inquiries/${userId}/`),
+  ),
+  signAttachments: vi.fn().mockResolvedValue([]),
+}));
+
 import { prisma } from "@asafarim/db";
 import { notifyVerificationMessage } from "../notifications";
 import { recordEduAuditEvent } from "../audit";
+import { signAttachments } from "../storage";
 import {
   postVerificationMessage,
   listVerificationThread,
@@ -52,6 +63,7 @@ describe("postVerificationMessage", () => {
         senderId: "a1",
         senderRole: "ADMIN",
         body: "Please upload your certificate.",
+        attachments: null,
       },
       select: { id: true },
     });
@@ -120,6 +132,46 @@ describe("postVerificationMessage", () => {
       .calls[0]?.[0] as { data: { body: string } };
     expect(arg.data.body).toBe("hi");
   });
+
+  it("stores owned attachments and allows attachment-only messages", async () => {
+    await postVerificationMessage({
+      tutorId: "t1",
+      senderId: "a1",
+      senderRole: "ADMIN",
+      body: "   ",
+      attachments: [
+        {
+          key: "inquiries/a1/file-1/certificate.pdf",
+          mime: "application/pdf",
+          filename: "certificate.pdf",
+          sizeBytes: 1200,
+        },
+        {
+          key: "inquiries/other/file-2/private.pdf",
+          mime: "application/pdf",
+          filename: "private.pdf",
+          sizeBytes: 1200,
+        },
+      ],
+    });
+
+    const arg = vi.mocked(prisma.eduVerificationMessage.create).mock
+      .calls[0]?.[0] as unknown as {
+      data: { body: string; attachments: unknown[] };
+    };
+    expect(arg.data.body).toBe("");
+    expect(arg.data.attachments).toEqual([
+      {
+        key: "inquiries/a1/file-1/certificate.pdf",
+        mime: "application/pdf",
+        filename: "certificate.pdf",
+        sizeBytes: 1200,
+      },
+    ]);
+    expect(notifyVerificationMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ preview: "Attachment: certificate.pdf" }),
+    );
+  });
 });
 
 describe("listVerificationThread", () => {
@@ -132,10 +184,19 @@ describe("listVerificationThread", () => {
         senderId: "a1",
         sender: { name: "Reviewer" },
         body: "hi",
+        attachments: [{ key: "inquiries/a1/file/cert.pdf" }],
         readAt: null,
         createdAt: now,
       },
     ] as never);
+    vi.mocked(signAttachments).mockResolvedValue([
+      {
+        url: "https://signed.example/cert.pdf",
+        mime: "application/pdf",
+        filename: "cert.pdf",
+        sizeBytes: 123,
+      },
+    ]);
 
     const out = await listVerificationThread("t1");
     expect(out).toEqual([
@@ -145,6 +206,14 @@ describe("listVerificationThread", () => {
         senderId: "a1",
         senderName: "Reviewer",
         body: "hi",
+        attachments: [
+          {
+            url: "https://signed.example/cert.pdf",
+            mime: "application/pdf",
+            filename: "cert.pdf",
+            sizeBytes: 123,
+          },
+        ],
         readAt: null,
         createdAt: now.toISOString(),
       },

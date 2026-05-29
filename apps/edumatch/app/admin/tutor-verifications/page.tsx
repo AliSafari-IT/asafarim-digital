@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "@asafarim/shared-i18n";
+import MessageAttachments, { type AttachmentView } from "@/components/MessageAttachments";
+import VerificationComposer, { type StoredAttachment } from "@/components/VerificationComposer";
 
 type Review = {
   id: string;
@@ -18,6 +20,7 @@ type ThreadMessage = {
   senderRole: "ADMIN" | "TUTOR";
   senderName: string | null;
   body: string;
+  attachments: AttachmentView[];
   createdAt: string;
 };
 
@@ -177,8 +180,6 @@ function TutorRowCard({
   const [threadOpen, setThreadOpen] = useState(false);
   const [messages, setMessages] = useState<ThreadMessage[] | null>(null);
   const [threadLoading, setThreadLoading] = useState(false);
-  const [followup, setFollowup] = useState("");
-  const [sending, setSending] = useState(false);
 
   const loadThread = useCallback(async () => {
     setThreadLoading(true);
@@ -201,28 +202,22 @@ function TutorRowCard({
     if (next && messages === null) void loadThread();
   }
 
-  async function sendFollowup() {
-    const body = followup.trim();
-    if (!body || sending) return;
-    setSending(true);
-    try {
+  const sendFollowup = useCallback(
+    async (body: string, attachments: StoredAttachment[]) => {
       const res = await fetch(
         `/api/admin/tutor-verifications/${row.tutorId}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
+          body: JSON.stringify({ body, attachments }),
         },
       );
-      if (res.ok) {
-        const data = (await res.json()) as { messages: ThreadMessage[] };
-        setMessages(data.messages);
-        setFollowup("");
-      }
-    } finally {
-      setSending(false);
-    }
-  }
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { messages: ThreadMessage[] };
+      setMessages(data.messages);
+    },
+    [row.tutorId],
+  );
 
   const badge =
     STATUS_BADGE[row.effectiveStatus] ?? "bg-[var(--color-surface)] text-[var(--color-text-muted)]";
@@ -368,7 +363,10 @@ function TutorRowCard({
                           {" · "}
                           {new Date(m.createdAt).toLocaleString()}
                         </div>
-                        <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                        {m.body && (
+                          <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                        )}
+                        <MessageAttachments attachments={m.attachments} />
                       </div>
                     </div>
                   );
@@ -380,24 +378,13 @@ function TutorRowCard({
               )}
             </div>
 
-            <div className="mt-2 flex items-end gap-2">
-              <textarea
-                value={followup}
-                onChange={(e) => setFollowup(e.target.value)}
-                rows={2}
-                maxLength={4000}
+            <div className="mt-2">
+              <VerificationComposer
+                onSend={sendFollowup}
                 placeholder={t("edumatch.admin.verifications.followupPlaceholder")}
-                className="flex-1 resize-none rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-sm text-[var(--color-text)]"
+                sendLabel={t("edumatch.admin.verifications.sendMessage")}
+                accent="emerald"
               />
-              <button
-                onClick={() => void sendFollowup()}
-                disabled={!followup.trim() || sending}
-                className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {sending
-                  ? t("edumatch.admin.verifications.working")
-                  : t("edumatch.admin.verifications.sendMessage")}
-              </button>
             </div>
           </div>
         )}

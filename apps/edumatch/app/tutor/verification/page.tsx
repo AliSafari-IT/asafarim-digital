@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslation } from "@asafarim/shared-i18n";
+import MessageAttachments, { type AttachmentView } from "@/components/MessageAttachments";
+import VerificationComposer, { type StoredAttachment } from "@/components/VerificationComposer";
 
 type ThreadRole = "ADMIN" | "TUTOR";
 
@@ -11,6 +13,7 @@ type Message = {
   senderRole: ThreadRole;
   senderName: string | null;
   body: string;
+  attachments: AttachmentView[];
   createdAt: string;
 };
 
@@ -28,8 +31,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 function fmt(ts: string): string {
-  const d = new Date(ts);
-  return d.toLocaleString(undefined, {
+  return new Date(ts).toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -40,8 +42,6 @@ export default function TutorVerificationPage() {
   const { status: authStatus } = useSession();
   const [state, setState] = useState<VerificationState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
@@ -66,27 +66,19 @@ export default function TutorVerificationPage() {
     threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [state?.messages.length]);
 
-  async function send() {
-    const body = draft.trim();
-    if (!body || sending) return;
-    setSending(true);
-    setError(null);
-    try {
+  const send = useCallback(
+    async (body: string, attachments: StoredAttachment[]) => {
       const res = await fetch("/api/tutor/verification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, attachments }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { messages: Message[] };
       setState((prev) => (prev ? { ...prev, messages: data.messages } : prev));
-      setDraft("");
-    } catch {
-      setError(t("edumatch.verification.sendError"));
-    } finally {
-      setSending(false);
-    }
-  }
+    },
+    [],
+  );
 
   const statusKey = state?.status ?? "PENDING";
 
@@ -110,7 +102,6 @@ export default function TutorVerificationPage() {
       </p>
 
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)]">
-        {/* Thread */}
         <div className="max-h-[55vh] space-y-3 overflow-y-auto p-4">
           {loading ? (
             <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
@@ -120,15 +111,12 @@ export default function TutorVerificationPage() {
             state.messages.map((m) => {
               const mine = m.senderRole === "TUTOR";
               return (
-                <div
-                  key={m.id}
-                  className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                >
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                       mine
                         ? "bg-[var(--color-primary)] text-white"
-                        : "bg-[var(--color-bg)] text-[var(--color-text)] border border-[var(--color-border)]"
+                        : "border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)]"
                     }`}
                   >
                     <div
@@ -142,7 +130,8 @@ export default function TutorVerificationPage() {
                       {" · "}
                       {fmt(m.createdAt)}
                     </div>
-                    <div className="whitespace-pre-wrap break-words">{m.body}</div>
+                    {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
+                    <MessageAttachments attachments={m.attachments} />
                   </div>
                 </div>
               );
@@ -155,38 +144,17 @@ export default function TutorVerificationPage() {
           <div ref={threadEndRef} />
         </div>
 
-        {/* Composer */}
         <div className="border-t border-[var(--color-border)] p-3">
           {error && (
             <p className="mb-2 text-xs text-red-500" role="alert">
               {error}
             </p>
           )}
-          <div className="flex items-end gap-2">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                  e.preventDefault();
-                  void send();
-                }
-              }}
-              rows={2}
-              maxLength={4000}
-              placeholder={t("edumatch.verification.placeholder")}
-              className="flex-1 resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-            />
-            <button
-              onClick={() => void send()}
-              disabled={!draft.trim() || sending}
-              className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sending
-                ? t("edumatch.verification.sending")
-                : t("edumatch.verification.send")}
-            </button>
-          </div>
+          <VerificationComposer
+            onSend={send}
+            placeholder={t("edumatch.verification.placeholder")}
+            sendLabel={t("edumatch.verification.send")}
+          />
         </div>
       </div>
     </div>
