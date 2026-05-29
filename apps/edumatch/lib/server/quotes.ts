@@ -9,6 +9,7 @@
 
 import { prisma } from "@asafarim/db";
 import type { AvailabilitySlot } from "./tutor-matching";
+import { signAttachments, type AttachmentView } from "./storage";
 
 export type QuoteRequestInput = {
   inquiryId: string;
@@ -327,39 +328,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
  * List available quote requests for a tutor (matching their expertise + location).
  * Uses plain lat/lng columns (PostGIS not installed).
  */
-/**
- * A subset of an inquiry attachment that's safe to expose to a prospective
- * tutor. The storage `key` is intentionally omitted — only the resolvable
- * URL and display metadata are surfaced.
- */
-export type QuoteRequestAttachment = {
-  url: string;
-  mime: string;
-  filename: string;
-  sizeBytes: number;
-};
-
-/**
- * Coerce the inquiry's `attachments` Json column into a typed, validated view
- * list. Tolerates legacy/empty values by returning an empty array.
- */
-function toAttachmentViews(raw: unknown): QuoteRequestAttachment[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item) => {
-    if (typeof item !== "object" || item === null) return [];
-    const a = item as Record<string, unknown>;
-    if (
-      typeof a.url === "string" &&
-      typeof a.mime === "string" &&
-      typeof a.filename === "string" &&
-      typeof a.sizeBytes === "number"
-    ) {
-      return [{ url: a.url, mime: a.mime, filename: a.filename, sizeBytes: a.sizeBytes }];
-    }
-    return [];
-  });
-}
-
 export async function listAvailableQuoteRequestsForTutor(
   tutorId: string,
   location: { lat: number; lng: number } | null,
@@ -416,7 +384,7 @@ export async function listAvailableQuoteRequestsForTutor(
     subject: string;
     gradeLevel: string;
     description: string;
-    attachments: QuoteRequestAttachment[];
+    attachments: AttachmentView[];
     requestedAt: Date;
     expiresAt: Date;
     distanceKm: number;
@@ -441,7 +409,7 @@ export async function listAvailableQuoteRequestsForTutor(
       subject: req.inquiry.subject,
       gradeLevel: req.inquiry.gradeLevel,
       description: req.inquiry.description,
-      attachments: toAttachmentViews(req.inquiry.attachments),
+      attachments: await signAttachments(req.inquiry.attachments),
       requestedAt: req.requestedAt,
       expiresAt: req.expiresAt,
       distanceKm,

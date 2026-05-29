@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireStudent } from "@/lib/server/profiles";
 import { handleEduError, badRequest, serverError } from "@/lib/server";
+import { signAttachments } from "@/lib/server/storage";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -48,7 +49,10 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json(inquiry);
+    return NextResponse.json({
+      ...inquiry,
+      attachments: await signAttachments(inquiry.attachments),
+    });
   } catch (error) {
     if (error instanceof Error && error.name === "EduAuthError") {
       return handleEduError("inquiries/[id]", error);

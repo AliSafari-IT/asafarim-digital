@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
 import { MAX_FILE_BYTES, type AllowedMime } from "./validation";
@@ -21,6 +26,7 @@ import { MAX_FILE_BYTES, type AllowedMime } from "./validation";
  */
 
 const PRESIGN_EXPIRES_SEC = 5 * 60; // 5 minutes
+const DOWNLOAD_EXPIRES_SEC = 15 * 60; // 15 minutes — short-lived read access
 
 export type PresignedUpload = {
   key: string;
@@ -217,6 +223,71 @@ export async function directUpload(
     publicUrl: `${handle.config.publicUrl.replace(/\/$/, "")}/${key}`,
     isLocalStub: false,
   };
+}
+
+/**
+ * A safe, display-ready attachment view. The storage `key` is intentionally
+ * absent — only a freshly-signed, short-lived URL plus display metadata.
+ */
+export type AttachmentView = {
+  url: string;
+  mime: string;
+  filename: string;
+  sizeBytes: number;
+};
+
+/**
+ * Issue a short-lived presigned GET URL for a stored object. The bucket stays
+ * private; callers receive a URL that expires in DOWNLOAD_EXPIRES_SEC. In
+ * local-dev stub mode we echo the stub URL.
+ */
+export async function getSignedDownloadUrl(key: string): Promise<string> {
+  const handle = getClient();
+  if (!handle) return `local-stub://${key}`;
+
+  const command = new GetObjectCommand({
+    Bucket: handle.config.bucket,
+    Key: key,
+  });
+  return getSignedUrl(handle.client, command, {
+    expiresIn: DOWNLOAD_EXPIRES_SEC,
+  });
+}
+
+/**
+ * Coerce an inquiry's `attachments` JSON column into display-ready views,
+ * replacing the stored URL with a freshly-signed, expiring download URL
+ * derived from the object key. Tolerates legacy/empty values. Entries without
+ * a usable key fall back to any stored `url` (legacy public objects).
+ */
+export async function signAttachments(raw: unknown): Promise<AttachmentView[]> {
+  if (!Array.isArray(raw)) return [];
+
+  const views = await Promise.all(
+    raw.map(async (item): Promise<AttachmentView | null> => {
+      if (typeof item !== "object" || item === null) return null;
+      const a = item as Record<string, unknown>;
+      if (
+        typeof a.mime !== "string" ||
+        typeof a.filename !== "string" ||
+        typeof a.sizeBytes !== "number"
+      ) {
+        return null;
+      }
+
+      let url: string | null = null;
+      if (typeof a.key === "string" && a.key.length > 0) {
+        url = await getSignedDownloadUrl(a.key);
+      } else if (typeof a.url === "string") {
+        url = a.url; // legacy object without a stored key
+      }
+      if (!url) return null;
+
+      return { url, mime: a.mime, filename: a.filename, sizeBytes: a.sizeBytes };
+    }),
+  );
+
+  return views.filter((v): v is AttachmentView => v !== null);
 }
 
 /**

@@ -255,7 +255,10 @@ services:
       # DigitalOcean Spaces (S3-compatible object storage)
       - DO_SPACES_ENDPOINT=${DO_SPACES_ENDPOINT}
       - DO_SPACES_REGION=${DO_SPACES_REGION:-fra1}
-      - DO_SPACES_BUCKET=${DO_SPACES_BUCKET}
+      # EduMatch uses its own Spaces bucket (separate from vionto's shared
+      # ${DO_SPACES_BUCKET}). The access key is account-wide, so KEY/SECRET
+      # are shared; only the bucket differs.
+      - DO_SPACES_BUCKET=${EDUMATCH_DO_SPACES_BUCKET:-asafarim-edumatch}
       - DO_SPACES_KEY=${DO_SPACES_KEY}
       - DO_SPACES_SECRET=${DO_SPACES_SECRET}
       # Redis

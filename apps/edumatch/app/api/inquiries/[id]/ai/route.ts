@@ -4,6 +4,7 @@ import { handleEduError, badRequest, serverError } from "@/lib/server";
 import { streamOpenAI, streamAnthropic, buildVisionContent, transcribeAudio } from "@/lib/server/ai-orchestrator";
 import { moderatePrompt, moderationAllowsGeneration } from "@/lib/server/moderation";
 import { recordEduAuditEvent } from "@/lib/server/audit";
+import { getSignedDownloadUrl } from "@/lib/server/storage";
 import { prisma } from "@asafarim/db";
 
 export const runtime = "nodejs";
@@ -49,7 +50,20 @@ export async function GET(
     // in clients that don't expect SSE.
     // (In a full implementation you'd parse URL from request)
 
-    const attachments = (inquiry.attachments as Array<{ url: string; mime: string }>) ?? [];
+    // Stored attachments live in a private bucket — resolve a short-lived
+    // signed URL (from the object key) so server-side vision/transcription
+    // fetches can read them. Fall back to any legacy stored URL.
+    const storedAttachments =
+      (inquiry.attachments as Array<{ key?: string; url?: string; mime: string }>) ?? [];
+    const attachments = await Promise.all(
+      storedAttachments.map(async (a) => ({
+        mime: a.mime,
+        url:
+          a.key && a.key.length > 0
+            ? await getSignedDownloadUrl(a.key)
+            : (a.url ?? ""),
+      })),
+    );
 
     // Transcribe audio if present (blocking before stream; could be cached)
     let audioText = "";
