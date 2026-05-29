@@ -19,7 +19,15 @@
       "Bash(git commit -m ' *)",
       "Bash(pnpm --filter edumatch typecheck)",
       "PowerShell(pnpm --filter edumatch list @asafarim/navigation 2>&1)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(findstr -i edu)",
+      "Bash(findstr -i prisma)",
+      "Bash(findstr -i -A2 prisma)",
+      "Bash(ls -la .env*)",
+      "Bash(ls -la /d/repos/asafarim-digital/.env*)",
+      "Bash(node -e ' *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm test *)"
     ]
   }
 }

@@ -52,16 +52,19 @@ function readConfig(): StorageConfig | null {
     DO_SPACES_ENDPOINT,
     DO_SPACES_REGION,
     DO_SPACES_BUCKET,
+    DO_SPACES_ACCESS_KEY,
     DO_SPACES_KEY,
     DO_SPACES_SECRET,
     DO_SPACES_PUBLIC_URL,
   } = process.env;
 
+  const accessKey = DO_SPACES_ACCESS_KEY || DO_SPACES_KEY;
+
   if (
     !DO_SPACES_ENDPOINT ||
     !DO_SPACES_REGION ||
     !DO_SPACES_BUCKET ||
-    !DO_SPACES_KEY ||
+    !accessKey ||
     !DO_SPACES_SECRET
   ) {
     return null;
@@ -83,7 +86,7 @@ function readConfig(): StorageConfig | null {
     endpoint: regionalEndpoint,
     region: DO_SPACES_REGION,
     bucket: DO_SPACES_BUCKET,
-    accessKey: DO_SPACES_KEY,
+    accessKey: accessKey!,
     secretKey: DO_SPACES_SECRET,
     publicUrl: DO_SPACES_PUBLIC_URL ?? virtualHostedBase,
   };
