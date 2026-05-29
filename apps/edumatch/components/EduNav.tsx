@@ -18,6 +18,7 @@ import { useTranslation } from "@asafarim/shared-i18n";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { AppNavbar, type NavItem, type RenderLink } from "@asafarim/navigation";
 import type { AppCode, ResolvedNavItem } from "@asafarim/types";
+import NotificationBell from "./NotificationBell";
 
 const portalUrl =
   process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
@@ -358,6 +359,7 @@ function CompactControls() {
 function DrawerContent() {
   return (
     <>
+      <NotificationBell />
       <AppSwitcher current="edumatch" variant="default" />
       <UserMenu />
     </>
