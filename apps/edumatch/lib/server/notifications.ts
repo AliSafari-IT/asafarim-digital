@@ -26,7 +26,8 @@ export type NotificationType =
   | "DISPUTE_INFO_REQUESTED"
   | "DISPUTE_RESOLVED"
   | "AI_RESPONSE_READY"
-  | "PAYOUT_SENT";
+  | "PAYOUT_SENT"
+  | "TUTOR_VERIFICATION_MESSAGE";
 
 /**
  * Map low-level notification types to high-level event categories used by
@@ -335,6 +336,54 @@ export async function notifyTutorOfQuoteAccepted(opts: {
             View booking →
           </a>
         </p>
+      `,
+    });
+  }
+}
+
+/**
+ * Notify a party about a new verification message. Verification messages are
+ * transactional and not subject to per-event opt-out (the event maps to null,
+ * so createNotification always delivers in-app; email is best-effort).
+ *
+ * - ADMIN → tutor: recipient is the tutor, links to /tutor/verification.
+ * - TUTOR → admin: recipient is the last reviewer, links to the admin panel.
+ */
+export async function notifyVerificationMessage(opts: {
+  recipientId: string;
+  preview: string;
+  forAdmin?: boolean;
+  tutorId?: string;
+}): Promise<void> {
+  const { recipientId, preview, forAdmin = false, tutorId } = opts;
+  const base = process.env.EDUMATCH_URL ?? "https://edumatch.asafarim.com";
+  const actionUrl = forAdmin
+    ? `/admin/tutor-verifications?tutor=${tutorId ?? ""}`
+    : `/tutor/verification`;
+
+  await createNotification(recipientId, "TUTOR_VERIFICATION_MESSAGE", {
+    title: forAdmin
+      ? "Tutor replied about verification"
+      : "Message about your verification",
+    message: preview,
+    actionUrl,
+  });
+
+  const user = await prisma.user.findUnique({
+    where: { id: recipientId },
+    select: { email: true, name: true },
+  });
+  if (user?.email) {
+    void sendEmail({
+      to: user.email,
+      subject: forAdmin
+        ? "A tutor replied to a verification message"
+        : "New message about your tutor verification",
+      html: `
+        <p>Hi ${user.name ?? "there"},</p>
+        <p>${forAdmin ? "A tutor replied to a verification message:" : "You have a new message about your tutor verification:"}</p>
+        <blockquote style="border-left:3px solid #ccc;padding-left:12px;color:#444;">${preview}</blockquote>
+        <p><a href="${base}${actionUrl}">Open the conversation →</a></p>
       `,
     });
   }
