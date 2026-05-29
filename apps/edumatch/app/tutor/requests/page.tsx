@@ -4,16 +4,42 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslation } from "@asafarim/shared-i18n";
 
+type Attachment = {
+  url: string;
+  mime: string;
+  filename: string;
+  sizeBytes: number;
+};
+
 type QuoteRequest = {
   id: string;
   inquiryId: string;
   subject: string;
   gradeLevel: string;
   description: string;
+  attachments: Attachment[];
   requestedAt: string;
   expiresAt: string;
   distanceKm: number;
 };
+
+function humanSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentIcon({ mime }: { mime: string }) {
+  if (mime.startsWith("image/")) return <span aria-hidden="true">🖼</span>;
+  if (mime.startsWith("audio/")) return <span aria-hidden="true">🎤</span>;
+  if (mime.startsWith("video/")) return <span aria-hidden="true">🎬</span>;
+  if (mime === "application/pdf") return <span aria-hidden="true">📄</span>;
+  if (mime.includes("word") || mime === "application/msword")
+    return <span aria-hidden="true">📝</span>;
+  if (mime.includes("presentation")) return <span aria-hidden="true">📊</span>;
+  if (mime.includes("spreadsheet")) return <span aria-hidden="true">📈</span>;
+  return <span aria-hidden="true">📎</span>;
+}
 
 type SlotDraft = { start: string; end: string; mode: "ONLINE" | "IN_PERSON" };
 
@@ -264,6 +290,13 @@ export default function TutorRequestsPage() {
                         <p className="text-sm text-[var(--color-text-muted)] line-clamp-2">
                           {req.description}
                         </p>
+                        {req.attachments?.length > 0 && (
+                          <span className="mt-1 inline-flex items-center gap-1 text-xs text-[var(--color-text-muted)]">
+                            📎 {t("edumatch.requests.attachmentCount", {
+                              n: req.attachments.length,
+                            })}
+                          </span>
+                        )}
                       </div>
                       <div className="text-right ml-4 shrink-0">
                         <p className="text-xs text-[var(--color-text-muted)]">
@@ -287,6 +320,34 @@ export default function TutorRequestsPage() {
                   {/* Quote form */}
                   {isExpanded && (
                     <div className="border-t border-[var(--color-border)] p-5 bg-[var(--color-surface)]">
+                      {/* Student's attached materials */}
+                      {req.attachments?.length > 0 && (
+                        <div className="mb-5">
+                          <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)] mb-2">
+                            {t("edumatch.requests.attachments")}
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {req.attachments.map((att, i) => (
+                              <a
+                                key={i}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-3 py-1.5 text-xs text-[var(--color-primary)] hover:bg-[var(--color-surface)] transition"
+                              >
+                                <AttachmentIcon mime={att.mime} />
+                                <span className="max-w-[180px] truncate">
+                                  {att.filename}
+                                </span>
+                                <span className="text-[var(--color-text-muted)]">
+                                  {humanSize(att.sizeBytes)}
+                                </span>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <h3 className="text-sm font-semibold text-[var(--color-text)] mb-4">
                         {t("edumatch.requests.submitYourQuote")}
                       </h3>
