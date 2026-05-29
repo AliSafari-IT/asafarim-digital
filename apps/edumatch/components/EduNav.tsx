@@ -457,9 +457,27 @@ export function EduNav() {
         }
       : null;
 
-    if (!mounted || !isMobileDrawer || (!isStudent && !isTutor)) {
+    if (!mounted || (!isStudent && !isTutor)) {
       if (adminItem) return [...resolvedItems, adminItem];
       return resolvedItems;
+    }
+
+    // Desktop: append a My Profile link without drawer-specific chrome
+    if (!isMobileDrawer) {
+      const profileHref = isStudent ? "/student/profile" : "/tutor/profile";
+      const ProfileIcon = getNavIcon("user");
+      const profileItem: NavItem = {
+        id: "my-profile",
+        label: t("edumatch.drawer.myProfile"),
+        href: profileHref,
+        icon: (
+          <span style={{ display: "inline-flex", alignItems: "center", width: "1.25rem", height: "1.25rem", flexShrink: 0, marginRight: "0.25rem" }}>
+            <ProfileIcon />
+          </span>
+        ),
+      };
+      if (adminItem) return [...resolvedItems, profileItem, adminItem];
+      return [...resolvedItems, profileItem];
     }
 
     if (isStudent) {
