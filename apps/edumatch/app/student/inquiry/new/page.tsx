@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslation } from "@asafarim/shared-i18n";
+import {
+  AttachmentUploader,
+  humanSize,
+  type UploadedAttachment,
+} from "@/components/AttachmentUploader";
 
 const SUBJECTS_OF_INTEREST = [
   "Mathematics",
@@ -62,8 +67,15 @@ export default function NewInquiry() {
     "K12",
   );
   const [description, setDescription] = useState("");
+  const [attachments, setAttachments] = useState<UploadedAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleAttachmentsChange = useCallback(
+    (next: UploadedAttachment[]) => setAttachments(next),
+    [],
+  );
 
   const GRADE_LEVELS: { value: "K12" | "UNDERGRAD" | "GRAD"; label: string }[] =
     [
@@ -96,7 +108,7 @@ export default function NewInquiry() {
         subject,
         gradeLevel,
         description: description.trim(),
-        attachments: [],
+        attachments,
       }),
     });
     const data = (await res.json()) as { id?: string; error?: string };
@@ -394,6 +406,11 @@ export default function NewInquiry() {
               </div>
             </div>
 
+            <AttachmentUploader
+              onChange={handleAttachmentsChange}
+              onUploadingChange={setUploading}
+            />
+
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setStep(0)}
@@ -403,10 +420,12 @@ export default function NewInquiry() {
               </button>
               <button
                 onClick={() => setStep(2)}
-                disabled={!canProceed1}
+                disabled={!canProceed1 || uploading}
                 className="flex-1 rounded-lg bg-[var(--color-primary)] px-6 py-2.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
-                {t("edumatch.inquiry.new.reviewBtn")}
+                {uploading
+                  ? t("edumatch.inquiry.new.attach.waitUploads")
+                  : t("edumatch.inquiry.new.reviewBtn")}
               </button>
             </div>
           </div>
@@ -444,6 +463,39 @@ export default function NewInquiry() {
                   {description}
                 </p>
               </div>
+              {attachments.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                    {t("edumatch.inquiry.new.attach.reviewLabel")}
+                  </p>
+                  <ul className="mt-1 flex flex-wrap gap-2">
+                    {attachments.map((att) => (
+                      <li
+                        key={att.key}
+                        className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] px-2.5 py-1 text-xs text-[var(--color-text)]"
+                      >
+                        <span aria-hidden="true">
+                          {att.mime.startsWith("image/")
+                            ? "🖼"
+                            : att.mime.startsWith("video/")
+                              ? "🎬"
+                              : att.mime.startsWith("audio/")
+                                ? "🎤"
+                                : att.mime === "application/pdf"
+                                  ? "📄"
+                                  : "📎"}
+                        </span>
+                        <span className="max-w-[160px] truncate">
+                          {att.filename}
+                        </span>
+                        <span className="text-[var(--color-text-muted)]">
+                          {humanSize(att.sizeBytes)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-[var(--color-text-muted)]">
