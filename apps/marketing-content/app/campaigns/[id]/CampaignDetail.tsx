@@ -2,7 +2,11 @@
 
 import { useState, useCallback, useId } from "react";
 import Link from "next/link";
-import type { Campaign, PerformanceEntry } from "@/lib/demo-data";
+import type {
+  CampaignView as Campaign,
+  PerformanceEntryView as PerformanceEntry,
+} from "@/lib/campaigns";
+import { logPerformanceEntry } from "../actions";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatMoney, formatNumber, formatPercent, formatCompact } from "@/lib/format";
 
@@ -165,12 +169,11 @@ function PerformanceChart({ entries, metric }: ChartProps) {
 
 interface LogModalProps {
   campaignId: string;
-  owner: string;
   onClose: () => void;
   onSave: (entry: PerformanceEntry) => void;
 }
 
-function LogEntryModal({ campaignId, owner, onClose, onSave }: LogModalProps) {
+function LogEntryModal({ campaignId, onClose, onSave }: LogModalProps) {
   const uid = useId();
   const [form, setForm] = useState({
     weekOf: todayIso(),
@@ -181,6 +184,7 @@ function LogEntryModal({ campaignId, owner, onClose, onSave }: LogModalProps) {
     notes: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -196,29 +200,29 @@ function LogEntryModal({ campaignId, owner, onClose, onSave }: LogModalProps) {
     return errs;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setFormError(null);
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
-    // Simulate async save
-    setTimeout(() => {
-      const entry: PerformanceEntry = {
-        id: `pe-${campaignId}-${Date.now()}`,
-        campaignId,
-        weekOf: form.weekOf,
-        impressions: Math.round(Number(form.impressions)),
-        clicks: Math.round(Number(form.clicks)),
-        conversions: Math.round(Number(form.conversions)),
-        spentCents: Math.round(Number(form.spentDollars) * 100),
-        notes: form.notes || undefined,
-        loggedBy: owner,
-        loggedAt: new Date().toISOString(),
-      };
-      setSaving(false);
-      onSave(entry);
-      onClose();
-    }, 600);
+    const res = await logPerformanceEntry({
+      campaignId,
+      weekOf: form.weekOf,
+      impressions: form.impressions,
+      clicks: form.clicks,
+      conversions: form.conversions,
+      spentDollars: form.spentDollars,
+      notes: form.notes,
+    });
+    setSaving(false);
+    if (!res.ok) {
+      setErrors(res.fieldErrors ?? {});
+      setFormError(res.error);
+      return;
+    }
+    onSave(res.data);
+    onClose();
   }
 
   // Derived preview KPIs from form values
@@ -279,6 +283,16 @@ function LogEntryModal({ campaignId, owner, onClose, onSave }: LogModalProps) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto">
           <div className="flex-1 space-y-5 px-6 py-5">
+
+            {/* Form-level error */}
+            {formError && (
+              <div
+                role="alert"
+                className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-300"
+              >
+                {formError}
+              </div>
+            )}
 
             {/* Week selector */}
             <Field label="Week of (reporting period start)" id={`${uid}-week`} error={errors.weekOf}>
@@ -689,7 +703,6 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
       {showModal && (
         <LogEntryModal
           campaignId={campaign.id}
-          owner={campaign.owner}
           onClose={() => setShowModal(false)}
           onSave={handleSave}
         />

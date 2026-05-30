@@ -87,6 +87,10 @@ model User {
   // Generic user locations (home, work, etc.) - reusable across all apps
   locations UserLocation[]
 
+  // Marketing + Content engine
+  marketingCampaigns        MarketingCampaign[]
+  marketingPerformanceLogged MarketingPerformanceEntry[] @relation("MarketingEntryLoggedBy")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1778,4 +1782,71 @@ model ViontoAlbumItem {
   @@unique([albumId, assetId])
   @@index([albumId, orderIndex])
   @@index([assetId])
+}
+
+// ─── Marketing + Content Engine ───────────────────────────────
+//
+// Cross-channel marketing campaigns and their weekly performance logs.
+// Records with ownerId = null are the shared showcase/demo dataset visible
+// to every authenticated user. Records created by a user carry their ownerId
+// and are private to that user. Campaign-level totals (spent/impressions/
+// clicks/conversions) are denormalized roll-ups kept in sync from the entries
+// on every write so the list and detail views report identical numbers.
+
+model MarketingCampaign {
+  id      String  @id @default(cuid())
+  /// null = shared demo data; otherwise scoped to the creating user.
+  ownerId String?
+
+  name      String
+  channel   String // seo, email, paid, social, partner
+  status    String @default("scheduled") // live, scheduled, paused, ended
+  owner     String // display name of the campaign owner
+  budgetCents Int  @default(0)
+  startedAt DateTime
+
+  // Denormalized roll-ups, recomputed from entries on write.
+  spentCents  Int @default(0)
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  conversions Int @default(0)
+
+  entries   MarketingPerformanceEntry[]
+  ownerUser User?                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([channel])
+  @@index([startedAt])
+}
+
+model MarketingPerformanceEntry {
+  id         String   @id @default(cuid())
+  campaignId String
+  /// ISO date of the Monday that starts this reporting week.
+  weekOf     DateTime
+
+  impressions Int     @default(0)
+  clicks      Int     @default(0)
+  conversions Int     @default(0)
+  spentCents  Int     @default(0)
+  notes       String? @db.Text
+
+  /// Display name of who logged the entry.
+  loggedBy   String
+  /// User who logged the entry (null for seed data). Audit detail in M3.
+  loggedById String?
+  loggedAt   DateTime @default(now())
+
+  campaign       MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  loggedByUser   User?             @relation("MarketingEntryLoggedBy", fields: [loggedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([campaignId, weekOf])
+  @@index([weekOf])
 }

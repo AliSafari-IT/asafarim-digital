@@ -60,4 +60,6 @@ export type {
   ViontoRenderJob,
   ViontoExport,
   ViontoAuditEvent,
+  MarketingCampaign,
+  MarketingPerformanceEntry,
 } from "@prisma/client";
