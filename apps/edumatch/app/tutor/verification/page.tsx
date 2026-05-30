@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useTranslation } from "@asafarim/shared-i18n";
 import MessageAttachments, { type AttachmentView } from "@/components/MessageAttachments";
 import VerificationComposer, { type StoredAttachment } from "@/components/VerificationComposer";
+import EmojiReactionBar, { type MessageReactions } from "@/components/EmojiReactionBar";
 
 type ThreadRole = "ADMIN" | "TUTOR";
 
@@ -14,6 +15,7 @@ type Message = {
   senderName: string | null;
   body: string;
   attachments: AttachmentView[];
+  reactions: MessageReactions;
   createdAt: string;
 };
 
@@ -39,7 +41,7 @@ function fmt(ts: string): string {
 
 export default function TutorVerificationPage() {
   const { t } = useTranslation();
-  const { status: authStatus } = useSession();
+  const { data: session, status: authStatus } = useSession();
   const [state, setState] = useState<VerificationState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +134,13 @@ export default function TutorVerificationPage() {
                     </div>
                     {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                     <MessageAttachments attachments={m.attachments} />
+                    {session?.user?.id && (
+                      <EmojiReactionBar
+                        messageId={m.id}
+                        reactions={m.reactions ?? {}}
+                        currentUserId={session.user.id}
+                      />
+                    )}
                   </div>
                 </div>
               );
