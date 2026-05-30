@@ -69,32 +69,86 @@ function visibleEntryWhere(userId: string | null) {
     : { loggedById: null };
 }
 
+// ── Metric aggregation (single source of truth) ──────────────────────────────
+// Campaign-level totals are always derived from the sum of the campaign's
+// *visible* performance entries — never from the denormalized columns — so the
+// list rows and the detail page (which sums the same entries) report identical
+// spend / conversions / CPA. The denormalized columns remain only as a write
+// cache and are not used for display.
+
+type Metrics = {
+  spentCents: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  entryCount: number;
+};
+
+const ZERO_METRICS: Metrics = {
+  spentCents: 0,
+  impressions: 0,
+  clicks: 0,
+  conversions: 0,
+  entryCount: 0,
+};
+
+async function aggregateEntries(
+  userId: string | null,
+  campaignIds: string[]
+): Promise<Map<string, Metrics>> {
+  const map = new Map<string, Metrics>();
+  if (campaignIds.length === 0) return map;
+
+  const groups = await prisma.marketingPerformanceEntry.groupBy({
+    by: ["campaignId"],
+    where: { campaignId: { in: campaignIds }, ...visibleEntryWhere(userId) },
+    _sum: { spentCents: true, impressions: true, clicks: true, conversions: true },
+    _count: { _all: true },
+  });
+
+  for (const g of groups) {
+    map.set(g.campaignId, {
+      spentCents: g._sum.spentCents ?? 0,
+      impressions: g._sum.impressions ?? 0,
+      clicks: g._sum.clicks ?? 0,
+      conversions: g._sum.conversions ?? 0,
+      entryCount: g._count._all,
+    });
+  }
+  return map;
+}
+
 // ── Reads ───────────────────────────────────────────────────────────────────
 
 export async function listCampaigns(userId: string | null): Promise<CampaignView[]> {
   const rows = await prisma.marketingCampaign.findMany({
     where: visibleCampaignWhere(userId),
     orderBy: { createdAt: "asc" },
-    include: {
-      _count: { select: { entries: { where: visibleEntryWhere(userId) } } },
-    },
   });
 
-  return rows.map((c) => ({
-    id: c.id,
-    name: c.name,
-    channel: c.channel,
-    status: c.status,
-    owner: c.owner,
-    budgetCents: c.budgetCents,
-    spentCents: c.spentCents,
-    impressions: c.impressions,
-    clicks: c.clicks,
-    conversions: c.conversions,
-    startedAt: isoDate(c.startedAt),
-    isOwn: c.ownerId != null && c.ownerId === userId,
-    entryCount: c._count.entries,
-  }));
+  const metrics = await aggregateEntries(
+    userId,
+    rows.map((c) => c.id)
+  );
+
+  return rows.map((c) => {
+    const m = metrics.get(c.id) ?? ZERO_METRICS;
+    return {
+      id: c.id,
+      name: c.name,
+      channel: c.channel,
+      status: c.status,
+      owner: c.owner,
+      budgetCents: c.budgetCents,
+      spentCents: m.spentCents,
+      impressions: m.impressions,
+      clicks: m.clicks,
+      conversions: m.conversions,
+      startedAt: isoDate(c.startedAt),
+      isOwn: c.ownerId != null && c.ownerId === userId,
+      entryCount: m.entryCount,
+    };
+  });
 }
 
 export async function getCampaign(
@@ -103,11 +157,10 @@ export async function getCampaign(
 ): Promise<CampaignView | null> {
   const c = await prisma.marketingCampaign.findFirst({
     where: { id, ...visibleCampaignWhere(userId) },
-    include: {
-      _count: { select: { entries: { where: visibleEntryWhere(userId) } } },
-    },
   });
   if (!c) return null;
+
+  const m = (await aggregateEntries(userId, [c.id])).get(c.id) ?? ZERO_METRICS;
 
   return {
     id: c.id,
@@ -116,13 +169,13 @@ export async function getCampaign(
     status: c.status,
     owner: c.owner,
     budgetCents: c.budgetCents,
-    spentCents: c.spentCents,
-    impressions: c.impressions,
-    clicks: c.clicks,
-    conversions: c.conversions,
+    spentCents: m.spentCents,
+    impressions: m.impressions,
+    clicks: m.clicks,
+    conversions: m.conversions,
     startedAt: isoDate(c.startedAt),
     isOwn: c.ownerId != null && c.ownerId === userId,
-    entryCount: c._count.entries,
+    entryCount: m.entryCount,
   };
 }
 

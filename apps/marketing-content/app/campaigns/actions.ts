@@ -65,6 +65,16 @@ export interface LogEntryInput {
   notes?: string;
 }
 
+export interface UpdateCampaignInput {
+  id: string;
+  name: string;
+  channel: string;
+  status: string;
+  budgetDollars: string | number;
+  startedAt: string; // YYYY-MM-DD
+  owner?: string;
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 
 export async function createCampaign(
@@ -230,4 +240,110 @@ export async function logPerformanceEntry(
       loggedAt: entry.loggedAt.toISOString(),
     },
   };
+}
+
+// ── Lifecycle actions (owner-only) ─────────────────────────────────────────────
+// Only the user who created a campaign may edit, change its status, or delete it.
+// Shared demo campaigns (ownerId null) are read-only — mutating them would leak
+// into every user's view.
+
+/** Resolve a campaign the current user owns, or return an error result. */
+async function requireOwnedCampaign(
+  id: string
+): Promise<
+  | { ok: true; userId: string }
+  | { ok: false; error: string }
+> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return { ok: false, error: "You must be signed in." };
+
+  const campaign = await prisma.marketingCampaign.findUnique({
+    where: { id },
+    select: { ownerId: true },
+  });
+  if (!campaign) return { ok: false, error: "Campaign not found." };
+  if (campaign.ownerId !== userId)
+    return { ok: false, error: "Only the campaign owner can change it." };
+
+  return { ok: true, userId };
+}
+
+export async function updateCampaign(
+  input: UpdateCampaignInput
+): Promise<ActionResult<{ id: string }>> {
+  const guard = await requireOwnedCampaign(input.id);
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  const fieldErrors: Record<string, string> = {};
+
+  const name = (input.name ?? "").trim();
+  if (!name) fieldErrors.name = "Name is required";
+  else if (name.length > 120) fieldErrors.name = "Keep the name under 120 characters";
+
+  const channel = String(input.channel);
+  if (!CHANNELS.includes(channel as (typeof CHANNELS)[number]))
+    fieldErrors.channel = "Choose a valid channel";
+
+  const status = String(input.status);
+  if (!STATUSES.includes(status as (typeof STATUSES)[number]))
+    fieldErrors.status = "Choose a valid status";
+
+  const budgetCents = parseCents(input.budgetDollars);
+  if (budgetCents === null) fieldErrors.budgetDollars = "Enter a valid budget";
+
+  const startedAt = parsePastDate(input.startedAt);
+  if (!startedAt) fieldErrors.startedAt = "Enter a valid start date (not in the future)";
+
+  if (Object.keys(fieldErrors).length) {
+    return { ok: false, error: "Please fix the highlighted fields.", fieldErrors };
+  }
+
+  const owner = (input.owner ?? "").trim() || undefined;
+
+  await prisma.marketingCampaign.update({
+    where: { id: input.id },
+    data: {
+      name,
+      channel,
+      status,
+      budgetCents: budgetCents!,
+      startedAt: startedAt!,
+      ...(owner ? { owner } : {}),
+    },
+  });
+
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${input.id}`);
+  return { ok: true, data: { id: input.id } };
+}
+
+export async function setCampaignStatus(
+  id: string,
+  status: string
+): Promise<ActionResult<{ id: string; status: string }>> {
+  const guard = await requireOwnedCampaign(id);
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  if (!STATUSES.includes(status as (typeof STATUSES)[number]))
+    return { ok: false, error: "Invalid status." };
+
+  await prisma.marketingCampaign.update({ where: { id }, data: { status } });
+
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${id}`);
+  return { ok: true, data: { id, status } };
+}
+
+export async function deleteCampaign(
+  id: string
+): Promise<ActionResult<{ id: string }>> {
+  const guard = await requireOwnedCampaign(id);
+  if (!guard.ok) return { ok: false, error: guard.error };
+
+  // Entries cascade-delete via the FK relation.
+  await prisma.marketingCampaign.delete({ where: { id } });
+
+  revalidatePath("/campaigns");
+  return { ok: true, data: { id } };
 }
