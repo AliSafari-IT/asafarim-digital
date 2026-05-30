@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { useTranslation } from "@asafarim/shared-i18n";
 import MessageAttachments, { type AttachmentView } from "@/components/MessageAttachments";
 import VerificationComposer, { type StoredAttachment } from "@/components/VerificationComposer";
+import EmojiReactionBar, { type MessageReactions } from "@/components/EmojiReactionBar";
 
 type Review = {
   id: string;
@@ -21,6 +23,7 @@ type ThreadMessage = {
   senderName: string | null;
   body: string;
   attachments: AttachmentView[];
+  reactions: MessageReactions;
   createdAt: string;
 };
 
@@ -44,6 +47,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function AdminTutorVerificationsPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const [rows, setRows] = useState<TutorRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +153,7 @@ export default function AdminTutorVerificationsPage() {
               row={r}
               busy={busyId === r.tutorId}
               onSetStatus={setStatus}
+              currentUserId={session?.user?.id ?? null}
             />
           ))}
         </div>
@@ -161,6 +166,7 @@ function TutorRowCard({
   row,
   busy,
   onSetStatus,
+  currentUserId,
 }: {
   row: TutorRow;
   busy: boolean;
@@ -169,6 +175,7 @@ function TutorRowCard({
     status: string,
     extra?: { tutorMessage?: string; adminNotes?: string },
   ) => Promise<void>;
+  currentUserId: string | null;
 }) {
   const { t } = useTranslation();
   const [needsMsg, setNeedsMsg] = useState("");
@@ -367,6 +374,14 @@ function TutorRowCard({
                           <div className="whitespace-pre-wrap break-words">{m.body}</div>
                         )}
                         <MessageAttachments attachments={m.attachments} />
+                        {currentUserId && (
+                          <EmojiReactionBar
+                            messageId={m.id}
+                            reactions={m.reactions ?? {}}
+                            currentUserId={currentUserId}
+                            pickerAbove
+                          />
+                        )}
                       </div>
                     </div>
                   );

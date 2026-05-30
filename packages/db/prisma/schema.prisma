@@ -1145,6 +1145,9 @@ model EduVerificationMessage {
   // storage object keys scoped to the uploader; URLs are signed on read because
   // the bucket is private.
   attachments Json?
+  // Emoji reactions: { [emoji]: userId[] } — emoji keys are restricted to the
+  // supported set (thumbsup, thumbsdown, check, question, eyes, tada).
+  reactions  Json?
   readAt     DateTime?
   createdAt  DateTime  @default(now())
 

@@ -26,6 +26,18 @@ export type StoredAttachment = {
   sizeBytes: number;
 };
 
+export const SUPPORTED_EMOJIS = [
+  "thumbsup",
+  "thumbsdown",
+  "check",
+  "question",
+  "eyes",
+  "tada",
+] as const;
+export type SupportedEmoji = (typeof SUPPORTED_EMOJIS)[number];
+
+export type MessageReactions = Partial<Record<SupportedEmoji, string[]>>;
+
 export type VerificationMessageView = {
   id: string;
   senderRole: ThreadRole;
@@ -33,6 +45,7 @@ export type VerificationMessageView = {
   senderName: string | null;
   body: string;
   attachments: AttachmentView[];
+  reactions: MessageReactions;
   readAt: string | null;
   createdAt: string;
 };
@@ -154,6 +167,7 @@ export async function listVerificationThread(
       senderName: m.sender?.name ?? null,
       body: m.body,
       attachments: await signAttachments(m.attachments),
+      reactions: parseReactions(m.reactions),
       readAt: m.readAt ? m.readAt.toISOString() : null,
       createdAt: m.createdAt.toISOString(),
     })),
@@ -182,4 +196,49 @@ export async function countUnreadForAdmin(tutorId: string): Promise<number> {
   return prisma.eduVerificationMessage.count({
     where: { tutorId, senderRole: "TUTOR", readAt: null },
   });
+}
+
+function parseReactions(raw: unknown): MessageReactions {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const result: MessageReactions = {};
+  for (const emoji of SUPPORTED_EMOJIS) {
+    const val = (raw as Record<string, unknown>)[emoji];
+    if (Array.isArray(val)) {
+      result[emoji] = val.filter((v): v is string => typeof v === "string");
+    }
+  }
+  return result;
+}
+
+export async function toggleReaction(
+  messageId: string,
+  userId: string,
+  emoji: SupportedEmoji,
+): Promise<MessageReactions> {
+  const msg = await prisma.eduVerificationMessage.findUniqueOrThrow({
+    where: { id: messageId },
+    select: { reactions: true },
+  });
+
+  const reactions = parseReactions(msg.reactions);
+  const current = reactions[emoji] ?? [];
+  const alreadyReacted = current.includes(userId);
+
+  if (alreadyReacted) {
+    const updated = current.filter((id) => id !== userId);
+    if (updated.length === 0) {
+      delete reactions[emoji];
+    } else {
+      reactions[emoji] = updated;
+    }
+  } else {
+    reactions[emoji] = [...current, userId];
+  }
+
+  await prisma.eduVerificationMessage.update({
+    where: { id: messageId },
+    data: { reactions: reactions as unknown as Prisma.InputJsonValue },
+  });
+
+  return reactions;
 }
