@@ -4,7 +4,18 @@ import { useState } from "react";
 
 export type MessageReactions = Partial<
   Record<
-    "thumbsup" | "thumbsdown" | "check" | "question" | "eyes" | "tada",
+    | "thumbsup"
+    | "thumbsdown"
+    | "check"
+    | "question"
+    | "eyes"
+    | "tada"
+    | "heart"
+    | "fire"
+    | "rocket"
+    | "taco"
+    | "star"
+    | "tart",
     string[]
   >
 >;
@@ -18,6 +29,12 @@ const EMOJI_MAP: Record<SupportedEmoji, string> = {
   question: "❓",
   eyes: "👀",
   tada: "🎉",
+  heart: "❤️",
+  fire: "🔥",
+  rocket: "🚀",
+  taco: "🌮",
+  star: "⭐",
+  tart: "🍰",
 };
 
 const ALL_EMOJIS = Object.keys(EMOJI_MAP) as SupportedEmoji[];

@@ -33,6 +33,12 @@ export const SUPPORTED_EMOJIS = [
   "question",
   "eyes",
   "tada",
+  "heart",
+  "fire",
+  "rocket",
+  "taco",
+  "star",
+  "tart",
 ] as const;
 export type SupportedEmoji = (typeof SUPPORTED_EMOJIS)[number];
 
