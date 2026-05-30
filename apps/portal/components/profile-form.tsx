@@ -756,6 +756,8 @@ function CentralProfileSections({
 }) {
   const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005";
   const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "http://localhost:3006";
+  const studentProfileUrl = `${edumatchUrl.replace(/\/$/, "")}/student/profile`;
+  const tutorProfileUrl = `${edumatchUrl.replace(/\/$/, "")}/tutor/profile`;
   const { student, tutor, stats: eduStats } = appProfiles.edumatch;
   const { stats: viontoStats, recentProjects, usage } = appProfiles.vionto;
 
@@ -816,11 +818,25 @@ function CentralProfileSections({
                     <ChipList values={student.subjectsOfInterest} />
                   </div>
                   <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(student.updatedAt)}</p>
+                  <a
+                    href={studentProfileUrl}
+                    className="inline-flex rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+                  >
+                    Edit student profile
+                  </a>
                 </div>
               ) : (
-                <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
-                  Create a student profile in EduMatch and it will appear here automatically.
-                </p>
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm leading-6 text-[var(--color-text-muted)]">
+                    Create a student profile in EduMatch and it will appear here automatically.
+                  </p>
+                  <a
+                    href={studentProfileUrl}
+                    className="inline-flex rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
+                  >
+                    Create student profile
+                  </a>
+                </div>
               )}
             </div>
 
@@ -861,11 +877,25 @@ function CentralProfileSections({
                   </div>
                   {tutor.bio && <p className="text-sm leading-6 text-[var(--color-text-muted)]">{tutor.bio}</p>}
                   <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(tutor.updatedAt)}</p>
+                  <a
+                    href={tutorProfileUrl}
+                    className="inline-flex rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+                  >
+                    Edit tutor profile
+                  </a>
                 </div>
               ) : (
-                <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
-                  Create a tutor profile in EduMatch and it will appear here automatically.
-                </p>
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm leading-6 text-[var(--color-text-muted)]">
+                    Apply as a tutor in EduMatch to teach courses. Once created, your tutor profile will appear here automatically.
+                  </p>
+                  <a
+                    href={tutorProfileUrl}
+                    className="inline-flex rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
+                  >
+                    Become a tutor
+                  </a>
+                </div>
               )}
             </div>
           </div>
