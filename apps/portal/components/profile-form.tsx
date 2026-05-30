@@ -21,6 +21,58 @@ type ProfileData = {
   updatedAt?: string | Date;
 };
 
+type CentralAppProfiles = {
+  edumatch: {
+    student: {
+      gradeLevel: string;
+      subjectsOfInterest: string[];
+      updatedAt: string;
+    } | null;
+    tutor: {
+      bio: string | null;
+      subjectsTaught: string[];
+      levelsTaught: string[];
+      hourlyRateCents: number;
+      onlineOnly: boolean;
+      serviceRadiusKm: number;
+      payoutEnabled: boolean;
+      verifiedAt: string | null;
+      ratingAvg: number;
+      ratingCount: number;
+      updatedAt: string;
+    } | null;
+    stats: {
+      inquiries: number;
+      quotes: number;
+      studentBookings: number;
+      tutorBookings: number;
+    };
+  };
+  vionto: {
+    stats: {
+      projects: number;
+      assets: number;
+      exports: number;
+      sharedWithMe: number;
+    };
+    recentProjects: Array<{
+      id: string;
+      title: string;
+      mode: string;
+      storyMode: string | null;
+      emotionalTone: string | null;
+      visualStyle: string | null;
+      status: string;
+      updatedAt: string;
+    }>;
+    usage: Array<{
+      metric: string;
+      value: number;
+      periodStart: string;
+    }>;
+  };
+};
+
 function resolvePortalAvatarSrc(src?: string | null) {
   if (!src) return null;
   if (/^https?:\/\//i.test(src)) return src;
@@ -31,7 +83,13 @@ function resolvePortalAvatarSrc(src?: string | null) {
   return src;
 }
 
-export function ProfileForm({ user }: { user: ProfileData }) {
+export function ProfileForm({
+  user,
+  appProfiles,
+}: {
+  user: ProfileData;
+  appProfiles: CentralAppProfiles;
+}) {
   const { update } = useSession();
   const { t } = useTranslation();
   const [form, setForm] = useState({
@@ -362,6 +420,15 @@ export function ProfileForm({ user }: { user: ProfileData }) {
               EduMatch
             </a>
             <a
+              href={process.env.NEXT_PUBLIC_VIONTO_URL || "http://localhost:3006"}
+              className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Vionto
+            </a>
+            <a
               href={process.env.NEXT_PUBLIC_CONTENT_GENERATOR_URL || "http://localhost:3001"}
               className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3 text-sm text-[var(--color-text)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
             >
@@ -619,7 +686,255 @@ export function ProfileForm({ user }: { user: ProfileData }) {
             </div>
           </div>
         </form>
+
+        <CentralProfileSections appProfiles={appProfiles} />
       </section>
+    </div>
+  );
+}
+
+function formatCurrency(cents: number) {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function prettyToken(value: string | null) {
+  if (!value) return "Not set";
+  return value
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function StatTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ChipList({ values }: { values: string[] }) {
+  if (values.length === 0) {
+    return <p className="text-sm text-[var(--color-text-muted)]">Not set</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {values.map((value) => (
+        <span
+          key={value}
+          className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1 text-xs text-[var(--color-text-muted)]"
+        >
+          {value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CentralProfileSections({
+  appProfiles,
+}: {
+  appProfiles: CentralAppProfiles;
+}) {
+  const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005";
+  const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "http://localhost:3006";
+  const { student, tutor, stats: eduStats } = appProfiles.edumatch;
+  const { stats: viontoStats, recentProjects, usage } = appProfiles.vionto;
+
+  return (
+    <div className="mt-12 border-t border-[var(--color-border)] pt-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
+            Central profile
+          </p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">
+            App-specific profile data
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-text-muted)]">
+            These sections are read from the same shared database records used by each product.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-6 2xl:grid-cols-2">
+        <section className="rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">EduMatch</p>
+              <h3 className="mt-2 text-2xl font-semibold">Student and tutor profile</h3>
+            </div>
+            <a
+              href={edumatchUrl}
+              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              Open EduMatch
+            </a>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-4">
+            <StatTile label="Inquiries" value={eduStats.inquiries} />
+            <StatTile label="Quotes" value={eduStats.quotes} />
+            <StatTile label="As student" value={eduStats.studentBookings} />
+            <StatTile label="As tutor" value={eduStats.tutorBookings} />
+          </div>
+
+          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-base font-semibold">Student</h4>
+                <span className={`rounded-full px-3 py-1 text-xs ${student ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}>
+                  {student ? "Configured" : "Not created"}
+                </span>
+              </div>
+              {student ? (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Grade level</p>
+                    <p className="mt-1 text-sm">{prettyToken(student.gradeLevel)}</p>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Subjects</p>
+                    <ChipList values={student.subjectsOfInterest} />
+                  </div>
+                  <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(student.updatedAt)}</p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
+                  Create a student profile in EduMatch and it will appear here automatically.
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-base font-semibold">Tutor</h4>
+                <span className={`rounded-full px-3 py-1 text-xs ${tutor ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}>
+                  {tutor ? (tutor.verifiedAt ? "Verified" : "Configured") : "Not created"}
+                </span>
+              </div>
+              {tutor ? (
+                <div className="mt-4 space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Rate</p>
+                      <p className="mt-1 text-sm">{formatCurrency(tutor.hourlyRateCents)}/hr</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Teaching</p>
+                      <p className="mt-1 text-sm">{tutor.onlineOnly ? "Online only" : `${tutor.serviceRadiusKm} km radius`}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Payouts</p>
+                      <p className="mt-1 text-sm">{tutor.payoutEnabled ? "Enabled" : "Not enabled"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Rating</p>
+                      <p className="mt-1 text-sm">{tutor.ratingCount > 0 ? `${tutor.ratingAvg.toFixed(1)} (${tutor.ratingCount})` : "No ratings"}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Subjects taught</p>
+                    <ChipList values={tutor.subjectsTaught} />
+                  </div>
+                  <div>
+                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Levels taught</p>
+                    <ChipList values={tutor.levelsTaught} />
+                  </div>
+                  {tutor.bio && <p className="text-sm leading-6 text-[var(--color-text-muted)]">{tutor.bio}</p>}
+                  <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(tutor.updatedAt)}</p>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
+                  Create a tutor profile in EduMatch and it will appear here automatically.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Vionto</p>
+              <h3 className="mt-2 text-2xl font-semibold">Video workspace settings</h3>
+            </div>
+            <a
+              href={viontoUrl}
+              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
+            >
+              Open Vionto
+            </a>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-4">
+            <StatTile label="Projects" value={viontoStats.projects} />
+            <StatTile label="Assets" value={viontoStats.assets} />
+            <StatTile label="Exports" value={viontoStats.exports} />
+            <StatTile label="Shared" value={viontoStats.sharedWithMe} />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+            <h4 className="text-base font-semibold">Recent projects</h4>
+            {recentProjects.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {recentProjects.map((project) => (
+                  <div key={project.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-medium">{project.title}</p>
+                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                          {prettyToken(project.mode)} / {prettyToken(project.storyMode)} / {prettyToken(project.visualStyle)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs text-[var(--color-primary)]">
+                        {prettyToken(project.status)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-xs text-[var(--color-text-muted)]">Updated {formatDate(project.updatedAt)}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
+                Create a Vionto project and its workspace settings will appear here.
+              </p>
+            )}
+          </div>
+
+          {usage.length > 0 && (
+            <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
+              <h4 className="text-base font-semibold">Recent usage</h4>
+              <div className="mt-4 grid gap-2">
+                {usage.map((metric) => (
+                  <div key={`${metric.metric}-${metric.periodStart}`} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-[var(--color-text-muted)]">{prettyToken(metric.metric)}</span>
+                    <span>{metric.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

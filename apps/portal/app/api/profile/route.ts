@@ -60,6 +60,28 @@ export async function GET() {
       createdAt: true,
       updatedAt: true,
       userRoles: { select: { role: { select: { name: true, displayName: true } } } },
+      eduStudentProfile: {
+        select: {
+          gradeLevel: true,
+          subjectsOfInterest: true,
+          updatedAt: true,
+        },
+      },
+      eduTutorProfile: {
+        select: {
+          bio: true,
+          subjectsTaught: true,
+          levelsTaught: true,
+          hourlyRateCents: true,
+          onlineOnly: true,
+          serviceRadiusKm: true,
+          payoutEnabled: true,
+          verifiedAt: true,
+          ratingAvg: true,
+          ratingCount: true,
+          updatedAt: true,
+        },
+      },
     },
   });
 
@@ -67,11 +89,82 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const [
+    eduInquiryCount,
+    eduQuoteCount,
+    eduStudentBookingCount,
+    eduTutorBookingCount,
+    viontoProjectCount,
+    viontoAssetCount,
+    viontoExportCount,
+    viontoSharedWithMeCount,
+    latestViontoProjects,
+    latestViontoUsage,
+  ] = await Promise.all([
+    prisma.eduInquiry.count({ where: { studentId: user.id } }),
+    prisma.eduQuote.count({ where: { tutorId: user.id } }),
+    prisma.eduBooking.count({ where: { studentId: user.id } }),
+    prisma.eduBooking.count({ where: { tutorId: user.id } }),
+    prisma.viontoProject.count({ where: { userId: user.id } }),
+    prisma.viontoAsset.count({ where: { userId: user.id } }),
+    prisma.viontoExport.count({ where: { userId: user.id } }),
+    prisma.viontoProjectShare.count({ where: { sharedWithUserId: user.id } }),
+    prisma.viontoProject.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        mode: true,
+        storyMode: true,
+        emotionalTone: true,
+        visualStyle: true,
+        status: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.viontoUsageMetric.findMany({
+      where: { userId: user.id },
+      orderBy: { periodStart: "desc" },
+      take: 5,
+      select: {
+        metric: true,
+        value: true,
+        periodStart: true,
+      },
+    }),
+  ]);
+
   // Map to flat roles array for the client
-  const { userRoles, ...rest } = user;
+  const { userRoles, eduStudentProfile, eduTutorProfile, ...rest } = user;
   const roles = userRoles.map((ur: { role: { name: string; displayName: string } }) => ur.role.displayName);
 
-  return NextResponse.json({ user: { ...rest, roles } });
+  return NextResponse.json({
+    user: { ...rest, roles },
+    appProfiles: {
+      edumatch: {
+        student: eduStudentProfile,
+        tutor: eduTutorProfile,
+        stats: {
+          inquiries: eduInquiryCount,
+          quotes: eduQuoteCount,
+          studentBookings: eduStudentBookingCount,
+          tutorBookings: eduTutorBookingCount,
+        },
+      },
+      vionto: {
+        stats: {
+          projects: viontoProjectCount,
+          assets: viontoAssetCount,
+          exports: viontoExportCount,
+          sharedWithMe: viontoSharedWithMeCount,
+        },
+        recentProjects: latestViontoProjects,
+        usage: latestViontoUsage,
+      },
+    },
+  });
 }
 
 export async function PATCH(request: Request) {
