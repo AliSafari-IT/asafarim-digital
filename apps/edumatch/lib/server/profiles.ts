@@ -157,6 +157,50 @@ export async function assignRoleIfMissing(
   });
 }
 
+async function getPrimaryEduMatchHomeAddress(userId: string): Promise<{
+  address: Prisma.InputJsonValue;
+  lat: number | null;
+  lng: number | null;
+} | null> {
+  const location = await prisma.userLocation.findFirst({
+    where: {
+      userId,
+      type: "home",
+      isPrimary: true,
+      appScope: { has: "edumatch" },
+    },
+    select: {
+      formatted: true,
+      street1: true,
+      city: true,
+      state: true,
+      postalCode: true,
+      country: true,
+      countryName: true,
+      lat: true,
+      lng: true,
+    },
+  });
+
+  if (!location?.formatted && !location?.street1 && !location?.city) {
+    return null;
+  }
+
+  return {
+    address: {
+      formatted: location.formatted ?? undefined,
+      line1: location.street1 ?? undefined,
+      city: location.city ?? undefined,
+      region: location.state ?? undefined,
+      postalCode: location.postalCode ?? undefined,
+      country: location.countryName ?? location.country ?? undefined,
+      source: "central-profile",
+    } as Prisma.InputJsonObject,
+    lat: location.lat,
+    lng: location.lng,
+  };
+}
+
 /**
  * Create or replace the caller's EduStudentProfile and ensure the
  * `edumatch_student` role is attached. Used by the profile POST route.
@@ -165,10 +209,17 @@ export async function upsertStudentProfile(
   userId: string,
   input: StudentProfileInput,
 ): Promise<EduStudentProfile> {
+  const centralLocation = input.homeAddress
+    ? null
+    : await getPrimaryEduMatchHomeAddress(userId);
   const data = {
     gradeLevel: input.gradeLevel,
     subjectsOfInterest: input.subjectsOfInterest ?? [],
-    homeAddress: (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+    homeAddress: (input.homeAddress ??
+      centralLocation?.address ??
+      Prisma.JsonNull) as Prisma.InputJsonValue,
+    homeLat: centralLocation?.lat,
+    homeLng: centralLocation?.lng,
   };
 
   const profile = await prisma.eduStudentProfile.upsert({
@@ -211,6 +262,9 @@ export async function upsertTutorProfile(
   userId: string,
   input: TutorProfileInput,
 ): Promise<EduTutorProfile> {
+  const centralLocation = input.homeAddress
+    ? null
+    : await getPrimaryEduMatchHomeAddress(userId);
   const data = {
     bio: input.bio ?? null,
     subjectsTaught: input.subjectsTaught ?? [],
@@ -218,7 +272,11 @@ export async function upsertTutorProfile(
     hourlyRateCents: input.hourlyRateCents ?? 0,
     onlineOnly: input.onlineOnly ?? false,
     serviceRadiusKm: input.serviceRadiusKm ?? 10,
-    homeAddress: (input.homeAddress ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+    homeAddress: (input.homeAddress ??
+      centralLocation?.address ??
+      Prisma.JsonNull) as Prisma.InputJsonValue,
+    homeLat: centralLocation?.lat,
+    homeLng: centralLocation?.lng,
   };
 
   const profile = await prisma.eduTutorProfile.upsert({

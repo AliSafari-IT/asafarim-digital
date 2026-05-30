@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@asafarim/auth";
-import { prisma } from "@asafarim/db";
+import { Prisma, prisma } from "@asafarim/db";
 
 function normalizeOptionalText(value: unknown, maxLength: number) {
   if (typeof value !== "string") return null;
@@ -60,6 +60,28 @@ export async function GET() {
       createdAt: true,
       updatedAt: true,
       userRoles: { select: { role: { select: { name: true, displayName: true } } } },
+      eduStudentProfile: {
+        select: {
+          gradeLevel: true,
+          subjectsOfInterest: true,
+          updatedAt: true,
+        },
+      },
+      eduTutorProfile: {
+        select: {
+          bio: true,
+          subjectsTaught: true,
+          levelsTaught: true,
+          hourlyRateCents: true,
+          onlineOnly: true,
+          serviceRadiusKm: true,
+          payoutEnabled: true,
+          verifiedAt: true,
+          ratingAvg: true,
+          ratingCount: true,
+          updatedAt: true,
+        },
+      },
     },
   });
 
@@ -67,11 +89,190 @@ export async function GET() {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const [
+    eduInquiryCount,
+    eduQuoteCount,
+    eduStudentBookingCount,
+    eduTutorBookingCount,
+    viontoProjectCount,
+    viontoAssetCount,
+    viontoExportCount,
+    viontoSharedWithMeCount,
+    latestViontoProjects,
+    latestViontoUsage,
+  ] = await Promise.all([
+    prisma.eduInquiry.count({ where: { studentId: user.id } }),
+    prisma.eduQuote.count({ where: { tutorId: user.id } }),
+    prisma.eduBooking.count({ where: { studentId: user.id } }),
+    prisma.eduBooking.count({ where: { tutorId: user.id } }),
+    prisma.viontoProject.count({ where: { userId: user.id } }),
+    prisma.viontoAsset.count({ where: { userId: user.id } }),
+    prisma.viontoExport.count({ where: { userId: user.id } }),
+    prisma.viontoProjectShare.count({ where: { sharedWithUserId: user.id } }),
+    prisma.viontoProject.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        mode: true,
+        storyMode: true,
+        emotionalTone: true,
+        visualStyle: true,
+        status: true,
+        updatedAt: true,
+      },
+    }),
+    prisma.viontoUsageMetric.findMany({
+      where: { userId: user.id },
+      orderBy: { periodStart: "desc" },
+      take: 5,
+      select: {
+        metric: true,
+        value: true,
+        periodStart: true,
+      },
+    }),
+  ]);
+
   // Map to flat roles array for the client
-  const { userRoles, ...rest } = user;
+  const { userRoles, eduStudentProfile, eduTutorProfile, ...rest } = user;
   const roles = userRoles.map((ur: { role: { name: string; displayName: string } }) => ur.role.displayName);
 
-  return NextResponse.json({ user: { ...rest, roles } });
+  return NextResponse.json({
+    user: { ...rest, roles },
+    appProfiles: {
+      edumatch: {
+        student: eduStudentProfile,
+        tutor: eduTutorProfile,
+        stats: {
+          inquiries: eduInquiryCount,
+          quotes: eduQuoteCount,
+          studentBookings: eduStudentBookingCount,
+          tutorBookings: eduTutorBookingCount,
+        },
+      },
+      vionto: {
+        stats: {
+          projects: viontoProjectCount,
+          assets: viontoAssetCount,
+          exports: viontoExportCount,
+          sharedWithMe: viontoSharedWithMeCount,
+        },
+        recentProjects: latestViontoProjects,
+        usage: latestViontoUsage,
+      },
+    },
+  });
+}
+
+type GeocodeResult = {
+  formattedAddress: string;
+  location: { lat: number; lng: number };
+};
+
+async function geocodeAddress(address: string): Promise<GeocodeResult | null> {
+  const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!googleApiKey) return null;
+
+  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+  url.searchParams.set("address", address);
+  url.searchParams.set("key", googleApiKey);
+
+  const data = await fetch(url.toString())
+    .then((res) => res.json())
+    .catch(() => null) as {
+      status: string;
+      results?: Array<{
+        formatted_address: string;
+        geometry: { location: { lat: number; lng: number } };
+      }>;
+    } | null;
+
+  const first = data?.status === "OK" ? data.results?.[0] : null;
+  if (!first) return null;
+
+  return {
+    formattedAddress: first.formatted_address,
+    location: first.geometry.location,
+  };
+}
+
+async function syncPrimaryHomeLocation(
+  userId: string,
+  location: string | null | undefined,
+) {
+  if (location === undefined) return;
+
+  const formatted = location?.trim() || null;
+  const geocoded = formatted ? await geocodeAddress(formatted) : null;
+  const addressJson = formatted
+    ? ({
+        formatted: geocoded?.formattedAddress ?? formatted,
+        source: "portal-profile",
+      } as Prisma.InputJsonObject)
+    : Prisma.JsonNull;
+
+  const lat = geocoded?.location.lat ?? null;
+  const lng = geocoded?.location.lng ?? null;
+  const storedFormatted = geocoded?.formattedAddress ?? formatted;
+
+  const existing = await prisma.userLocation.findFirst({
+    where: { userId, type: "home", isPrimary: true },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.userLocation.update({
+      where: { id: existing.id },
+      data: {
+        formatted: storedFormatted,
+        lat,
+        lng,
+        isVerified: Boolean(geocoded),
+        source: geocoded ? "geocoded" : "manual",
+        appScope: ["portal", "edumatch"],
+      },
+    });
+  } else if (storedFormatted) {
+    await prisma.userLocation.updateMany({
+      where: { userId, type: "home", isPrimary: true },
+      data: { isPrimary: false },
+    });
+    await prisma.userLocation.create({
+      data: {
+        userId,
+        type: "home",
+        formatted: storedFormatted,
+        lat,
+        lng,
+        isPrimary: true,
+        isVerified: Boolean(geocoded),
+        source: geocoded ? "geocoded" : "manual",
+        appScope: ["portal", "edumatch"],
+      },
+    });
+  }
+
+  await Promise.all([
+    prisma.eduStudentProfile.updateMany({
+      where: { userId },
+      data: {
+        homeAddress: addressJson,
+        homeLat: lat,
+        homeLng: lng,
+      },
+    }),
+    prisma.eduTutorProfile.updateMany({
+      where: { userId },
+      data: {
+        homeAddress: addressJson,
+        homeLat: lat,
+        homeLng: lng,
+      },
+    }),
+  ]);
 }
 
 export async function PATCH(request: Request) {
@@ -139,7 +340,7 @@ export async function PATCH(request: Request) {
     jobTitle: normalizeOptionalText(payload.jobTitle, 80),
     company: normalizeOptionalText(payload.company, 80),
     website: payload.website === undefined ? undefined : normalizeWebsite(payload.website),
-    location: normalizeOptionalText(payload.location, 80),
+    location: normalizeOptionalText(payload.location, 160),
     bio: normalizeOptionalText(payload.bio, 500),
     image: payload.image === undefined ? undefined : normalizeOptionalText(payload.image, 300),
     ...(currentUser.username ? {} : { username: requestedUsername }),
@@ -172,6 +373,8 @@ export async function PATCH(request: Request) {
       userRoles: { select: { role: { select: { name: true, displayName: true } } } },
     },
   });
+
+  await syncPrimaryHomeLocation(currentUser.id, data.location);
 
   const { userRoles: updatedRoles, ...updatedRest } = updatedUser;
   const roles = updatedRoles.map((ur: { role: { name: string; displayName: string } }) => ur.role.displayName);
