@@ -3,11 +3,15 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { KpiCard } from "@/components/KpiCard";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/format";
-import { campaigns, performanceEntries } from "@/lib/demo-data";
+import { listCampaigns, getCurrentUserId } from "@/lib/campaigns";
+import { NewCampaignButton } from "./NewCampaignButton";
 
 export const dynamic = "force-dynamic";
 
-export default function CampaignsPage() {
+export default async function CampaignsPage() {
+  const userId = await getCurrentUserId();
+  const campaigns = await listCampaigns(userId);
+
   const totalBudget = campaigns.reduce((s, c) => s + c.budgetCents, 0);
   const totalSpent = campaigns.reduce((s, c) => s + c.spentCents, 0);
   const totalConversions = campaigns.reduce((s, c) => s + c.conversions, 0);
@@ -15,22 +19,13 @@ export default function CampaignsPage() {
   const cvr = totalClicks ? totalConversions / totalClicks : 0;
   const channelList: Array<"seo" | "email" | "paid" | "social" | "partner"> = ["seo", "email", "paid", "social", "partner"];
 
-  // Count logged entries per campaign
-  const entryCounts = Object.fromEntries(
-    campaigns.map((c) => [c.id, performanceEntries.filter((e) => e.campaignId === c.id).length])
-  );
-
   return (
     <div className="space-y-8">
       <SectionHeader
         eyebrow="Campaigns"
         title="Campaign performance"
         description="Cross-channel campaigns with owners, budget, and conversion signals. Click any row to view the full performance timeline."
-        actions={
-          <button className="rounded-lg bg-[var(--color-primary)] px-3 py-1.5 text-xs font-medium text-white hover:brightness-110">
-            + New campaign
-          </button>
-        }
+        actions={<NewCampaignButton />}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -72,7 +67,7 @@ export default function CampaignsPage() {
             {campaigns.map((c) => {
               const cpa = c.conversions ? c.spentCents / c.conversions : 0;
               const progressPct = c.budgetCents ? Math.min(100, Math.round((c.spentCents / c.budgetCents) * 100)) : 0;
-              const count = entryCounts[c.id] ?? 0;
+              const count = c.entryCount;
               return (
                 <tr
                   key={c.id}

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { campaigns, performanceEntries } from "@/lib/demo-data";
+import { getCampaign, listEntries, getCurrentUserId } from "@/lib/campaigns";
 import { CampaignDetail } from "./CampaignDetail";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +10,12 @@ export default async function CampaignDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const campaign = campaigns.find((c) => c.id === id);
+  const userId = await getCurrentUserId();
+
+  const campaign = await getCampaign(id, userId);
   if (!campaign) notFound();
 
-  const entries = performanceEntries
-    .filter((e) => e.campaignId === id)
-    .sort((a, b) => a.weekOf.localeCompare(b.weekOf));
+  const entries = await listEntries(id, userId);
 
   return <CampaignDetail campaign={campaign} initialEntries={entries} />;
 }

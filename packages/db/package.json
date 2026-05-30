@@ -14,6 +14,7 @@
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "db:seed-vionto": "dotenv -e ../../.env -- tsx prisma/seed-vionto-plans.ts",
+    "db:seed-marketing": "dotenv -e ../../.env -- tsx prisma/seed-marketing.ts",
     "seed": "pnpm run db:seed",
     "build": "prisma generate",
     "typecheck": "tsc --noEmit",
