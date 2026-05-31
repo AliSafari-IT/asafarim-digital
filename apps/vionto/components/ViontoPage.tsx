@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { ScriptEditor, type ScriptVersion } from "./ScriptEditor";
 import { SubtitleConfig } from "./SubtitleConfig";
+import { GooglePhotosImportPanel } from "./GooglePhotosImportPanel";
 import { ViontoTopbarControls } from "./ViontoNav";
 import { CountryLanguageSelector } from "@asafarim/country-language-selector";
 import { DEFAULT_VISUAL_STYLE, VISUAL_STYLE_OPTIONS, normalizeVisualStyle, type VisualStyle } from "@/lib/visual-styles";
@@ -2585,6 +2586,12 @@ export function ViontoPage() {
                       {isUploading ? <RefreshCw size={16} className="animate-spin" /> : "Upload"}
                     </button>
                   )}
+
+                  {/* Import photos directly from Google Photos */}
+                  <GooglePhotosImportPanel
+                    projectId={selectedProjectId}
+                    onImported={() => loadProjectAssets(selectedProjectId)}
+                  />
                 </>
               )}
 

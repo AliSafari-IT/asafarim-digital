@@ -58,8 +58,23 @@ export default function TermsPage() {
               <li>Deliver generated videos to you for download</li>
             </ul>
             <p className="mt-2">
-              <strong>You represent and warrant that:</strong> you own or have the right to upload all content, 
+              <strong>You represent and warrant that:</strong> you own or have the right to upload all content,
               and your content does not violate any law or third-party rights.
+            </p>
+            <p className="mt-2">
+              <strong>Imported photos:</strong> When you import photos from Google Photos or a shared
+              album link, you confirm you have the right to use those photos, and you authorize Vionto
+              to fetch the photos you select to create your videos. Vionto&rsquo;s use of Google user
+              data complies with the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                className="underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Google API Services User Data Policy
+              </a>{" "}
+              (Limited Use). See our Privacy Policy for details.
             </p>
           </section>
 
