@@ -18,9 +18,51 @@ export default function PrivacyPage() {
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Account information:</strong> Name, email, username</li>
               <li><strong>Uploaded content:</strong> Images you upload for video creation</li>
+              <li><strong>Imported content:</strong> Photos you choose to import from Google Photos (your library or shared albums)</li>
               <li><strong>Generated content:</strong> Scripts, audio tracks, and video exports</li>
               <li><strong>Usage data:</strong> Project counts, storage usage, render minutes</li>
               <li><strong>Technical data:</strong> IP address, browser type, device information</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">Google Photos Integration</h2>
+            <p>
+              If you choose to connect Google Photos, Vionto requests permission to read{" "}
+              <strong>only the specific photos you select</strong> in Google&rsquo;s own photo
+              picker (or from a shared album link you provide). We never receive blanket access
+              to your Google Photos library.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>
+                <strong>Limited Use:</strong> Vionto&rsquo;s use of information received from
+                Google APIs adheres to the{" "}
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  className="underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , including the Limited Use requirements. Photos you import are used solely to
+                create the videos you request, and are not used for advertising or sold to
+                third parties.
+              </li>
+              <li>
+                <strong>Tokens:</strong> Your Google authorization tokens are stored encrypted at
+                rest and are used only to fetch the photos you select.
+              </li>
+              <li>
+                <strong>Revoking access:</strong> You can disconnect Google Photos at any time from
+                the import panel, which revokes Vionto&rsquo;s access at Google and deletes the
+                stored authorization. Disconnecting and deleting your account both remove these
+                tokens. You can also revoke access at{" "}
+                <a href="https://myaccount.google.com/permissions" className="underline" target="_blank" rel="noreferrer">
+                  Google Account permissions
+                </a>
+                .
+              </li>
             </ul>
           </section>
 

@@ -162,6 +162,14 @@ export async function updateGooglePhotosAccessToken(
   });
 }
 
+/** Record that the user just imported media (diagnostics only). */
+export async function touchGooglePhotosImportedAt(userId: string): Promise<void> {
+  await prisma.googlePhotosConnection.update({
+    where: { userId },
+    data: { lastImportedAt: new Date() },
+  });
+}
+
 /** Flag a connection as errored (e.g. refresh failed, scope revoked). */
 export async function markGooglePhotosConnectionError(
   userId: string,
