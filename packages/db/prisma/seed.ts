@@ -1,6 +1,12 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const databaseUrl =
+  process.env.DATABASE_URL ?? "postgresql://user:password@localhost:5432/asafarim";
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
+
+const prisma = new PrismaClient({ adapter });
 
 // ─── Default Permissions ─────────────────────────────────────
 

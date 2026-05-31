@@ -1804,12 +1804,21 @@ model MarketingCampaign {
   owner     String // display name of the campaign owner
   budgetCents Int  @default(0)
   startedAt DateTime
+  /// Optional planned end date — enables budget-pacing projections (M3).
+  endsAt    DateTime?
+  /// Optional target cost-per-acquisition in cents — drives the CPA-over flag (M3).
+  cpaTargetCents Int?
 
   // Denormalized roll-ups, recomputed from entries on write.
   spentCents  Int @default(0)
   impressions Int @default(0)
   clicks      Int @default(0)
   conversions Int @default(0)
+
+  // Audit: who last changed the campaign and when (M3). Full trail in AuditLog.
+  lastEditedBy   String?
+  lastEditedById String?
+  lastEditedAt   DateTime?
 
   entries   MarketingPerformanceEntry[]
   ownerUser User?                       @relation(fields: [ownerId], references: [id], onDelete: Cascade)

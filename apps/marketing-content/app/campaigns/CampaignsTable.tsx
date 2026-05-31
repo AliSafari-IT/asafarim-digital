@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { CampaignView } from "@/lib/campaigns";
+import { cpaStatus, computePacing } from "@/lib/insights";
+import { toCsv, downloadCsv } from "@/lib/csv";
 import { StatusBadge } from "@/components/StatusBadge";
 import { KpiCard } from "@/components/KpiCard";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/format";
@@ -43,6 +45,7 @@ function sortValue(c: CampaignView, key: SortKey): number | string {
 
 export interface CampaignsTableProps {
   campaigns: CampaignView[];
+  canManage: boolean;
   initialChannel: string;
   initialStatus: string;
   initialQuery: string;
@@ -52,6 +55,7 @@ export interface CampaignsTableProps {
 
 export function CampaignsTable({
   campaigns,
+  canManage,
   initialChannel,
   initialStatus,
   initialQuery,
@@ -139,6 +143,31 @@ export function CampaignsTable({
     router.refresh();
   }
 
+  function exportCsv() {
+    const headers = [
+      "Campaign", "Channel", "Status", "Owner", "Budget (USD)", "Spent (USD)",
+      "Conversions", "CPA (USD)", "CPA target (USD)", "CPA over target", "Budget used %", "Entries", "Started", "Ends",
+    ];
+    const rows = filtered.map((c) => {
+      const cpa = cpaOf(c);
+      const cs = cpaStatus(c);
+      return [
+        c.name, c.channel, c.status, c.owner,
+        (c.budgetCents / 100).toFixed(2),
+        (c.spentCents / 100).toFixed(2),
+        c.conversions,
+        cpa ? (cpa / 100).toFixed(2) : "",
+        c.cpaTargetCents != null ? (c.cpaTargetCents / 100).toFixed(2) : "",
+        cs ? (cs.over ? "yes" : "no") : "",
+        (progressOf(c) * 100).toFixed(0),
+        c.entryCount,
+        c.startedAt,
+        c.endsAt ?? "",
+      ];
+    });
+    downloadCsv(`campaigns-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(headers, rows));
+  }
+
   return (
     <div className="space-y-6">
       {/* KPI cards reflect the filtered subset */}
@@ -178,6 +207,17 @@ export function CampaignsTable({
               Clear filters
             </button>
           )}
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)] disabled:opacity-50"
+          >
+            <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true">
+              <path d="M8 2v8m0 0L5 7m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Export CSV
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -208,7 +248,7 @@ export function CampaignsTable({
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="bg-[var(--color-bg-soft)]/60 text-[11px] uppercase tracking-wide text-[var(--color-text-subtle)]">
               <tr>
                 <SortHeader label="Campaign" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
@@ -227,6 +267,9 @@ export function CampaignsTable({
             <tbody className="divide-y divide-[var(--color-border)]">
               {filtered.map((c) => {
                 const cpa = cpaOf(c);
+                const cs = cpaStatus(c);
+                const pacing = computePacing(c);
+                const pacingAlert = pacing && pacing.state !== "ok";
                 const progressPct = Math.round(progressOf(c) * 100);
                 const count = c.entryCount;
                 return (
@@ -243,9 +286,26 @@ export function CampaignsTable({
                     <td className="px-4 py-3 text-right font-mono text-xs">{formatMoney(c.budgetCents)}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs">{formatMoney(c.spentCents)}</td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-[var(--color-text)]">{formatNumber(c.conversions)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">{cpa ? formatMoney(cpa) : "—"}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        {cs?.over && (
+                          <span
+                            title={`CPA ${formatMoney(cs.cpaCents)} exceeds target ${formatMoney(cs.targetCents)}`}
+                            className="rounded bg-rose-500/15 px-1 py-0.5 text-[9px] font-semibold uppercase text-rose-300 ring-1 ring-inset ring-rose-500/30"
+                          >
+                            ▲ over
+                          </span>
+                        )}
+                        {cpa ? formatMoney(cpa) : "—"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        {pacingAlert && (
+                          <span title={pacing!.message} aria-label={pacing!.message} className={pacing!.state === "over" ? "text-rose-400" : "text-amber-400"}>
+                            <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" aria-hidden="true"><path d="M8 1.5l6.5 11.5H1.5L8 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" /><path d="M8 6.5v3M8 11.2v.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                          </span>
+                        )}
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                           <div className={`h-full ${progressPct > 90 ? "bg-rose-500" : progressPct > 60 ? "bg-amber-400" : "bg-emerald-400"}`} style={{ width: `${progressPct}%` }} />
                         </div>
@@ -261,7 +321,7 @@ export function CampaignsTable({
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {c.isOwn ? (
+                      {canManage && c.isOwn ? (
                         <RowMenu
                           campaign={c}
                           busy={busyId === c.id}
@@ -269,8 +329,10 @@ export function CampaignsTable({
                           onStatus={(to) => onStatusChange(c.id, to)}
                           onDelete={() => onDelete(c.id)}
                         />
-                      ) : (
+                      ) : !c.isOwn ? (
                         <span className="text-[10px] uppercase tracking-wide text-[var(--color-text-subtle)]" title="Shared demo campaign (read-only)">Demo</span>
+                      ) : (
+                        <span className="text-[var(--color-text-subtle)]">—</span>
                       )}
                     </td>
                   </tr>

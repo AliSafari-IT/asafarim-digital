@@ -21,6 +21,11 @@ export interface CampaignView {
   clicks: number;
   conversions: number;
   startedAt: string; // YYYY-MM-DD
+  endsAt: string | null; // YYYY-MM-DD
+  cpaTargetCents: number | null;
+  /** Audit: who last changed the campaign and when (M3). */
+  lastEditedBy: string | null;
+  lastEditedAt: string | null; // ISO timestamp
   /** true when the signed-in user created this campaign (vs. shared demo data). */
   isOwn: boolean;
   /** number of performance entries visible to the current user. */
@@ -53,6 +58,31 @@ function isoDate(d: Date): string {
 export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id ?? null;
+}
+
+// ── Access control (M3) ───────────────────────────────────────────────────────
+// Roles come from the shared SSO session (session.user.roles). An "editor" may
+// create campaigns, log entries, and manage campaigns they own; a "viewer" has
+// read-only access. This integrates with the monorepo RBAC — grant a user the
+// `admin`/`superadmin` role to make them an editor.
+
+const EDITOR_ROLES = ["superadmin", "admin"];
+
+export type CampaignAccess = {
+  userId: string | null;
+  role: "editor" | "viewer";
+  canManage: boolean;
+};
+
+export function rolesCanManage(roles: string[] | undefined | null): boolean {
+  return (roles ?? []).some((r) => EDITOR_ROLES.includes(r));
+}
+
+export async function getCampaignAccess(): Promise<CampaignAccess> {
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const canManage = !!userId && rolesCanManage(session?.user?.roles);
+  return { userId, role: canManage ? "editor" : "viewer", canManage };
 }
 
 /** Campaigns the user may see: shared demo data (ownerId null) + their own. */
@@ -118,6 +148,34 @@ async function aggregateEntries(
   return map;
 }
 
+// ── Mapping ───────────────────────────────────────────────────────────────────
+
+type CampaignRow = Awaited<
+  ReturnType<typeof prisma.marketingCampaign.findFirst>
+> & object;
+
+function mapCampaign(c: CampaignRow, m: Metrics, userId: string | null): CampaignView {
+  return {
+    id: c.id,
+    name: c.name,
+    channel: c.channel,
+    status: c.status,
+    owner: c.owner,
+    budgetCents: c.budgetCents,
+    spentCents: m.spentCents,
+    impressions: m.impressions,
+    clicks: m.clicks,
+    conversions: m.conversions,
+    startedAt: isoDate(c.startedAt),
+    endsAt: c.endsAt ? isoDate(c.endsAt) : null,
+    cpaTargetCents: c.cpaTargetCents ?? null,
+    lastEditedBy: c.lastEditedBy ?? null,
+    lastEditedAt: c.lastEditedAt ? c.lastEditedAt.toISOString() : null,
+    isOwn: c.ownerId != null && c.ownerId === userId,
+    entryCount: m.entryCount,
+  };
+}
+
 // ── Reads ───────────────────────────────────────────────────────────────────
 
 export async function listCampaigns(userId: string | null): Promise<CampaignView[]> {
@@ -131,24 +189,7 @@ export async function listCampaigns(userId: string | null): Promise<CampaignView
     rows.map((c) => c.id)
   );
 
-  return rows.map((c) => {
-    const m = metrics.get(c.id) ?? ZERO_METRICS;
-    return {
-      id: c.id,
-      name: c.name,
-      channel: c.channel,
-      status: c.status,
-      owner: c.owner,
-      budgetCents: c.budgetCents,
-      spentCents: m.spentCents,
-      impressions: m.impressions,
-      clicks: m.clicks,
-      conversions: m.conversions,
-      startedAt: isoDate(c.startedAt),
-      isOwn: c.ownerId != null && c.ownerId === userId,
-      entryCount: m.entryCount,
-    };
-  });
+  return rows.map((c) => mapCampaign(c, metrics.get(c.id) ?? ZERO_METRICS, userId));
 }
 
 export async function getCampaign(
@@ -161,22 +202,7 @@ export async function getCampaign(
   if (!c) return null;
 
   const m = (await aggregateEntries(userId, [c.id])).get(c.id) ?? ZERO_METRICS;
-
-  return {
-    id: c.id,
-    name: c.name,
-    channel: c.channel,
-    status: c.status,
-    owner: c.owner,
-    budgetCents: c.budgetCents,
-    spentCents: m.spentCents,
-    impressions: m.impressions,
-    clicks: m.clicks,
-    conversions: m.conversions,
-    startedAt: isoDate(c.startedAt),
-    isOwn: c.ownerId != null && c.ownerId === userId,
-    entryCount: m.entryCount,
-  };
+  return mapCampaign(c, m, userId);
 }
 
 export async function listEntries(

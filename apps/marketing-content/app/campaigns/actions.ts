@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Session } from "next-auth";
 import { prisma } from "@asafarim/db";
 import { auth } from "@asafarim/auth";
-import type { CampaignView, PerformanceEntryView } from "@/lib/campaigns";
+import { rolesCanManage, type CampaignView, type PerformanceEntryView } from "@/lib/campaigns";
 
 const CHANNELS = ["seo", "email", "paid", "social", "partner"] as const;
 const STATUSES = ["live", "scheduled", "paused", "ended"] as const;
@@ -44,6 +45,49 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** Parse an optional dollar amount → cents. Empty clears (null); invalid fails. */
+function parseOptionalCents(value: unknown): { ok: true; cents: number | null } | { ok: false } {
+  if (value === undefined || value === null || String(value).trim() === "") return { ok: true, cents: null };
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return { ok: false };
+  return { ok: true, cents: Math.round(n * 100) };
+}
+
+/** Parse an optional YYYY-MM-DD date (may be in the future). Empty clears (null). */
+function parseOptionalDate(value: unknown): { ok: true; date: Date | null } | { ok: false } {
+  if (value === undefined || value === null || String(value).trim() === "") return { ok: true, date: null };
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return { ok: false };
+  const d = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return { ok: false };
+  return { ok: true, date: d };
+}
+
+function actorName(session: Session | null): string {
+  return session?.user?.name || session?.user?.email || "Unknown";
+}
+
+/** Best-effort audit trail entry; never blocks the main write. */
+async function audit(
+  userId: string | null,
+  action: string,
+  entityId: string,
+  changes?: Record<string, unknown>
+) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action,
+        entity: "MarketingCampaign",
+        entityId,
+        changes: (changes ?? undefined) as object | undefined,
+      },
+    });
+  } catch {
+    // Auditing must not break the user-facing action.
+  }
+}
+
 // ── Inputs ────────────────────────────────────────────────────────────────────
 
 export interface CreateCampaignInput {
@@ -53,6 +97,8 @@ export interface CreateCampaignInput {
   budgetDollars: string | number;
   startedAt: string; // YYYY-MM-DD
   owner?: string;
+  endsAt?: string; // YYYY-MM-DD, optional
+  cpaTargetDollars?: string | number; // optional
 }
 
 export interface LogEntryInput {
@@ -73,6 +119,8 @@ export interface UpdateCampaignInput {
   budgetDollars: string | number;
   startedAt: string; // YYYY-MM-DD
   owner?: string;
+  endsAt?: string; // YYYY-MM-DD, optional
+  cpaTargetDollars?: string | number; // optional
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -83,6 +131,8 @@ export async function createCampaign(
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "You must be signed in." };
+  if (!rolesCanManage(session?.user?.roles))
+    return { ok: false, error: "You don't have permission to create campaigns." };
 
   const fieldErrors: Record<string, string> = {};
 
@@ -104,11 +154,21 @@ export async function createCampaign(
   const startedAt = parsePastDate(input.startedAt);
   if (!startedAt) fieldErrors.startedAt = "Enter a valid start date (not in the future)";
 
+  const endsAt = parseOptionalDate(input.endsAt);
+  if (!endsAt.ok) fieldErrors.endsAt = "Enter a valid end date";
+
+  const cpaTarget = parseOptionalCents(input.cpaTargetDollars);
+  if (!cpaTarget.ok) fieldErrors.cpaTargetDollars = "Enter a valid CPA target";
+
+  if (endsAt.ok && startedAt && endsAt.date && endsAt.date.getTime() < startedAt.getTime())
+    fieldErrors.endsAt = "End date must be after the start date";
+
   if (Object.keys(fieldErrors).length) {
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors };
   }
 
   const owner = (input.owner ?? "").trim() || session.user?.name || session.user?.email || "You";
+  const now = new Date();
 
   const c = await prisma.marketingCampaign.create({
     data: {
@@ -119,6 +179,11 @@ export async function createCampaign(
       owner,
       budgetCents: budgetCents!,
       startedAt: startedAt!,
+      endsAt: endsAt.ok ? endsAt.date : null,
+      cpaTargetCents: cpaTarget.ok ? cpaTarget.cents : null,
+      lastEditedBy: actorName(session),
+      lastEditedById: userId,
+      lastEditedAt: now,
       // roll-ups start at zero; recomputed as entries are logged.
       spentCents: 0,
       impressions: 0,
@@ -127,6 +192,7 @@ export async function createCampaign(
     },
   });
 
+  await audit(userId, "campaign.create", c.id, { name, channel, status });
   revalidatePath("/campaigns");
 
   return {
@@ -143,6 +209,10 @@ export async function createCampaign(
       clicks: c.clicks,
       conversions: c.conversions,
       startedAt: isoDate(c.startedAt),
+      endsAt: c.endsAt ? isoDate(c.endsAt) : null,
+      cpaTargetCents: c.cpaTargetCents ?? null,
+      lastEditedBy: c.lastEditedBy ?? null,
+      lastEditedAt: c.lastEditedAt ? c.lastEditedAt.toISOString() : null,
       isOwn: true,
       entryCount: 0,
     },
@@ -155,6 +225,8 @@ export async function logPerformanceEntry(
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "You must be signed in." };
+  if (!rolesCanManage(session?.user?.roles))
+    return { ok: false, error: "You don't have permission to log performance." };
 
   // The campaign must be visible to the user (shared demo or their own).
   const campaign = await prisma.marketingCampaign.findFirst({
@@ -218,10 +290,14 @@ export async function logPerformanceEntry(
         clicks: agg._sum.clicks ?? 0,
         conversions: agg._sum.conversions ?? 0,
         spentCents: agg._sum.spentCents ?? 0,
+        lastEditedBy: actorName(session),
+        lastEditedById: userId,
+        lastEditedAt: new Date(),
       },
     });
   }
 
+  await audit(userId, "campaign.log_entry", campaign.id, { weekOf: input.weekOf, entryId: entry.id });
   revalidatePath(`/campaigns/${campaign.id}`);
   revalidatePath("/campaigns");
 
@@ -242,21 +318,23 @@ export async function logPerformanceEntry(
   };
 }
 
-// ── Lifecycle actions (owner-only) ─────────────────────────────────────────────
-// Only the user who created a campaign may edit, change its status, or delete it.
+// ── Lifecycle actions (editor + owner) ─────────────────────────────────────────
+// A write requires the editor capability (RBAC) AND ownership of the campaign.
 // Shared demo campaigns (ownerId null) are read-only — mutating them would leak
 // into every user's view.
 
-/** Resolve a campaign the current user owns, or return an error result. */
-async function requireOwnedCampaign(
+/** Require an editor who owns the campaign; returns the session on success. */
+async function requireManageableCampaign(
   id: string
 ): Promise<
-  | { ok: true; userId: string }
+  | { ok: true; userId: string; session: Session | null }
   | { ok: false; error: string }
 > {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) return { ok: false, error: "You must be signed in." };
+  if (!rolesCanManage(session?.user?.roles))
+    return { ok: false, error: "You don't have permission to manage campaigns." };
 
   const campaign = await prisma.marketingCampaign.findUnique({
     where: { id },
@@ -266,13 +344,13 @@ async function requireOwnedCampaign(
   if (campaign.ownerId !== userId)
     return { ok: false, error: "Only the campaign owner can change it." };
 
-  return { ok: true, userId };
+  return { ok: true, userId, session };
 }
 
 export async function updateCampaign(
   input: UpdateCampaignInput
 ): Promise<ActionResult<{ id: string }>> {
-  const guard = await requireOwnedCampaign(input.id);
+  const guard = await requireManageableCampaign(input.id);
   if (!guard.ok) return { ok: false, error: guard.error };
 
   const fieldErrors: Record<string, string> = {};
@@ -295,6 +373,15 @@ export async function updateCampaign(
   const startedAt = parsePastDate(input.startedAt);
   if (!startedAt) fieldErrors.startedAt = "Enter a valid start date (not in the future)";
 
+  const endsAt = parseOptionalDate(input.endsAt);
+  if (!endsAt.ok) fieldErrors.endsAt = "Enter a valid end date";
+
+  const cpaTarget = parseOptionalCents(input.cpaTargetDollars);
+  if (!cpaTarget.ok) fieldErrors.cpaTargetDollars = "Enter a valid CPA target";
+
+  if (endsAt.ok && startedAt && endsAt.date && endsAt.date.getTime() < startedAt.getTime())
+    fieldErrors.endsAt = "End date must be after the start date";
+
   if (Object.keys(fieldErrors).length) {
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors };
   }
@@ -309,10 +396,16 @@ export async function updateCampaign(
       status,
       budgetCents: budgetCents!,
       startedAt: startedAt!,
+      endsAt: endsAt.ok ? endsAt.date : null,
+      cpaTargetCents: cpaTarget.ok ? cpaTarget.cents : null,
+      lastEditedBy: actorName(guard.session),
+      lastEditedById: guard.userId,
+      lastEditedAt: new Date(),
       ...(owner ? { owner } : {}),
     },
   });
 
+  await audit(guard.userId, "campaign.update", input.id, { name, channel, status });
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${input.id}`);
   return { ok: true, data: { id: input.id } };
@@ -322,14 +415,23 @@ export async function setCampaignStatus(
   id: string,
   status: string
 ): Promise<ActionResult<{ id: string; status: string }>> {
-  const guard = await requireOwnedCampaign(id);
+  const guard = await requireManageableCampaign(id);
   if (!guard.ok) return { ok: false, error: guard.error };
 
   if (!STATUSES.includes(status as (typeof STATUSES)[number]))
     return { ok: false, error: "Invalid status." };
 
-  await prisma.marketingCampaign.update({ where: { id }, data: { status } });
+  await prisma.marketingCampaign.update({
+    where: { id },
+    data: {
+      status,
+      lastEditedBy: actorName(guard.session),
+      lastEditedById: guard.userId,
+      lastEditedAt: new Date(),
+    },
+  });
 
+  await audit(guard.userId, "campaign.status", id, { status });
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${id}`);
   return { ok: true, data: { id, status } };
@@ -338,12 +440,13 @@ export async function setCampaignStatus(
 export async function deleteCampaign(
   id: string
 ): Promise<ActionResult<{ id: string }>> {
-  const guard = await requireOwnedCampaign(id);
+  const guard = await requireManageableCampaign(id);
   if (!guard.ok) return { ok: false, error: guard.error };
 
   // Entries cascade-delete via the FK relation.
   await prisma.marketingCampaign.delete({ where: { id } });
 
+  await audit(guard.userId, "campaign.delete", id);
   revalidatePath("/campaigns");
   return { ok: true, data: { id } };
 }

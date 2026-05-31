@@ -26,6 +26,8 @@ type CampaignSeed = {
   clicks: number;
   conversions: number;
   startedAt: string;
+  endsAt: string | null;
+  cpaTargetCents: number | null;
 };
 
 type EntrySeed = {
@@ -42,14 +44,14 @@ type EntrySeed = {
 };
 
 const campaigns: CampaignSeed[] = [
-  { id: "c1", name: "Q2 Growth — Ops Hub launch", channel: "paid", status: "live", owner: "Ava Chen", budgetCents: 1_200_000, spentCents: 812_400, impressions: 412_800, clicks: 18_420, conversions: 612, startedAt: "2026-03-18" },
-  { id: "c2", name: "SEO cluster: agent workflows", channel: "seo", status: "live", owner: "Noah Park", budgetCents: 400_000, spentCents: 220_000, impressions: 268_100, clicks: 9_850, conversions: 441, startedAt: "2026-02-04" },
-  { id: "c3", name: "Lifecycle nurture v4", channel: "email", status: "live", owner: "Priya Raman", budgetCents: 180_000, spentCents: 96_300, impressions: 54_200, clicks: 7_140, conversions: 389, startedAt: "2026-03-01" },
-  { id: "c4", name: "LinkedIn founder series", channel: "social", status: "live", owner: "Marcus King", budgetCents: 250_000, spentCents: 134_900, impressions: 186_500, clicks: 6_220, conversions: 141, startedAt: "2026-03-10" },
-  { id: "c5", name: "Partner co-marketing — Stripe", channel: "partner", status: "scheduled", owner: "Ava Chen", budgetCents: 500_000, spentCents: 0, impressions: 0, clicks: 0, conversions: 0, startedAt: "2026-05-02" },
-  { id: "c6", name: "Retargeting — pricing page", channel: "paid", status: "live", owner: "Noah Park", budgetCents: 300_000, spentCents: 241_100, impressions: 142_700, clicks: 4_980, conversions: 198, startedAt: "2026-02-20" },
-  { id: "c7", name: "Webinar: Measuring AI ROI", channel: "email", status: "ended", owner: "Priya Raman", budgetCents: 120_000, spentCents: 118_700, impressions: 38_900, clicks: 5_110, conversions: 262, startedAt: "2026-01-14" },
-  { id: "c8", name: "Community push: r/devtools", channel: "social", status: "paused", owner: "Marcus King", budgetCents: 80_000, spentCents: 44_200, impressions: 72_300, clicks: 2_140, conversions: 48, startedAt: "2026-02-28" },
+  { id: "c1", name: "Q2 Growth — Ops Hub launch", channel: "paid", status: "live", owner: "Ava Chen", budgetCents: 1_200_000, spentCents: 812_400, impressions: 412_800, clicks: 18_420, conversions: 612, startedAt: "2026-03-18", endsAt: "2026-06-30", cpaTargetCents: 1_500 },
+  { id: "c2", name: "SEO cluster: agent workflows", channel: "seo", status: "live", owner: "Noah Park", budgetCents: 400_000, spentCents: 220_000, impressions: 268_100, clicks: 9_850, conversions: 441, startedAt: "2026-02-04", endsAt: "2026-07-31", cpaTargetCents: 600 },
+  { id: "c3", name: "Lifecycle nurture v4", channel: "email", status: "live", owner: "Priya Raman", budgetCents: 180_000, spentCents: 96_300, impressions: 54_200, clicks: 7_140, conversions: 389, startedAt: "2026-03-01", endsAt: "2026-06-15", cpaTargetCents: 500 },
+  { id: "c4", name: "LinkedIn founder series", channel: "social", status: "live", owner: "Marcus King", budgetCents: 250_000, spentCents: 134_900, impressions: 186_500, clicks: 6_220, conversions: 141, startedAt: "2026-03-10", endsAt: "2026-06-10", cpaTargetCents: 800 },
+  { id: "c5", name: "Partner co-marketing — Stripe", channel: "partner", status: "scheduled", owner: "Ava Chen", budgetCents: 500_000, spentCents: 0, impressions: 0, clicks: 0, conversions: 0, startedAt: "2026-05-02", endsAt: null, cpaTargetCents: 20_000 },
+  { id: "c6", name: "Retargeting — pricing page", channel: "paid", status: "live", owner: "Noah Park", budgetCents: 300_000, spentCents: 241_100, impressions: 142_700, clicks: 4_980, conversions: 198, startedAt: "2026-02-20", endsAt: "2026-07-15", cpaTargetCents: 1_300 },
+  { id: "c7", name: "Webinar: Measuring AI ROI", channel: "email", status: "ended", owner: "Priya Raman", budgetCents: 120_000, spentCents: 118_700, impressions: 38_900, clicks: 5_110, conversions: 262, startedAt: "2026-01-14", endsAt: null, cpaTargetCents: 400 },
+  { id: "c8", name: "Community push: r/devtools", channel: "social", status: "paused", owner: "Marcus King", budgetCents: 80_000, spentCents: 44_200, impressions: 72_300, clicks: 2_140, conversions: 48, startedAt: "2026-02-28", endsAt: null, cpaTargetCents: 4_500 },
 ];
 
 const performanceEntries: EntrySeed[] = [
@@ -112,6 +114,8 @@ async function main() {
       clicks: c.clicks,
       conversions: c.conversions,
       startedAt: new Date(`${c.startedAt}T00:00:00Z`),
+      endsAt: c.endsAt ? new Date(`${c.endsAt}T00:00:00Z`) : null,
+      cpaTargetCents: c.cpaTargetCents,
       createdAt: new Date(Date.UTC(2026, 0, 1) + order * 60_000),
     };
     await prisma.marketingCampaign.upsert({
