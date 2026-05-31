@@ -54,6 +54,13 @@ AUTH_COOKIE_DOMAIN=.asafarim.com
 
 # Database (shared)
 DATABASE_URL=postgresql://...
+
+# Google Photos import (see docs/google-photos-import.md)
+GOOGLE_PHOTOS_CLIENT_ID=...
+GOOGLE_PHOTOS_CLIENT_SECRET=...
+GOOGLE_PHOTOS_REDIRECT_URI=https://vionto.asafarim.com/api/integrations/google-photos/callback
+GOOGLE_PHOTOS_SCOPES=https://www.googleapis.com/auth/photospicker.mediaitems.readonly
+VIONTO_TOKEN_ENCRYPTION_KEY=...  # openssl rand -hex 32 (encrypts stored OAuth tokens)
 ```
 
 ## Current Scope

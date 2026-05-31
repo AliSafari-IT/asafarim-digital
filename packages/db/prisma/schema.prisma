@@ -84,11 +84,14 @@ model User {
   viontoSharesSent     ViontoProjectShare[] @relation("ViontoSharesSent")
   viontoSharesReceived ViontoProjectShare[] @relation("ViontoSharesReceived")
 
+  // Vionto — Google Photos import integration (incremental OAuth, separate from login identity)
+  googlePhotosConnection GooglePhotosConnection?
+
   // Generic user locations (home, work, etc.) - reusable across all apps
   locations UserLocation[]
 
   // Marketing + Content engine
-  marketingCampaigns        MarketingCampaign[]
+  marketingCampaigns         MarketingCampaign[]
   marketingPerformanceLogged MarketingPerformanceEntry[] @relation("MarketingEntryLoggedBy")
 
   createdAt DateTime @default(now())
@@ -1140,20 +1143,20 @@ model EduTutorVerification {
 // `readAt` is stamped when the *other* party reads the message, powering
 // unread badges on both the admin panel and the tutor's verification page.
 model EduVerificationMessage {
-  id         String    @id @default(cuid())
-  tutorId    String
-  senderId   String
-  senderRole String // ADMIN | TUTOR
-  body       String    @db.Text
+  id          String    @id @default(cuid())
+  tutorId     String
+  senderId    String
+  senderRole  String // ADMIN | TUTOR
+  body        String    @db.Text
   // Optional attachments: array of { key, mime, filename, sizeBytes }. Keys are
   // storage object keys scoped to the uploader; URLs are signed on read because
   // the bucket is private.
   attachments Json?
   // Emoji reactions: { [emoji]: userId[] } — emoji keys are restricted to the
   // supported set (thumbsup, thumbsdown, check, question, eyes, tada).
-  reactions  Json?
-  readAt     DateTime?
-  createdAt  DateTime  @default(now())
+  reactions   Json?
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   tutor  User @relation("EduVerificationMessageTutor", fields: [tutorId], references: [id], onDelete: Cascade)
   sender User @relation("EduVerificationMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
@@ -1798,14 +1801,14 @@ model MarketingCampaign {
   /// null = shared demo data; otherwise scoped to the creating user.
   ownerId String?
 
-  name      String
-  channel   String // seo, email, paid, social, partner
-  status    String @default("scheduled") // live, scheduled, paused, ended
-  owner     String // display name of the campaign owner
-  budgetCents Int  @default(0)
-  startedAt DateTime
+  name           String
+  channel        String // seo, email, paid, social, partner
+  status         String    @default("scheduled") // live, scheduled, paused, ended
+  owner          String // display name of the campaign owner
+  budgetCents    Int       @default(0)
+  startedAt      DateTime
   /// Optional planned end date — enables budget-pacing projections (M3).
-  endsAt    DateTime?
+  endsAt         DateTime?
   /// Optional target cost-per-acquisition in cents — drives the CPA-over flag (M3).
   cpaTargetCents Int?
 
@@ -1850,12 +1853,55 @@ model MarketingPerformanceEntry {
   loggedById String?
   loggedAt   DateTime @default(now())
 
-  campaign       MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  loggedByUser   User?             @relation("MarketingEntryLoggedBy", fields: [loggedById], references: [id], onDelete: SetNull)
+  campaign     MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  loggedByUser User?             @relation("MarketingEntryLoggedBy", fields: [loggedById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
   @@index([campaignId])
   @@index([campaignId, weekOf])
   @@index([weekOf])
+}
+
+// ─── Vionto — Google Photos Import ─────────────────────────────
+//
+// Persists a user's authorization to import photos from their Google
+// Photos library and shared albums. This is an *incremental OAuth*
+// grant that is intentionally decoupled from the user's login identity:
+// a user who signed in with email/password (or email-code) can still
+// connect a Google account purely for photo import.
+//
+// OAuth tokens are stored encrypted at rest (AES-256-GCM). The plaintext
+// access/refresh tokens never touch the database — see
+// apps/vionto/lib/server/google-photos/crypto.ts.
+
+model GooglePhotosConnection {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Google account that granted access (may differ from the Vionto login email).
+  googleAccountEmail String?
+  googleAccountSub   String? // Google "sub" — stable account identifier
+
+  // Encrypted OAuth tokens. Format: iv.authTag.ciphertext (all base64url).
+  accessTokenEnc  String  @db.Text
+  refreshTokenEnc String? @db.Text
+
+  // Granted OAuth scopes and access-token expiry.
+  scopes    String[]  @default([])
+  expiresAt DateTime?
+
+  // Connection lifecycle.
+  status         String    @default("active") // active | revoked | error
+  lastError      String?   @db.Text
+  lastRefreshAt  DateTime?
+  lastImportedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
