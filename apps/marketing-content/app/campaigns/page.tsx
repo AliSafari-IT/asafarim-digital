@@ -1,5 +1,5 @@
 import { SectionHeader } from "@/components/SectionHeader";
-import { listCampaigns, getCurrentUserId } from "@/lib/campaigns";
+import { listCampaigns, getCampaignAccess } from "@/lib/campaigns";
 import { NewCampaignButton } from "./NewCampaignButton";
 import { CampaignsTable, type SortKey, type SortDir } from "./CampaignsTable";
 
@@ -20,7 +20,7 @@ export default async function CampaignsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const userId = await getCurrentUserId();
+  const { userId, canManage } = await getCampaignAccess();
   const campaigns = await listCampaigns(userId);
 
   const channel = typeof sp.channel === "string" && CHANNELS.includes(sp.channel) ? sp.channel : "all";
@@ -35,11 +35,12 @@ export default async function CampaignsPage({
         eyebrow="Campaigns"
         title="Campaign performance"
         description="Cross-channel campaigns with owners, budget, and conversion signals. Filter, search, and sort the table, then click any row to view the full performance timeline."
-        actions={<NewCampaignButton />}
+        actions={canManage ? <NewCampaignButton /> : undefined}
       />
 
       <CampaignsTable
         campaigns={campaigns}
+        canManage={canManage}
         initialChannel={channel}
         initialStatus={status}
         initialQuery={query}

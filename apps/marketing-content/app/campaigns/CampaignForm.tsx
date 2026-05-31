@@ -45,6 +45,8 @@ function initialForm(campaign?: CampaignView) {
     status: campaign?.status ?? "scheduled",
     budgetDollars: campaign ? (campaign.budgetCents / 100).toString() : "",
     startedAt: campaign?.startedAt ?? todayIso(),
+    endsAt: campaign?.endsAt ?? "",
+    cpaTargetDollars: campaign?.cpaTargetCents != null ? (campaign.cpaTargetCents / 100).toString() : "",
     owner: campaign?.owner ?? "",
   };
 }
@@ -180,6 +182,20 @@ export function CampaignForm({ mode, open, onClose, campaign }: CampaignFormProp
               <Field label="Start date" id={`${uid}-start`} error={errors.startedAt}>
                 <input id={`${uid}-start`} type="date" max={todayIso()}
                   value={form.startedAt} onChange={set("startedAt")} className={inputCls(!!errors.startedAt)} />
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="End date (optional)" id={`${uid}-end`} error={errors.endsAt}>
+                <input id={`${uid}-end`} type="date" min={form.startedAt}
+                  value={form.endsAt} onChange={set("endsAt")} className={inputCls(!!errors.endsAt)} />
+              </Field>
+              <Field label="CPA target (USD, optional)" id={`${uid}-cpa`} error={errors.cpaTargetDollars}>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-subtle)] text-sm">$</span>
+                  <input id={`${uid}-cpa`} type="number" min="0" step="0.01" placeholder="0.00"
+                    value={form.cpaTargetDollars} onChange={set("cpaTargetDollars")} className={`${inputCls(!!errors.cpaTargetDollars)} pl-7`} />
+                </div>
               </Field>
             </div>
 

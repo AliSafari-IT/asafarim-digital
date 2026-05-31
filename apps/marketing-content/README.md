@@ -11,14 +11,27 @@ Current state: authenticated showcase MVP.
 Implemented:
 
 - Auth-protected Next.js app with shared SSO.
-- Static demo data from `lib/demo-data.ts`.
-- Campaign, content, SEO, lead, automation, and analytics views.
+- **Persisted campaigns + weekly performance entries** (`MarketingCampaign`,
+  `MarketingPerformanceEntry` via `@asafarim/db`). Shared demo rows (`ownerId`
+  null) are seeded from `lib/demo-data.ts`; user-created rows are private.
+- **Interactive campaigns list**: URL-synced channel/status filters, name/owner
+  search, sortable columns, and lifecycle actions (edit, pause/resume, end,
+  delete). List and detail KPIs are both derived from entries, so they match.
+- **Insights**: budget-pacing alerts, CPA-vs-target flags, and weekly anomaly
+  highlights.
+- **CSV export** of a campaign's weekly timeline and of the filtered list.
+- **Role-based access**: `superadmin`/`admin` are editors (create/log/manage);
+  everyone else is a read-only viewer. Write affordances are hidden for viewers
+  and enforced server-side. Campaign writes are recorded in `AuditLog`, and the
+  detail page shows who last edited a campaign.
+- Static demo data (`lib/demo-data.ts`) still backs the content, SEO, lead,
+  automation, and analytics views.
 - Public health route for container and nginx checks.
 - Portal integration via `/showcase/marketing-content`.
 
 Planned:
 
-- Replace static demo data with persisted campaign and content models.
+- Replace remaining static demo data (content, SEO, leads, automations).
 - Add editorial calendar workflows and approvals.
 - Add lead capture, enrichment, and attribution events.
 - Add automation run history and provider integrations.
@@ -61,7 +74,10 @@ All app pages require an authenticated ASafariM user. `/api/health` is public.
 Unauthenticated users are redirected to the portal sign-in route through
 `PORTAL_URL`.
 
-There is no role gate yet; any signed-in ASafariM user can access the demo.
+Any signed-in ASafariM user can view the demo. Write access (creating campaigns,
+logging performance, editing/deleting) requires an editor role — `superadmin` or
+`admin` — resolved from the SSO session and enforced in the server actions.
+Everyone else is a read-only viewer.
 
 ## Portal Integration
 

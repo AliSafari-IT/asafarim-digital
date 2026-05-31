@@ -7,6 +7,8 @@ import type {
   PerformanceEntryView as PerformanceEntry,
 } from "@/lib/campaigns";
 import { logPerformanceEntry } from "../actions";
+import { computePacing, cpaStatus, detectAnomalies } from "@/lib/insights";
+import { toCsv, downloadCsv, slugify } from "@/lib/csv";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatMoney, formatNumber, formatPercent, formatCompact } from "@/lib/format";
 
@@ -22,6 +24,11 @@ function delta(curr: number, prev: number) {
 function weekLabel(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatTimestamp(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
 function todayIso() {
@@ -77,12 +84,39 @@ function PerformanceChart({ entries, metric }: ChartProps) {
 
   const [hov, setHov] = useState<number | null>(null);
 
+  const latest = values[values.length - 1] ?? 0;
+  const first = values[0] ?? 0;
+  const trend = latest >= first ? "up" : "down";
+  const summary =
+    `${METRIC_LABELS[metric]} over ${entries.length} weeks — ` +
+    `low ${formatMetricValue(metric, minV)}, high ${formatMetricValue(metric, maxV)}, ` +
+    `latest ${formatMetricValue(metric, latest)} (trending ${trend}). ` +
+    `Use arrow keys to inspect each week.`;
+
+  function onKeyDown(e: React.KeyboardEvent<SVGSVGElement>) {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      setHov((h) => {
+        const cur = h ?? (e.key === "ArrowRight" ? -1 : entries.length);
+        return e.key === "ArrowRight"
+          ? Math.min(entries.length - 1, cur + 1)
+          : Math.max(0, cur - 1);
+      });
+    } else if (e.key === "Home") { e.preventDefault(); setHov(0); }
+    else if (e.key === "End") { e.preventDefault(); setHov(entries.length - 1); }
+    else if (e.key === "Escape") { setHov(null); }
+  }
+
   return (
     <div className="relative w-full select-none" style={{ touchAction: "none" }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full"
+        className="w-full rounded outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
         style={{ height: 180 }}
+        role="img"
+        aria-label={summary}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
         onMouseLeave={() => setHov(null)}
         onMouseMove={(e) => {
           const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
@@ -96,6 +130,8 @@ function PerformanceChart({ entries, metric }: ChartProps) {
           setHov(best);
         }}
       >
+        <title>{METRIC_LABELS[metric]} weekly trend</title>
+        <desc>{summary}</desc>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.25" />
@@ -160,6 +196,13 @@ function PerformanceChart({ entries, metric }: ChartProps) {
           </div>
         </div>
       )}
+
+      {/* Screen-reader announcement of the focused/hovered week */}
+      <p className="sr-only" aria-live="polite">
+        {hov !== null
+          ? `Week of ${weekLabel(entries[hov].weekOf)}: ${formatMetricValue(metric, entries[hov][metric] as number)}`
+          : ""}
+      </p>
     </div>
   );
 }
@@ -464,14 +507,35 @@ function DeltaPill({ d }: { d: ReturnType<typeof delta> }) {
   );
 }
 
+// ─── Insight banner ─────────────────────────────────────────────────────────────
+
+function InsightBanner({ tone, title, detail }: { tone: "danger" | "warning"; title: string; detail: string }) {
+  const styles = tone === "danger"
+    ? "border-rose-500/40 bg-rose-500/10 text-rose-200"
+    : "border-amber-500/40 bg-amber-500/10 text-amber-200";
+  return (
+    <div role="alert" className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${styles}`}>
+      <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true">
+        <path d="M8 1.5l6.5 11.5H1.5L8 1.5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+        <path d="M8 6.5v3M8 11.2v.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+      <div>
+        <p className="font-semibold">{title}</p>
+        <p className="mt-0.5 text-[var(--color-text-muted)]">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   campaign: Campaign;
   initialEntries: PerformanceEntry[];
+  canManage: boolean;
 }
 
-export function CampaignDetail({ campaign, initialEntries }: Props) {
+export function CampaignDetail({ campaign, initialEntries, canManage }: Props) {
   const [entries, setEntries] = useState<PerformanceEntry[]>(initialEntries);
   const [showModal, setShowModal] = useState(false);
   const [activeMetric, setActiveMetric] = useState<MetricKey>("impressions");
@@ -492,6 +556,30 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
   const cvr = pct(totConv, totClicks);
   const cpa = totConv ? totSpent / totConv : 0;
   const budgetPct = campaign.budgetCents ? Math.min(1, totSpent / campaign.budgetCents) : 0;
+
+  // ── Derived insights (M3) ─────────────────────────────────────────────────────
+  // Use live totals (entries can be appended in-session) for pacing + CPA.
+  const liveCampaign: Campaign = { ...campaign, spentCents: totSpent, conversions: totConv };
+  const pacing = computePacing(liveCampaign);
+  const cpaInfo = cpaStatus(liveCampaign);
+  const anomalies = detectAnomalies(entries);
+
+  function exportCsv() {
+    const headers = ["Week of", "Impressions", "Clicks", "CTR %", "Conversions", "CVR %", "Spend (USD)", "CPA (USD)", "Notes", "Logged by"];
+    const rows = entries.map((e) => {
+      const rCtr = pct(e.clicks, e.impressions);
+      const rCvr = pct(e.conversions, e.clicks);
+      const rCpa = e.conversions ? e.spentCents / e.conversions : 0;
+      return [
+        e.weekOf, e.impressions, e.clicks, (rCtr * 100).toFixed(2),
+        e.conversions, (rCvr * 100).toFixed(2),
+        (e.spentCents / 100).toFixed(2),
+        rCpa ? (rCpa / 100).toFixed(2) : "",
+        e.notes ?? "", e.loggedBy,
+      ];
+    });
+    downloadCsv(`${slugify(campaign.name)}-performance.csv`, toCsv(headers, rows));
+  }
 
   // WoW deltas using last 2 entries
   const last = entries[entries.length - 1];
@@ -525,23 +613,67 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
             <p className="text-sm text-[var(--color-text-muted)]">
               Owner: <span className="text-[var(--color-text)]">{campaign.owner}</span>
               {" · "}Started {new Date(campaign.startedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              {campaign.endsAt && (
+                <>{" · "}Ends {new Date(campaign.endsAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</>
+              )}
               {" · "}Budget: <span className="font-mono text-[var(--color-text)]">{formatMoney(campaign.budgetCents)}</span>
+              {campaign.cpaTargetCents != null && (
+                <>{" · "}CPA target: <span className="font-mono text-[var(--color-text)]">{formatMoney(campaign.cpaTargetCents)}</span></>
+              )}
             </p>
+            {campaign.lastEditedBy && campaign.lastEditedAt && (
+              <p className="text-xs text-[var(--color-text-subtle)]">
+                Last edited by {campaign.lastEditedBy} · {formatTimestamp(campaign.lastEditedAt)}
+              </p>
+            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-rose-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
+              onClick={exportCsv}
+              disabled={entries.length === 0}
+              className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-text-muted)] hover:bg-white/[0.04] hover:text-[var(--color-text)] transition-colors disabled:opacity-50"
             >
               <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
-                <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <path d="M8 2v8m0 0L5 7m3 3l3-3M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Log Performance
+              Export CSV
             </button>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-rose-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Log Performance
+              </button>
+            )}
           </div>
         </div>
+
+        {/* ── Insight banners (M3) ── */}
+        {(pacing && pacing.state !== "ok") || cpaInfo?.over ? (
+          <div className="space-y-2">
+            {pacing && pacing.state !== "ok" && (
+              <InsightBanner
+                tone={pacing.state === "over" ? "danger" : "warning"}
+                title={pacing.state === "over" ? "Budget pacing: projected overspend" : "Budget pacing: ahead of plan"}
+                detail={`${pacing.message} Projected total ${formatMoney(pacing.projectedSpentCents)} vs budget ${formatMoney(campaign.budgetCents)}.`}
+              />
+            )}
+            {cpaInfo?.over && (
+              <InsightBanner
+                tone="danger"
+                title="CPA above target"
+                detail={`Current CPA ${formatMoney(cpaInfo.cpaCents)} is ${formatPercent(cpaInfo.ratio - 1, 0)} over the ${formatMoney(cpaInfo.targetCents)} target.`}
+              />
+            )}
+          </div>
+        ) : null}
 
         {/* Budget progress bar */}
         <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4">
@@ -631,7 +763,7 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
           {/* Table / log view */}
           {activeTab === "table" && (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[860px] text-left text-sm">
                 <thead className="bg-[var(--color-bg-soft)]/60 text-[11px] uppercase tracking-wide text-[var(--color-text-subtle)]">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Week of</th>
@@ -654,13 +786,26 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
                     const rowCvr = pct(e.conversions, e.clicks);
                     const rowCpa = e.conversions ? e.spentCents / e.conversions : 0;
                     const rowDelta = prevEntry ? delta(e.conversions, prevEntry.conversions) : null;
+                    const anom = anomalies.get(e.id);
                     return (
                       <tr key={e.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-4 py-3 font-medium text-[var(--color-text)]">{weekLabel(e.weekOf)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs">{formatCompact(e.impressions)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs">{formatCompact(e.clicks)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs text-violet-300">{formatPercent(rowCtr, 2)}</td>
-                        <td className="px-4 py-3 text-right font-mono text-xs">{formatNumber(e.conversions)}</td>
+                        <td className="px-4 py-3 text-right font-mono text-xs">
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {anom && (
+                              <span
+                                title={`${anom.direction === "spike" ? "Unusual spike" : "Unusual drop"} vs recent weeks (${anom.deviationPct >= 0 ? "+" : ""}${formatPercent(anom.deviationPct, 0)})`}
+                                className={`rounded px-1 text-[9px] font-semibold uppercase ring-1 ring-inset ${anom.direction === "spike" ? "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30" : "bg-rose-500/15 text-rose-300 ring-rose-500/30"}`}
+                              >
+                                {anom.direction === "spike" ? "▲" : "▼"} anom
+                              </span>
+                            )}
+                            {formatNumber(e.conversions)}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-right font-mono text-xs text-emerald-300">{formatPercent(rowCvr, 2)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs">{formatMoney(e.spentCents)}</td>
                         <td className="px-4 py-3 text-right font-mono text-xs">{rowCpa ? formatMoney(rowCpa) : "—"}</td>
@@ -688,14 +833,18 @@ export function CampaignDetail({ campaign, initialEntries }: Props) {
             </svg>
           </div>
           <p className="text-sm font-medium text-[var(--color-text)]">No performance data yet</p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Log your first weekly entry to start tracking trends.</p>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="mt-4 rounded-lg bg-gradient-to-r from-rose-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-          >
-            Log first entry
-          </button>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            {canManage ? "Log your first weekly entry to start tracking trends." : "No weekly entries have been logged yet."}
+          </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="mt-4 rounded-lg bg-gradient-to-r from-rose-500 to-amber-500 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
+            >
+              Log first entry
+            </button>
+          )}
         </div>
       )}
 
