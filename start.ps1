@@ -16,7 +16,8 @@ $SCRIPT_DIR = $PSScriptRoot
 
 # Docker services required by vionto (and any app that needs them)
 $DOCKER_SERVICES = @(
-    @{ Name = "redis-local"; Image = "redis:7-alpine"; Ports = "-p 6379:6379" }
+    @{ Name = "redis-local";      Image = "redis:7-alpine";              Ports = "-p 6380:6379" }
+    @{ Name = "asafarim-postgres"; Image = "postgis/postgis:16-3.4-alpine"; Ports = "-p 55432:5432"; Env = @("POSTGRES_USER=asafarim", "POSTGRES_PASSWORD=Ali_123456db", "POSTGRES_DB=asafarim") }
 )
 
 # App ports (must match each app's package.json "dev" script)
@@ -252,7 +253,7 @@ function Start-DockerServices {
         Log-Warn "docker not found — skipping Docker service startup"
         return
     }
-    Log-Step "Starting Docker services (Redis)..."
+    Log-Step "Starting Docker services (Redis, Postgres)..."
     foreach ($svc in $DOCKER_SERVICES) {
         $name  = $svc.Name
         $image = $svc.Image
@@ -278,7 +279,11 @@ function Start-DockerServices {
                 docker pull $image | Out-Null
             }
             Log-Info "Creating container: $name on $ports"
-            $runCmd = "docker run -d --name $name $ports --restart unless-stopped $image"
+            $envFlags = ""
+            if ($svc.Env) {
+                $envFlags = ($svc.Env | ForEach-Object { "-e $_" }) -join " "
+            }
+            $runCmd = "docker run -d --name $name $ports $envFlags --restart unless-stopped $image"
             Invoke-Expression $runCmd | Out-Null
         }
 

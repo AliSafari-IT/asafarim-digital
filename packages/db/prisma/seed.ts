@@ -1033,7 +1033,6 @@ async function seedEduMatchDemo() {
       studentProfile: {
         gradeLevel: "UNDERGRAD",
         subjectsOfInterest: ["Mathematics", "Computer Science"],
-        preferredLanguage: "en",
       },
     },
     {
@@ -1042,16 +1041,12 @@ async function seedEduMatchDemo() {
       role: "edumatch_tutor",
       tutorProfile: {
         bio: "Experienced math and CS tutor with 5+ years of teaching experience.",
-        subjects: ["Mathematics", "Computer Science", "Physics"],
-        levels: ["K12", "UNDERGRAD"],
+        subjectsTaught: ["Mathematics", "Computer Science", "Physics"],
+        levelsTaught: ["K12", "UNDERGRAD"],
         hourlyRateCents: 5000, // $50/hour
         serviceRadiusKm: 25,
-        lat: 40.7128, // NYC area
-        lng: -74.0060,
-        city: "New York",
-        country: "US",
-        stripeConnectStatus: "ACTIVE",
-        stripeConnectId: "acct_demo123",
+        stripeAccountId: "acct_demo123",
+        payoutEnabled: true,
       },
     },
     {
@@ -1061,7 +1056,7 @@ async function seedEduMatchDemo() {
     },
   ];
 
-  const createdUsers: Record<string, { id: string; email: string; name: string }> = {};
+  const createdUsers: Record<string, { id: string; email: string; name: string | null }> = {};
 
   // Create demo users and their profiles
   for (const u of demoUsers) {
@@ -1093,13 +1088,11 @@ async function seedEduMatchDemo() {
         update: {
           gradeLevel: u.studentProfile.gradeLevel,
           subjectsOfInterest: u.studentProfile.subjectsOfInterest,
-          preferredLanguage: u.studentProfile.preferredLanguage,
         },
         create: {
           userId: user.id,
           gradeLevel: u.studentProfile.gradeLevel,
           subjectsOfInterest: u.studentProfile.subjectsOfInterest,
-          preferredLanguage: u.studentProfile.preferredLanguage,
         },
       });
     }
@@ -1110,31 +1103,23 @@ async function seedEduMatchDemo() {
         where: { userId: user.id },
         update: {
           bio: u.tutorProfile.bio,
-          subjects: u.tutorProfile.subjects,
-          levels: u.tutorProfile.levels,
+          subjectsTaught: u.tutorProfile.subjectsTaught,
+          levelsTaught: u.tutorProfile.levelsTaught,
           hourlyRateCents: u.tutorProfile.hourlyRateCents,
           serviceRadiusKm: u.tutorProfile.serviceRadiusKm,
-          lat: u.tutorProfile.lat,
-          lng: u.tutorProfile.lng,
-          city: u.tutorProfile.city,
-          country: u.tutorProfile.country,
-          stripeConnectStatus: u.tutorProfile.stripeConnectStatus,
-          stripeConnectId: u.tutorProfile.stripeConnectId,
+          stripeAccountId: u.tutorProfile.stripeAccountId,
+          payoutEnabled: u.tutorProfile.payoutEnabled,
           verifiedAt: new Date(),
         },
         create: {
           userId: user.id,
           bio: u.tutorProfile.bio,
-          subjects: u.tutorProfile.subjects,
-          levels: u.tutorProfile.levels,
+          subjectsTaught: u.tutorProfile.subjectsTaught,
+          levelsTaught: u.tutorProfile.levelsTaught,
           hourlyRateCents: u.tutorProfile.hourlyRateCents,
           serviceRadiusKm: u.tutorProfile.serviceRadiusKm,
-          lat: u.tutorProfile.lat,
-          lng: u.tutorProfile.lng,
-          city: u.tutorProfile.city,
-          country: u.tutorProfile.country,
-          stripeConnectStatus: u.tutorProfile.stripeConnectStatus,
-          stripeConnectId: u.tutorProfile.stripeConnectId,
+          stripeAccountId: u.tutorProfile.stripeAccountId,
+          payoutEnabled: u.tutorProfile.payoutEnabled,
           verifiedAt: new Date(),
         },
       });
@@ -1145,13 +1130,11 @@ async function seedEduMatchDemo() {
         update: {
           balanceCents: 25000, // $250 available
           pendingCents: 15000, // $150 pending
-          lifetimeEarningsCents: 75000, // $750 lifetime
         },
         create: {
           tutorId: user.id,
           balanceCents: 25000,
           pendingCents: 15000,
-          lifetimeEarningsCents: 75000,
           currency: "USD",
           payoutThresholdCents: 5000,
         },
@@ -1188,11 +1171,11 @@ async function seedEduMatchDemo() {
         id: "demo_ai_response_001",
         inquiryId: inquiry.id,
         modelUsed: "gpt-4o",
+        promptVersion: "v1",
         explanation: "Derivatives measure the rate of change of a function. The chain rule states that for a composite function f(g(x)), the derivative is f'(g(x)) * g'(x). Integration by parts uses the formula ∫u dv = uv - ∫v du, where you choose u and dv strategically to simplify the integral.",
-        studyPlan: "1. Review chain rule with 5 practice problems\n2. Practice integration by parts with polynomial and exponential functions\n3. Work through mixed problems combining both concepts",
-        nextSteps: "Try the practice problems in your textbook Chapter 4, sections 4.3 and 4.7. If you get stuck on specific problems, take screenshots and share them.",
+        studyPlan: ["Review chain rule with 5 practice problems", "Practice integration by parts with polynomial and exponential functions", "Work through mixed problems combining both concepts"],
         moderationOutcome: "ALLOW",
-        tokensUsed: 450,
+        totalTokens: 450,
         latencyMs: 1200,
       },
     });
@@ -1205,8 +1188,6 @@ async function seedEduMatchDemo() {
         id: "demo_quote_request_001",
         inquiryId: inquiry.id,
         studentId: student.id,
-        subject: "Mathematics",
-        level: "UNDERGRAD",
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         status: "FULFILLED",
       },
@@ -1223,8 +1204,8 @@ async function seedEduMatchDemo() {
         hourlyRateCents: 5000,
         estimatedHours: 2,
         totalCents: 10000,
-        availability: "Available weekdays 6-9 PM EST and weekends 10 AM-4 PM EST",
-        tutorNote: "I have extensive experience teaching calculus and can help you master these concepts before your midterm. I'll provide custom practice problems and walk through them with you.",
+        availabilitySlots: [{ mode: "ONLINE", note: "Available weekdays 6-9 PM EST and weekends 10 AM-4 PM EST" }],
+        notes: "I have extensive experience teaching calculus and can help you master these concepts before your midterm. I'll provide custom practice problems and walk through them with you.",
         status: "ACCEPTED",
       },
     });
@@ -1237,12 +1218,9 @@ async function seedEduMatchDemo() {
         quoteId: quote.id,
         studentId: student.id,
         tutorId: tutor.id,
-        status: "CONFIRMED",
-        paymentStatus: "CAPTURED",
-        totalCents: 10000,
-        platformFeeCents: 1500, // 15% platform fee
-        tutorPayoutCents: 8500,
+        status: "SCHEDULED",
         scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        durationMinutes: 120,
         mode: "ONLINE",
         stripePaymentIntentId: "pi_demo_12345",
       },
@@ -1256,13 +1234,12 @@ async function seedEduMatchDemo() {
         id: "demo_transaction_001",
         bookingId: booking.id,
         tutorId: tutor.id,
-        kind: "BOOKING_CHARGE",
-        amountCents: 10000,
+        type: "CHARGE",
+        grossCents: 10000,
         platformFeeCents: 1500,
-        tutorNetCents: 8500,
+        netCents: 8500,
         currency: "USD",
         stripeChargeId: "ch_demo_12345",
-        description: "Payment for Calculus Tutoring Session",
       },
     });
 
@@ -1321,10 +1298,15 @@ async function seedEduMatchDemo() {
     ];
 
     for (const n of notifications) {
+      const { read, title, message, entityType, entityId, ...rest } = n;
       await prisma.eduNotification.upsert({
         where: { id: n.id },
         update: {},
-        create: n,
+        create: {
+          ...rest,
+          payload: { title, message, entityType, entityId },
+          readAt: read ? new Date() : null,
+        },
       });
     }
 
