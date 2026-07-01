@@ -184,13 +184,15 @@ export function PublicHomepage({
                 id="access-request"
                 className={`mt-5 rounded-lg border p-5 ${
                   showAccessRequested
-                    ? "border-emerald-500/40 bg-emerald-500/10"
-                    : "border-amber-500/40 bg-amber-500/10"
+                    ? "border-emerald-500/50 bg-emerald-50 dark:border-emerald-500/40 dark:bg-emerald-500/10"
+                    : "border-amber-500/50 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10"
                 }`}
               >
                 <div className="flex gap-3">
                   <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
-                    showAccessRequested ? "bg-emerald-500/15 text-emerald-200" : "bg-amber-500/15 text-amber-100"
+                    showAccessRequested
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   }`}>
                     {showAccessRequested ? (
                       <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
@@ -199,10 +201,18 @@ export function PublicHomepage({
                     )}
                   </div>
                   <div>
-                    <h2 className={`text-base font-semibold ${showAccessRequested ? "text-emerald-100" : "text-amber-100"}`}>
+                    <h2 className={`text-base font-semibold ${
+                      showAccessRequested
+                        ? "text-emerald-800 dark:text-emerald-200"
+                        : "text-amber-800 dark:text-amber-200"
+                    }`}>
                       {showAccessRequested ? "Ops access request sent" : "Ops access is required"}
                     </h2>
-                    <p className={`mt-1 text-sm leading-6 ${showAccessRequested ? "text-emerald-100/85" : "text-amber-100/85"}`}>
+                    <p className={`mt-1 text-sm leading-6 ${
+                      showAccessRequested
+                        ? "text-emerald-700 dark:text-emerald-300/90"
+                        : "text-amber-700 dark:text-amber-300/90"
+                    }`}>
                       {showAccessRequested
                         ? "Your request was recorded for admin review. An administrator can find it in the Portal admin audit area and assign ops_viewer, ops_admin, or superadmin when approved."
                         : "You are signed in, but your account does not have an accepted Ops Hub role yet. Request access so an administrator can review your account."}

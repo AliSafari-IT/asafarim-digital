@@ -325,7 +325,7 @@ export function ProfileForm({
             </div>
             <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{t("portal.profile.verification")}</p>
-              <p className={`mt-2 text-sm ${isVerified ? "text-emerald-300" : "text-amber-300"}`}>
+              <p className={`mt-2 text-sm ${isVerified ? "text-emerald-600 dark:text-emerald-300" : "text-amber-600 dark:text-amber-300"}`}>
                 {isVerified ? t("portal.profile.verified") : t("portal.profile.unverified")}
               </p>
               {!isVerified && (
@@ -345,7 +345,7 @@ export function ProfileForm({
                   {verifyMessage && (
                     <p
                       className={`text-xs ${
-                        verifyStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                        verifyStatus === "error" ? "text-rose-600 dark:text-rose-300" : "text-[var(--color-text-muted)]"
                       }`}
                     >
                       {verifyMessage}
@@ -399,7 +399,7 @@ export function ProfileForm({
               {resetPasswordMessage && (
                 <p
                   className={`mt-2 text-xs ${
-                    resetPasswordStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                    resetPasswordStatus === "error" ? "text-rose-600 dark:text-rose-300" : "text-[var(--color-text-muted)]"
                   }`}
                 >
                   {resetPasswordMessage}
@@ -479,13 +479,14 @@ export function ProfileForm({
           </div>
 
           <div className="text-sm">
-            {status === "saved" && <span className="text-emerald-300">{t("portal.profile.saved")}</span>}
-            {status === "error" && <span className="text-rose-300">{errorMessage}</span>}
+            {status === "saved" && <span className="text-emerald-600 dark:text-emerald-300">{t("portal.profile.saved")}</span>}
+            {status === "error" && <span className="text-rose-600 dark:text-rose-300">{errorMessage}</span>}
           </div>
         </div>
 
         {!isVerified && (
-          <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          <div className="mt-6 flex items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
             {t("portal.profile.verificationRequired")}
           </div>
         )}
@@ -635,7 +636,7 @@ export function ProfileForm({
               {uploadMessage && (
                 <p
                   className={`text-xs ${
-                    uploadStatus === "error" ? "text-rose-300" : "text-[var(--color-text-muted)]"
+                    uploadStatus === "error" ? "text-rose-600 dark:text-rose-300" : "text-[var(--color-text-muted)]"
                   }`}
                 >
                   {uploadMessage}
@@ -724,9 +725,9 @@ function StatTile({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+    <div className="flex flex-col gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 shadow-sm">
+      <p className="truncate text-[9px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{label}</p>
+      <p className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight text-[var(--color-text)]">{value}</p>
     </div>
   );
 }
@@ -749,11 +750,60 @@ function ChipList({ values }: { values: string[] }) {
   );
 }
 
+function ProfileBadge({ active, label }: { active: boolean; label: string }) {
+  return active ? (
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+      {label}
+    </span>
+  ) : (
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+      {label}
+    </span>
+  );
+}
+
+function AppCardHeader({
+  appLabel,
+  title,
+  href,
+  linkLabel,
+  gradient,
+}: {
+  appLabel: string;
+  title: string;
+  href: string;
+  linkLabel: string;
+  gradient: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-sm`}>
+          <span className="text-[10px] font-bold uppercase tracking-wider">{appLabel.slice(0, 2)}</span>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">{appLabel}</p>
+          <h3 className="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-[var(--color-text)]">{title}</h3>
+        </div>
+      </div>
+      <a
+        href={href}
+        className="shrink-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+      >
+        {linkLabel} →
+      </a>
+    </div>
+  );
+}
+
 function CentralProfileSections({
   appProfiles,
 }: {
   appProfiles: CentralAppProfiles;
 }) {
+  const { t } = useTranslation();
   const edumatchUrl = process.env.NEXT_PUBLIC_EDUMATCH_URL || "http://localhost:3005";
   const viontoUrl = process.env.NEXT_PUBLIC_VIONTO_URL || "http://localhost:3006";
   const studentProfileUrl = `${edumatchUrl.replace(/\/$/, "")}/student/profile`;
@@ -762,207 +812,200 @@ function CentralProfileSections({
   const { stats: viontoStats, recentProjects, usage } = appProfiles.vionto;
 
   return (
-    <div className="mt-12 border-t border-[var(--color-border)] pt-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-muted)]">
-            Central profile
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">
-            App-specific profile data
-          </h2>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-text-muted)]">
-            These sections are read from the same shared database records used by each product.
-          </p>
+    <div className="mt-12">
+      <div className="mb-8 flex items-center gap-4">
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
+        <div className="text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-text-muted)]">{t("portal.profile.apps.heading")}</p>
+          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.subheading")}</p>
         </div>
+        <div className="h-px flex-1 bg-[var(--color-border)]" />
       </div>
 
-      <div className="mt-8 grid gap-6 2xl:grid-cols-2">
-        <section className="rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">EduMatch</p>
-              <h3 className="mt-2 text-2xl font-semibold">Student and tutor profile</h3>
-            </div>
-            <a
+      <div className="grid gap-6 2xl:grid-cols-2">
+        {/* ── EduMatch ── */}
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+          <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-6 py-5">
+            <AppCardHeader
+              appLabel="EduMatch"
+              title={t("portal.profile.apps.edumatch.title")}
               href={edumatchUrl}
-              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
-            >
-              Open EduMatch
-            </a>
+              linkLabel={t("portal.profile.apps.open")}
+              gradient="from-violet-500 to-indigo-600"
+            />
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-4">
-            <StatTile label="Inquiries" value={eduStats.inquiries} />
-            <StatTile label="Quotes" value={eduStats.quotes} />
-            <StatTile label="As student" value={eduStats.studentBookings} />
-            <StatTile label="As tutor" value={eduStats.tutorBookings} />
-          </div>
-
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-base font-semibold">Student</h4>
-                <span className={`rounded-full px-3 py-1 text-xs ${student ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}>
-                  {student ? "Configured" : "Not created"}
-                </span>
-              </div>
-              {student ? (
-                <div className="mt-4 space-y-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Grade level</p>
-                    <p className="mt-1 text-sm">{prettyToken(student.gradeLevel)}</p>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Subjects</p>
-                    <ChipList values={student.subjectsOfInterest} />
-                  </div>
-                  <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(student.updatedAt)}</p>
-                  <a
-                    href={studentProfileUrl}
-                    className="inline-flex rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
-                  >
-                    Edit student profile
-                  </a>
-                </div>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-                    Create a student profile in EduMatch and it will appear here automatically.
-                  </p>
-                  <a
-                    href={studentProfileUrl}
-                    className="inline-flex rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
-                  >
-                    Create student profile
-                  </a>
-                </div>
-              )}
+          <div className="p-6">
+            <div className="grid grid-cols-4 gap-3">
+              <StatTile label={t("portal.profile.apps.edumatch.stat.inquiries")} value={eduStats.inquiries} />
+              <StatTile label={t("portal.profile.apps.edumatch.stat.quotes")} value={eduStats.quotes} />
+              <StatTile label={t("portal.profile.apps.edumatch.stat.student")} value={eduStats.studentBookings} />
+              <StatTile label={t("portal.profile.apps.edumatch.stat.tutor")} value={eduStats.tutorBookings} />
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h4 className="text-base font-semibold">Tutor</h4>
-                <span className={`rounded-full px-3 py-1 text-xs ${tutor ? "bg-emerald-400/10 text-emerald-300" : "bg-amber-400/10 text-amber-300"}`}>
-                  {tutor ? (tutor.verifiedAt ? "Verified" : "Configured") : "Not created"}
-                </span>
+            <div className="mt-5 grid gap-3">
+              {/* Student card */}
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-semibold text-[var(--color-text)]">{t("portal.profile.apps.edumatch.student")}</p>
+                  <ProfileBadge active={!!student} label={student ? t("portal.profile.apps.badge.active") : t("portal.profile.apps.badge.notSetUp")} />
+                </div>
+                {student ? (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.grade")}</span>
+                      <span className="font-medium text-[var(--color-text)]">{prettyToken(student.gradeLevel)}</span>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.subjects")}</p>
+                      <ChipList values={student.subjectsOfInterest} />
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-3">
+                      <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.updated").replace("{date}", formatDate(student.updatedAt))}</p>
+                      <a href={studentProfileUrl} className="text-xs font-semibold text-[var(--color-primary)] hover:underline">{t("portal.profile.apps.edumatch.edit")} →</a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
+                      {t("portal.profile.apps.edumatch.studentEmpty")}
+                    </p>
+                    <a
+                      href={studentProfileUrl}
+                      className="flex w-full items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                    >
+                      {t("portal.profile.apps.edumatch.studentCta")}
+                    </a>
+                  </div>
+                )}
               </div>
-              {tutor ? (
-                <div className="mt-4 space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Rate</p>
-                      <p className="mt-1 text-sm">{formatCurrency(tutor.hourlyRateCents)}/hr</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Teaching</p>
-                      <p className="mt-1 text-sm">{tutor.onlineOnly ? "Online only" : `${tutor.serviceRadiusKm} km radius`}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Payouts</p>
-                      <p className="mt-1 text-sm">{tutor.payoutEnabled ? "Enabled" : "Not enabled"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Rating</p>
-                      <p className="mt-1 text-sm">{tutor.ratingCount > 0 ? `${tutor.ratingAvg.toFixed(1)} (${tutor.ratingCount})` : "No ratings"}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Subjects taught</p>
-                    <ChipList values={tutor.subjectsTaught} />
-                  </div>
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)]">Levels taught</p>
-                    <ChipList values={tutor.levelsTaught} />
-                  </div>
-                  {tutor.bio && <p className="text-sm leading-6 text-[var(--color-text-muted)]">{tutor.bio}</p>}
-                  <p className="text-xs text-[var(--color-text-muted)]">Updated {formatDate(tutor.updatedAt)}</p>
-                  <a
-                    href={tutorProfileUrl}
-                    className="inline-flex rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
-                  >
-                    Edit tutor profile
-                  </a>
+
+              {/* Tutor card */}
+              <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-semibold text-[var(--color-text)]">{t("portal.profile.apps.edumatch.tutor")}</p>
+                  <ProfileBadge
+                    active={!!tutor}
+                    label={tutor ? (tutor.verifiedAt ? t("portal.profile.apps.badge.verified") : t("portal.profile.apps.badge.active")) : t("portal.profile.apps.badge.notSetUp")}
+                  />
                 </div>
-              ) : (
-                <div className="mt-4 space-y-4">
-                  <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-                    Apply as a tutor in EduMatch to teach courses. Once created, your tutor profile will appear here automatically.
-                  </p>
-                  <a
-                    href={tutorProfileUrl}
-                    className="inline-flex rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[var(--color-primary-dark)]"
-                  >
-                    Become a tutor
-                  </a>
-                </div>
-              )}
+                {tutor ? (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.rate")}</p>
+                        <p className="font-medium text-[var(--color-text)]">{formatCurrency(tutor.hourlyRateCents)}/hr</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.mode")}</p>
+                        <p className="font-medium text-[var(--color-text)]">
+                          {tutor.onlineOnly
+                            ? t("portal.profile.apps.edumatch.modeOnline")
+                            : t("portal.profile.apps.edumatch.modeRadius").replace("{km}", String(tutor.serviceRadiusKm))}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.payouts")}</p>
+                        <p className="font-medium text-[var(--color-text)]">
+                          {tutor.payoutEnabled ? t("portal.profile.apps.edumatch.payoutsEnabled") : t("portal.profile.apps.edumatch.payoutsDisabled")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.rating")}</p>
+                        <p className="font-medium text-[var(--color-text)]">
+                          {tutor.ratingCount > 0 ? `${tutor.ratingAvg.toFixed(1)} ★` : t("portal.profile.apps.edumatch.noRatings")}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.subjectsTaught")}</p>
+                      <ChipList values={tutor.subjectsTaught} />
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[var(--color-border)] pt-3">
+                      <p className="text-xs text-[var(--color-text-muted)]">{t("portal.profile.apps.edumatch.updated").replace("{date}", formatDate(tutor.updatedAt))}</p>
+                      <a href={tutorProfileUrl} className="text-xs font-semibold text-[var(--color-primary)] hover:underline">{t("portal.profile.apps.edumatch.edit")} →</a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
+                      {t("portal.profile.apps.edumatch.tutorEmpty")}
+                    </p>
+                    <a
+                      href={tutorProfileUrl}
+                      className="flex w-full items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                    >
+                      {t("portal.profile.apps.edumatch.tutorCta")}
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[var(--color-border-strong)] bg-[var(--color-panel-strong)] p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-muted)]">Vionto</p>
-              <h3 className="mt-2 text-2xl font-semibold">Video workspace settings</h3>
-            </div>
-            <a
+        {/* ── Vionto ── */}
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+          <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-soft)] px-6 py-5">
+            <AppCardHeader
+              appLabel="Vionto"
+              title={t("portal.profile.apps.vionto.title")}
               href={viontoUrl}
-              className="rounded-full border border-[var(--color-border)] px-4 py-2 text-xs font-semibold text-[var(--color-text-muted)] transition hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)]"
-            >
-              Open Vionto
-            </a>
+              linkLabel={t("portal.profile.apps.open")}
+              gradient="from-rose-500 to-orange-500"
+            />
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-4">
-            <StatTile label="Projects" value={viontoStats.projects} />
-            <StatTile label="Assets" value={viontoStats.assets} />
-            <StatTile label="Exports" value={viontoStats.exports} />
-            <StatTile label="Shared" value={viontoStats.sharedWithMe} />
-          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-4 gap-3">
+              <StatTile label={t("portal.profile.apps.vionto.stat.projects")} value={viontoStats.projects} />
+              <StatTile label={t("portal.profile.apps.vionto.stat.assets")} value={viontoStats.assets} />
+              <StatTile label={t("portal.profile.apps.vionto.stat.exports")} value={viontoStats.exports} />
+              <StatTile label={t("portal.profile.apps.vionto.stat.shared")} value={viontoStats.sharedWithMe} />
+            </div>
 
-          <div className="mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-            <h4 className="text-base font-semibold">Recent projects</h4>
-            {recentProjects.length > 0 ? (
-              <div className="mt-4 space-y-3">
-                {recentProjects.map((project) => (
-                  <div key={project.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="font-medium">{project.title}</p>
-                        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                          {prettyToken(project.mode)} / {prettyToken(project.storyMode)} / {prettyToken(project.visualStyle)}
+            <div className="mt-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+              <p className="font-semibold text-[var(--color-text)]">{t("portal.profile.apps.vionto.recentProjects")}</p>
+              {recentProjects.length > 0 ? (
+                <div className="mt-3 divide-y divide-[var(--color-border)]">
+                  {recentProjects.map((project) => (
+                    <div key={project.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--color-text)]">{project.title}</p>
+                        <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                          {[prettyToken(project.mode), prettyToken(project.storyMode)].filter(Boolean).join(" · ")}
                         </p>
                       </div>
-                      <span className="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs text-[var(--color-primary)]">
-                        {prettyToken(project.status)}
-                      </span>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                          {prettyToken(project.status)}
+                        </span>
+                        <span className="text-[10px] text-[var(--color-text-muted)]">{formatDate(project.updatedAt)}</span>
+                      </div>
                     </div>
-                    <p className="mt-3 text-xs text-[var(--color-text-muted)]">Updated {formatDate(project.updatedAt)}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-[var(--color-text-muted)]">
+                  {t("portal.profile.apps.vionto.projectsEmpty")}
+                </p>
+              )}
+            </div>
+
+            {usage.length > 0 && (
+              <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-4">
+                <p className="font-semibold text-[var(--color-text)]">{t("portal.profile.apps.vionto.usage")}</p>
+                <div className="mt-3 space-y-2">
+                  {usage.map((metric) => (
+                    <div key={`${metric.metric}-${metric.periodStart}`} className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-[var(--color-text-muted)]">{prettyToken(metric.metric)}</span>
+                      <span className="text-sm font-semibold tabular-nums text-[var(--color-text)]">{metric.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p className="mt-4 text-sm leading-6 text-[var(--color-text-muted)]">
-                Create a Vionto project and its workspace settings will appear here.
-              </p>
             )}
           </div>
-
-          {usage.length > 0 && (
-            <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-panel)] p-5">
-              <h4 className="text-base font-semibold">Recent usage</h4>
-              <div className="mt-4 grid gap-2">
-                {usage.map((metric) => (
-                  <div key={`${metric.metric}-${metric.periodStart}`} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-[var(--color-text-muted)]">{prettyToken(metric.metric)}</span>
-                    <span>{metric.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       </div>
     </div>
