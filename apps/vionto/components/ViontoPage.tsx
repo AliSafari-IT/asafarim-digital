@@ -2590,7 +2590,13 @@ export function ViontoPage() {
                   {/* Import photos directly from Google Photos */}
                   <GooglePhotosImportPanel
                     projectId={selectedProjectId}
-                    onImported={() => loadProjectAssets(selectedProjectId)}
+                    onImported={async () => {
+                      await loadProjectAssets(selectedProjectId);
+                      const baseAlbum = albums.find((a) => a.isBase) ?? albums[0];
+                      if (baseAlbum) {
+                        await loadAlbumItems(selectedProjectId, baseAlbum.id);
+                      }
+                    }}
                   />
                 </>
               )}

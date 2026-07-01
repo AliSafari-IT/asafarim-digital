@@ -152,6 +152,7 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
       }
       if (!res.ok) throw new Error("Could not start the Google Photos picker.");
       const session = await res.json();
+      console.log("[gp] session created", { sessionId: session.sessionId, pollIntervalMs: session.pollIntervalMs, mediaItemsSet: session.mediaItemsSet });
 
       const popup = window.open(session.pickerUri, "_blank", "noopener,noreferrer");
       if (!popup) {
@@ -159,31 +160,56 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
       }
 
       const pollInterval = Math.max(2000, session.pollIntervalMs ?? 5000);
-      const deadline = Date.now() + 5 * 60 * 1000; // 5-minute cap
+      const deadline = Date.now() + 10 * 60 * 1000; // 10-minute cap
 
       const poll = async () => {
+        console.log("[gp] poll tick", { remaining: Math.round((deadline - Date.now()) / 1000) + "s" });
         if (Date.now() > deadline) {
           setPhase("idle");
           setError("Timed out waiting for your photo selection.");
           return;
         }
-        const sres = await fetch(
-          `/api/integrations/google-photos/picker/session/${encodeURIComponent(session.sessionId)}`,
-        );
-        const sdata = await sres.json().catch(() => ({}));
-        if (sdata?.mediaItemsSet) {
-          await importInto((uploadSessionId) =>
-            fetch("/api/integrations/google-photos/import", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ uploadSessionId, pickerSessionId: session.sessionId }),
-            }),
-          );
+        try {
+          const pollUrl = `/api/integrations/google-photos/picker/session/${encodeURIComponent(session.sessionId)}`;
+          console.log("[gp] polling", pollUrl);
+          const sres = await fetch(pollUrl);
+          console.log("[gp] poll response", sres.status);
+          if (sres.status === 409) {
+            setPhase("idle");
+            setStatus((s) => (s ? { ...s, connected: false } : s));
+            setError("Your Google Photos access expired — please reconnect.");
+            return;
+          }
+          if (!sres.ok) {
+            const errData = await sres.json().catch(() => ({}));
+            console.log("[gp] poll error", errData);
+            setPhase("idle");
+            setError(errData?.message ?? `Picker poll failed (${sres.status}).`);
+            return;
+          }
+          const sdata = await sres.json();
+          console.log("[gp] poll data", sdata);
+          if (sdata?.mediaItemsSet) {
+            console.log("[gp] mediaItemsSet — starting import");
+            await importInto((uploadSessionId) =>
+              fetch("/api/integrations/google-photos/import", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uploadSessionId, pickerSessionId: session.sessionId }),
+              }),
+            );
+            return;
+          }
+        } catch (e) {
+          console.log("[gp] poll exception", e);
+          setPhase("idle");
+          setError(e instanceof Error ? e.message : "Poll error.");
           return;
         }
         pollTimer.current = setTimeout(poll, pollInterval);
       };
-      pollTimer.current = setTimeout(poll, pollInterval);
+      // Poll immediately first, then on interval
+      poll();
     } catch (e) {
       setPhase("idle");
       setError(e instanceof Error ? e.message : "Could not start the picker.");
