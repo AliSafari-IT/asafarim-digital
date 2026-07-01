@@ -53,11 +53,14 @@ const safeFilename = z
   .max(255)
   .regex(/^[^\\/:*?"<>|\u0000-\u001f]+$/, "filename contains invalid characters");
 
+const storageCategorySchema = z.enum(["originals", "thumbnails", "audio", "renders", "exports", "sessions"]).optional();
+
 export const presignRequestSchema = z.object({
   filename: safeFilename,
   contentType: z.enum(ALLOWED_UPLOAD_MIME_TYPES),
   sizeBytes: z.number().int().min(MIN_FILE_BYTES).max(MAX_IMAGE_BYTES),
   sessionId: z.string().min(1).max(128).optional(),
+  category: storageCategorySchema,
 });
 export type PresignRequest = z.infer<typeof presignRequestSchema>;
 

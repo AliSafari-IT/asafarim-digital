@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return badRequest(formatZodError(parsed.error));
     }
 
-    const { filename, contentType, sizeBytes, sessionId } = parsed.data;
+    const { filename, contentType, sizeBytes, sessionId, category } = parsed.data;
 
     // Ensure session exists and belongs to caller
     let session = sessionId ? getSessionForUser(sessionId, user.id) : undefined;
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       contentType,
       sizeBytes,
       sessionId: session.id,
+      category,
     });
 
     return NextResponse.json({

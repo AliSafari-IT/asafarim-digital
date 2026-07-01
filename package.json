@@ -1,6 +1,6 @@
 {
   "name": "asafarim-digital",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "private": true,
   "scripts": {
     "sh": "bash start.sh",
@@ -41,7 +41,8 @@
     "onVPS:dockerDown": "docker compose down",
     "seed": "turbo seed",
     "redis": "docker compose ps redis",
-    "onDev:cleanup": "powershell -ExecutionPolicy Bypass -File scripts/dev-cleanup.ps1"
+    "onDev:cleanup": "powershell -ExecutionPolicy Bypass -File scripts/dev-cleanup.ps1",
+    "envageEncrypt": "npx dotenv-cli -e .env -- node scripts/encrypt-env.js"
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
@@ -57,7 +58,7 @@
     "url": "https://github.com/AliSafari-IT/asafarim-digital.git"
   },
   "dependencies": {
-    "@asafarim/envage": "^0.3.2",
+    "@asafarim/envage": "^0.3.3",
     "secure-env": "^1.2.0"
   }
 }

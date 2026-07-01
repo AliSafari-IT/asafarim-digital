@@ -43,7 +43,11 @@ export async function POST(req: Request) {
       return badRequest("No photos were selected");
     }
 
-    const summary = await importMediaItems(user.id, uploadSessionId, items);
+    const summary = await importMediaItems(user.id, uploadSessionId, items, { accessToken });
+    if (summary.failed > 0) {
+      const failures = summary.results.filter((r) => r.status === "failed");
+      console.error("[google-photos/import] failures:", JSON.stringify(failures, null, 2));
+    }
     if (summary.imported > 0) {
       await touchGooglePhotosImportedAt(user.id).catch(() => {});
     }

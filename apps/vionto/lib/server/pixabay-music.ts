@@ -46,7 +46,7 @@ export interface PixabayAudioResponse {
 }
 
 export interface NormalizedTrackMetadata {
-  provider: "pixabay" | "upload";
+  provider: "pixabay" | "upload" | "spaces" | "common";
   trackId: string;
   title: string;
   artist: string;
@@ -55,10 +55,11 @@ export interface NormalizedTrackMetadata {
   tags: string[];
   sourceUrl: string;
   downloadUrl: string;
-  license: "royalty_free" | "uploaded";
+  license: "royalty_free" | "uploaded" | "spaces" | "common";
   licenseInfo: string;
   downloads: number;
   likes: number;
+  storageKey?: string; // DO Spaces / S3 key for direct download by the worker
   [key: string]: unknown; // Index signature for Prisma JSON compatibility
 }
 

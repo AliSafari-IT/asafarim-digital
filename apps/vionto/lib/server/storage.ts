@@ -1,7 +1,7 @@
-import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
+import { mkdir, writeFile, readFile, unlink, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { MAX_IMAGE_BYTES, type AllowedUploadMime } from "./validation";
@@ -499,6 +499,182 @@ export async function uploadLocalFileToStorage(localPath: string, key: string, c
   const body = await readFile(localPath);
   await putObjectBytes(key, body, contentType);
   return getPublicUrlForKey(key);
+}
+
+const MUSIC_LIBRARY_MAX_KEYS = 200;
+const AUDIO_FILE_EXTENSIONS = new Set([".mp3", ".wav", ".ogg", ".m4a", ".webm", ".aac", ".flac"]);
+
+export type AudioLibraryItem = {
+  key: string;
+  filename: string;
+  publicUrl: string;
+  lastModified: string;
+  sizeBytes: number;
+  common?: boolean; // true when the track is from the shared/common library
+};
+
+function isAudioKey(key: string): boolean {
+  const ext = (key.split(".").pop() ?? "").toLowerCase();
+  return AUDIO_FILE_EXTENSIONS.has(`.${ext}`);
+}
+
+function extractFilenameFromKey(key: string): string {
+  const lastSlash = key.lastIndexOf("/");
+  return lastSlash >= 0 ? key.slice(lastSlash + 1) : key;
+}
+
+/**
+ * List audio objects owned by a user from the configured storage backend.
+ * Searches the user's prefix (`vionto/{userId}/`) and returns audio files only.
+ */
+export async function listUserMusic(userId: string, maxKeys: number = MUSIC_LIBRARY_MAX_KEYS): Promise<AudioLibraryItem[]> {
+  const handle = getClient();
+  if (!handle) {
+    return listLocalUserMusic(userId);
+  }
+
+  const prefix = `vionto/${userId}/`;
+  const items: AudioLibraryItem[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await handle.client.send(
+      new ListObjectsV2Command({
+        Bucket: handle.config.bucket,
+        Prefix: prefix,
+        MaxKeys: Math.min(maxKeys, 1000),
+        ContinuationToken: continuationToken,
+      }),
+    );
+
+    for (const object of response.Contents ?? []) {
+      const key = object.Key;
+      if (!key || !isAudioKey(key)) continue;
+      items.push({
+        key,
+        filename: extractFilenameFromKey(key),
+        publicUrl: `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`,
+        lastModified: object.LastModified?.toISOString() ?? new Date().toISOString(),
+        sizeBytes: object.Size ?? 0,
+      });
+    }
+
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken && items.length < maxKeys);
+
+  return items.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+}
+
+async function listLocalUserMusic(userId: string): Promise<AudioLibraryItem[]> {
+  const dir = getLocalStorageDir();
+  if (!existsSync(dir)) return [];
+
+  const entries = await readdir(dir, { withFileTypes: true });
+  const metaFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+  const items: AudioLibraryItem[] = [];
+
+  for (const metaFile of metaFiles) {
+    try {
+      const metaPath = join(dir, metaFile.name);
+      const raw = await readFile(metaPath, "utf8");
+      const meta = JSON.parse(raw) as { key?: string; contentType?: string; sizeBytes?: number };
+      const key = meta.key;
+      if (!key || !key.startsWith(`vionto/${userId}/`) || !isAudioKey(key)) continue;
+      const filePath = join(dir, metaFile.name.replace(/\.json$/, ""));
+      const fileStat = await stat(filePath).catch(() => null);
+      if (!fileStat) continue;
+      items.push({
+        key,
+        filename: extractFilenameFromKey(key),
+        publicUrl: getLocalUploadUrl(key),
+        lastModified: fileStat.mtime.toISOString(),
+        sizeBytes: fileStat.size,
+      });
+    } catch {
+      // Skip unreadable metadata files
+    }
+  }
+
+  return items.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+}
+
+/**
+ * List shared/common audio objects available to every user.
+ * Common tracks are stored under `vionto/common/` and intentionally skip
+ * ownership checks so all users can preview and select them.
+ */
+export async function listCommonMusic(maxKeys: number = MUSIC_LIBRARY_MAX_KEYS): Promise<AudioLibraryItem[]> {
+  const handle = getClient();
+  if (!handle) {
+    return listLocalCommonMusic();
+  }
+
+  const prefix = "vionto/common/";
+  const items: AudioLibraryItem[] = [];
+  let continuationToken: string | undefined;
+
+  do {
+    const response = await handle.client.send(
+      new ListObjectsV2Command({
+        Bucket: handle.config.bucket,
+        Prefix: prefix,
+        MaxKeys: Math.min(maxKeys, 1000),
+        ContinuationToken: continuationToken,
+      }),
+    );
+
+    for (const object of response.Contents ?? []) {
+      const key = object.Key;
+      if (!key || !isAudioKey(key)) continue;
+      items.push({
+        key,
+        filename: extractFilenameFromKey(key),
+        publicUrl: `${handle.config.publicUrl.replace(/\/+$/, "")}/${key}`,
+        lastModified: object.LastModified?.toISOString() ?? new Date().toISOString(),
+        sizeBytes: object.Size ?? 0,
+        common: true,
+      });
+    }
+
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken && items.length < maxKeys);
+
+  return items.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+}
+
+async function listLocalCommonMusic(): Promise<AudioLibraryItem[]> {
+  const baseDir = getLocalStorageDir();
+  const dir = join(baseDir, "vionto", "common");
+  if (!existsSync(dir)) return [];
+
+  const entries = await readdir(dir, { withFileTypes: true });
+  const metaFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+  const items: AudioLibraryItem[] = [];
+
+  for (const metaFile of metaFiles) {
+    try {
+      const metaPath = join(dir, metaFile.name);
+      const raw = await readFile(metaPath, "utf8");
+      const meta = JSON.parse(raw) as { key?: string; contentType?: string; sizeBytes?: number };
+      const key = meta.key;
+      if (!key || !key.startsWith("vionto/common/") || !isAudioKey(key)) continue;
+      const filePath = join(dir, metaFile.name.replace(/\.json$/, ""));
+      const fileStat = await stat(filePath).catch(() => null);
+      if (!fileStat) continue;
+      items.push({
+        key,
+        filename: extractFilenameFromKey(key),
+        publicUrl: getLocalUploadUrl(key),
+        lastModified: fileStat.mtime.toISOString(),
+        sizeBytes: fileStat.size,
+        common: true,
+      });
+    } catch {
+      // Skip unreadable metadata files
+    }
+  }
+
+  return items.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
 }
 
 /**

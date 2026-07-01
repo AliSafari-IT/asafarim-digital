@@ -34,11 +34,13 @@ type Props = {
 
 type Phase = "idle" | "picking" | "importing";
 
+
 export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pickerHref, setPickerHref] = useState<string | null>(null);
   const [albumUrl, setAlbumUrl] = useState("");
   const [showAlbumInput, setShowAlbumInput] = useState(false);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -152,18 +154,20 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
       }
       if (!res.ok) throw new Error("Could not start the Google Photos picker.");
       const session = await res.json();
-      console.log("[gp] session created", { sessionId: session.sessionId, pollIntervalMs: session.pollIntervalMs, mediaItemsSet: session.mediaItemsSet });
+      if (!session.sessionId) {
+        throw new Error("Invalid picker session response from server.");
+      }
 
       const popup = window.open(session.pickerUri, "_blank", "noopener,noreferrer");
       if (!popup) {
-        throw new Error("Pop-up blocked. Allow pop-ups and try again.");
+        // Popup was blocked — show a manual link and keep polling
+        setPickerHref(session.pickerUri);
       }
 
       const pollInterval = Math.max(2000, session.pollIntervalMs ?? 5000);
       const deadline = Date.now() + 10 * 60 * 1000; // 10-minute cap
 
       const poll = async () => {
-        console.log("[gp] poll tick", { remaining: Math.round((deadline - Date.now()) / 1000) + "s" });
         if (Date.now() > deadline) {
           setPhase("idle");
           setError("Timed out waiting for your photo selection.");
@@ -171,9 +175,7 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
         }
         try {
           const pollUrl = `/api/integrations/google-photos/picker/session/${encodeURIComponent(session.sessionId)}`;
-          console.log("[gp] polling", pollUrl);
           const sres = await fetch(pollUrl);
-          console.log("[gp] poll response", sres.status);
           if (sres.status === 409) {
             setPhase("idle");
             setStatus((s) => (s ? { ...s, connected: false } : s));
@@ -182,15 +184,12 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
           }
           if (!sres.ok) {
             const errData = await sres.json().catch(() => ({}));
-            console.log("[gp] poll error", errData);
             setPhase("idle");
             setError(errData?.message ?? `Picker poll failed (${sres.status}).`);
             return;
           }
           const sdata = await sres.json();
-          console.log("[gp] poll data", sdata);
           if (sdata?.mediaItemsSet) {
-            console.log("[gp] mediaItemsSet — starting import");
             await importInto((uploadSessionId) =>
               fetch("/api/integrations/google-photos/import", {
                 method: "POST",
@@ -201,7 +200,6 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
             return;
           }
         } catch (e) {
-          console.log("[gp] poll exception", e);
           setPhase("idle");
           setError(e instanceof Error ? e.message : "Poll error.");
           return;
@@ -307,6 +305,15 @@ export function GooglePhotosImportPanel({ projectId, onImported }: Props) {
         </div>
       )}
 
+      {pickerHref && phase === "picking" && (
+        <p className="mt-2 text-[10px] text-[var(--muted)]">
+          Pop-up blocked.{" "}
+          <a href={pickerHref} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] underline">
+            Open Google Photos picker
+          </a>
+          , then return here.
+        </p>
+      )}
       {message && <p className="mt-2 text-[10px] text-emerald-500">{message}</p>}
       {error && <p className="mt-2 text-[10px] text-[var(--coral)]">{error}</p>}
     </div>

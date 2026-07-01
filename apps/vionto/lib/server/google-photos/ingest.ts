@@ -32,6 +32,8 @@ function isSupportedImage(mimeType: string): boolean {
 export type ImportOptions = {
   /** Override download concurrency (tests use 1 for determinism). */
   concurrency?: number;
+  /** Google OAuth access token — required to download Picker baseUrls. */
+  accessToken?: string;
 };
 
 /**
@@ -82,7 +84,10 @@ export async function importMediaItems(
 
       try {
         const res = await fetchWithRetry(downloadUrl(item.baseUrl), {
-          headers: { Accept: item.mimeType },
+          headers: {
+            Accept: item.mimeType,
+            ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}),
+          },
         });
         if (!res.ok) {
           return {

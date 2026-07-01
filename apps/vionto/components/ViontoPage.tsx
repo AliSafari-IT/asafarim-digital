@@ -3,6 +3,7 @@
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { NormalizedTrackMetadata } from "@/lib/server/pixabay-music";
+import { makeSpacesTrackMetadata, makeCommonTrackMetadata, type AudioLibraryItem } from "@/lib/music-library";
 import type { SubtitleConfig as SubtitleConfigType } from "@/lib/server/render-manifest";
 import { useTranslation } from "@asafarim/shared-i18n";
 import {
@@ -279,6 +280,10 @@ export function ViontoPage() {
   const [musicFilterMinDuration, setMusicFilterMinDuration] = useState("");
   const [musicFilterMaxDuration, setMusicFilterMaxDuration] = useState("");
   const [showMusicSelector, setShowMusicSelector] = useState(false);
+  const [musicSelectorTab, setMusicSelectorTab] = useState<"library" | "upload">("library");
+  const [musicLibrary, setMusicLibrary] = useState<AudioLibraryItem[]>([]);
+  const [isLoadingMusicLibrary, setIsLoadingMusicLibrary] = useState(false);
+  const [musicLibraryError, setMusicLibraryError] = useState<string | null>(null);
   const [musicPreviewTrackId, setMusicPreviewTrackId] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
   const [voices, setVoices] = useState<Array<{ id: string; name: string; locale: string; gender?: string }>>([]);
@@ -1979,6 +1984,7 @@ export function ViontoPage() {
         filename: file.name,
         contentType,
         sizeBytes: file.size,
+        category: "audio",
       }),
     });
 
@@ -2037,8 +2043,48 @@ export function ViontoPage() {
     );
   };
 
+  async function loadMusicLibrary() {
+    setIsLoadingMusicLibrary(true);
+    setMusicLibraryError(null);
+    try {
+      const res = await fetch("/api/music/library");
+      if (!res.ok) throw new Error("Failed to load music library");
+      const data = (await res.json()) as {
+        data?: AudioLibraryItem[];
+        tracks?: AudioLibraryItem[];
+        commonTracks?: AudioLibraryItem[];
+        userTracks?: AudioLibraryItem[];
+      };
+      const items = data.data ?? data.tracks ?? [];
+      setMusicLibrary(items);
+    } catch (error) {
+      console.error("Failed to load music library", error);
+      setMusicLibraryError(error instanceof Error ? error.message : t("vionto.music.fetchError"));
+    } finally {
+      setIsLoadingMusicLibrary(false);
+    }
+  }
+
+  const makeLibraryTrackMetadata = (item: AudioLibraryItem): NormalizedTrackMetadata => {
+    return item.common
+      ? makeCommonTrackMetadata(item, t("vionto.music.commonArtist"))
+      : makeSpacesTrackMetadata(item, t("vionto.music.libraryArtist"));
+  };
+
+  const handleSelectLibraryTrack = (item: AudioLibraryItem) => {
+    const track = makeLibraryTrackMetadata(item);
+    setSelectedMusicTracks((current) => (
+      current.some((selected) => selected.trackId === track.trackId && selected.provider === track.provider)
+        ? current
+        : [...current, track]
+    ));
+    setShowMusicSelector(false);
+  };
+
   const openMoreMusic = () => {
+    setMusicSelectorTab("library");
     setShowMusicSelector(true);
+    void loadMusicLibrary();
   };
 
   const toggleMusicPreview = async (track: NormalizedTrackMetadata) => {
@@ -3488,7 +3534,7 @@ export function ViontoPage() {
                   <div className="w-full max-w-3xl rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 max-h-[80vh] overflow-y-auto">
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-[var(--color-text)]">
-                        {t("vionto.music.upload_own")}
+                        {t("vionto.music.add")}
                       </h3>
                       <button
                         type="button"
@@ -3499,8 +3545,99 @@ export function ViontoPage() {
                       </button>
                     </div>
 
-                    {/* Upload Own Music UI */}
-                    <div className="space-y-4">
+                    <div className="mb-4 flex border-b border-[var(--color-border)]">
+                      <button
+                        type="button"
+                        onClick={() => setMusicSelectorTab("library")}
+                        className={`px-4 py-2 text-sm font-medium transition ${
+                          musicSelectorTab === "library"
+                            ? "border-b-2 border-[var(--color-accent)] text-[var(--color-accent)]"
+                            : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                        }`}
+                      >
+                        {t("vionto.music.libraryTab")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMusicSelectorTab("upload")}
+                        className={`px-4 py-2 text-sm font-medium transition ${
+                          musicSelectorTab === "upload"
+                            ? "border-b-2 border-[var(--color-accent)] text-[var(--color-accent)]"
+                            : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                        }`}
+                      >
+                        {t("vionto.music.uploadTab")}
+                      </button>
+                    </div>
+
+                    {musicSelectorTab === "library" && (
+                      <div className="space-y-3">
+                        {isLoadingMusicLibrary && (
+                          <div className="flex items-center justify-center gap-2 py-8 text-sm text-[var(--color-text-muted)]">
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                            {t("common.loading")}
+                          </div>
+                        )}
+                        {musicLibraryError && !isLoadingMusicLibrary && (
+                          <p className="rounded-lg bg-red-50/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+                            {musicLibraryError}
+                          </p>
+                        )}
+                        {!isLoadingMusicLibrary && !musicLibraryError && musicLibrary.length === 0 && (
+                          <div className="py-8 text-center">
+                            <FileAudio className="mx-auto h-10 w-10 text-[var(--color-text-muted)]" />
+                            <p className="mt-2 text-sm text-[var(--color-text)]">{t("vionto.music.libraryEmpty")}</p>
+                            <p className="mt-1 text-xs text-[var(--color-text-muted)]">{t("vionto.music.libraryEmptyHint")}</p>
+                          </div>
+                        )}
+                        {!isLoadingMusicLibrary && !musicLibraryError && musicLibrary.length > 0 && (
+                          <ul className="space-y-2">
+                            {musicLibrary.map((item) => (
+                              <li
+                                key={item.key}
+                                className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-2"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => toggleMusicPreview(makeLibraryTrackMetadata(item))}
+                                  className="shrink-0 text-[var(--color-accent)] hover:text-[var(--color-accent)]/80"
+                                  title={musicPreviewTrackId === item.key ? t("vionto.audio.previewing") : t("vionto.audio.preview")}
+                                >
+                                  {musicPreviewTrackId === item.key ? (
+                                    <Pause className="h-4 w-4" />
+                                  ) : (
+                                    <Play className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate text-sm font-medium text-[var(--color-text)]" title={item.filename}>
+                                    {item.filename}
+                                  </p>
+                                  <p className="truncate text-xs text-[var(--color-text-muted)]">
+                                    {new Date(item.lastModified).toLocaleDateString()} · {(item.sizeBytes / (1024 * 1024)).toFixed(2)} MB
+                                    {item.common && (
+                                      <span className="ml-2 rounded-full bg-[var(--color-accent)]/15 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-accent)]">
+                                        {t("vionto.music.commonBadge")}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectLibraryTrack(item)}
+                                  className="shrink-0 rounded-md bg-[var(--color-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--color-accent)]/90"
+                                >
+                                  {t("vionto.music.select")}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+
+                    {musicSelectorTab === "upload" && (
+                      <div className="space-y-4">
                         <div className="border-2 border-dashed border-[var(--color-border)] rounded-lg p-8 text-center">
                           <input
                             ref={musicUploadInputRef}
@@ -3578,6 +3715,7 @@ export function ViontoPage() {
                           {t("vionto.music.uploadDisclaimer")}
                         </p>
                       </div>
+                    )}
                   </div>
                 </div>
               )}
