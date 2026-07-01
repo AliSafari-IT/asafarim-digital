@@ -44,7 +44,7 @@
     "onDev:cleanup": "powershell -ExecutionPolicy Bypass -File scripts/dev-cleanup.ps1",
     "envageEncrypt": "npx envage encrypt --all --env root",
     "envageDecrypt": "npx envage decrypt --all --env root",
-    "deploy": "git push && ssh vps \"cd /var/repos/asafarim-digital && git pull && npx envage decrypt --all --env root && docker compose up -d --build && sh scripts/docker-post-deploy-prune.sh\""
+    "deploy": "git push && ssh vps \"cd /var/repos/asafarim-digital && git fetch --all && git reset --hard origin/main && npx envage decrypt --all --env root && docker compose up -d --build && sh scripts/docker-post-deploy-prune.sh\""
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
