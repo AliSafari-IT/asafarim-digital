@@ -755,7 +755,7 @@ const defaultSiteContent = [
 
 const defaultSiteSettings = [
   { key: "brand.name", value: "ASafariM Digital", group: "brand", displayName: "Brand Name", description: "Primary brand name displayed across the portal" },
-  { key: "brand.tagline", value: "Product engineering for AI-native SaaS", group: "brand", displayName: "Brand Tagline", description: "Tagline shown in the header" },
+  { key: "brand.tagline", value: "Product engineering for AI-empowered SaaS", group: "brand", displayName: "Brand Tagline", description: "Tagline shown in the header" },
   { key: "brand.logo_initials", value: "AD", group: "brand", displayName: "Logo Initials", description: "Initials displayed in the logo badge" },
   { key: "contact.email", value: "info@asafarim.com", group: "contact", displayName: "Contact Email", description: "Primary contact email address" },
   { key: "contact.github", value: "https://github.com/AliSafari-IT/asafarim-digital", group: "contact", displayName: "GitHub URL", description: "GitHub repository URL" },
