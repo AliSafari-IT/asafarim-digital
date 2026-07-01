@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "worker:dev": "dotenv -e ../../.env -- tsx worker.ts",
+    "worker:dev": "tsx --import ./scripts/preload-env.mjs worker.ts",
     "worker:build": "tsup --config tsup.worker.config.ts",
     "populate-music-library": "dotenv -e ../../.env -- tsx scripts/populate-music-library.ts",
-    "upload-music": "dotenv -e ../../.env -- node scripts/upload-music-to-spaces.mjs",
+    "upload-music": "node scripts/upload-music-to-spaces.mjs",
     "build": "next build",
     "start": "next start --port 3006",
     "lint": "echo \"Lint skipped for Next.js 16 app; covered by typecheck/build\"",

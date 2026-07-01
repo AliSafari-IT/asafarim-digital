@@ -22,9 +22,10 @@
  */
 
 import { readFile, readdir, stat } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve, dirname, basename, extname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import {
   S3Client,
   PutObjectCommand,
@@ -33,15 +34,65 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// ─── Self-contained .env parser (like the MinIO script) ─────────────────────
+// Reads credentials directly from disk so special characters (+, /, =) in
+// secrets are never mangled by dotenv-cli or shell escaping.
+
+function parseEnvFile(envPath) {
+  if (!existsSync(envPath)) return {};
+  const lines = readFileSync(envPath, "utf-8").split(/\r?\n/);
+  const out = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx < 1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    let val = trimmed.slice(eqIdx + 1).trim();
+    // Strip surrounding quotes (single or double) if present
+    if ((val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    out[key] = val;
+  }
+  return out;
+}
+
+// Merge: process.env takes precedence, fall back to parsed .env files
+function loadEnv(envFiles) {
+  const merged = {};
+  for (const f of envFiles) {
+    if (existsSync(f)) {
+      const parsed = parseEnvFile(f);
+      for (const [k, v] of Object.entries(parsed)) {
+        if (!(k in merged)) merged[k] = v;
+      }
+    }
+  }
+  // process.env wins over file values
+  for (const [k, v] of Object.entries(process.env)) {
+    merged[k] = v;
+  }
+  return merged;
+}
+
 // ─── CLI args ────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
+  // Default env file search order: app .env, then root .env (two levels up from scripts/)
+  const appEnv = resolve(__dirname, "..", ".env");
+  const rootEnv = resolve(__dirname, "..", "..", "..", ".env");
   const out = {
     dir: "C:\\Users\\saal\\Music\\immostoryai",
     scope: "immostoryai",
     watch: false,
     dryRun: false,
     test: false,
+    envFiles: [appEnv, rootEnv],
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -50,6 +101,7 @@ function parseArgs(argv) {
     else if (a === "--watch") out.watch = true;
     else if (a === "--dryRun") out.dryRun = true;
     else if (a === "--test") out.test = true;
+    else if (a === "--env") out.envFiles = [resolve(argv[++i])];
   }
   return out;
 }
@@ -57,6 +109,13 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 
 // ─── Env / client setup ──────────────────────────────────────────────────────
+// Load from disk first (bypasses dotenv-cli mangling of + / = in secrets)
+
+const env = loadEnv(args.envFiles);
+console.log("  env sources:");
+for (const f of args.envFiles) {
+  console.log(`    ${f} ${existsSync(f) ? "(found)" : "(not found)"}`);
+}
 
 const {
   DO_SPACES_ENDPOINT,
@@ -64,7 +123,7 @@ const {
   DO_SPACES_BUCKET,
   DO_SPACES_KEY,
   DO_SPACES_SECRET,
-} = process.env;
+} = env;
 
 function fail(msg) {
   console.error(`✗ ${msg}`);

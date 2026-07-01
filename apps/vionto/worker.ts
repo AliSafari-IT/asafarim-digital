@@ -23,6 +23,7 @@ import { QUEUE_NAME, getRenderQueue } from "./lib/server/queue";
 import { parseSrt, buildSrt, buildVtt, applyTransformToCues, wrapAllCues, generateSrtFromText } from "./lib/server/srt";
 import { advanceAlbumLifecycleStage } from "./lib/server/album-lifecycle";
 
+
 const REDIS_URL = process.env.REDIS_URL;
 if (!REDIS_URL) {
   throw new Error("REDIS_URL environment variable is required. Please set it to redis://localhost:6380 or your Redis instance URL.");
