@@ -42,7 +42,8 @@
     "seed": "turbo seed",
     "redis": "docker compose ps redis",
     "onDev:cleanup": "powershell -ExecutionPolicy Bypass -File scripts/dev-cleanup.ps1",
-    "envageEncrypt": "npx dotenv-cli -e .env -- node scripts/encrypt-env.js"
+    "envageEncrypt": "npx envage encrypt --all --env root",
+    "envageDecrypt": "npx envage decrypt --all --env root"
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
