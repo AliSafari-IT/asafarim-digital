@@ -45,7 +45,8 @@
     "envageEncrypt": "npx envage encrypt --all --env root",
     "envageDecrypt": "npx envage decrypt --all --env root",
     "clean:vps": "ssh vps \"docker image prune -af && docker builder prune -af && docker volume prune -f && df -h /\"",
-    "deploy": "git push && scp ./.age/key.txt vps:/var/repos/asafarim-digital/.age/key.txt && ssh vps \"chmod 600 /var/repos/asafarim-digital/.age/key.txt && cd /var/repos/asafarim-digital && git fetch --all && git reset --hard origin/main && npx envage decrypt --all --env root && docker image prune -af && docker builder prune -af && docker compose up -d --build && sh scripts/docker-post-deploy-prune.sh\""
+    "deploy": "git push && scp ./.age/key.txt vps:/var/repos/asafarim-digital/.age/key.txt && ssh vps \"chmod 600 /var/repos/asafarim-digital/.age/key.txt && tmux kill-session -t deploy 2>/dev/null; tmux new -d -s deploy 'cd /var/repos/asafarim-digital && git fetch --all && git reset --hard origin/main && npx envage decrypt --all --env root && docker image prune -af && docker builder prune -af && docker compose up -d --build && sh scripts/docker-post-deploy-prune.sh'\"",
+    "deploy:attach": "ssh vps -t tmux attach -t deploy"
   },
   "devDependencies": {
     "@smithy/types": "^4.14.1",
