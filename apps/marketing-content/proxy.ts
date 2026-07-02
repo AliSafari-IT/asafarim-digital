@@ -2,10 +2,10 @@ import { createAuthMiddleware } from "@asafarim/auth/middleware";
 
 const portalUrl = process.env.PORTAL_URL || "https://portal.asafarim.com";
 
-export const middleware = createAuthMiddleware({
-  // Public surface: marketing landing + health probe.
-  // Everything else requires an authenticated session.
-  publicRoutes: ["/", "/api/health"],
+// All routes require a signed-in user. Only /api/health is public for container probes.
+// No role gate: this app is available to every authenticated user in the SSO session.
+export const proxy = createAuthMiddleware({
+  publicRoutes: ["/api/health", "/"],
   signInUrl: `${portalUrl}/sign-in`,
 });
 

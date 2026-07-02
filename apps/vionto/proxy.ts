@@ -5,7 +5,7 @@ const portalUrl =
     ? process.env.NEXT_PUBLIC_PORTAL_URL || process.env.PORTAL_URL || "http://localhost:3000"
     : process.env.PORTAL_URL || process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal.asafarim.com";
 
-export const middleware = createAuthMiddleware({
+export const proxy = createAuthMiddleware({
   publicRoutes: [
     "/",
     "/create",

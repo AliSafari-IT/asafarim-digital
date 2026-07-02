@@ -1,6 +1,6 @@
 import { createAuthMiddleware } from "@asafarim/auth/middleware";
 
-export const middleware = createAuthMiddleware({
+export const proxy = createAuthMiddleware({
   publicRoutes: [
     "/",
     "/about",
