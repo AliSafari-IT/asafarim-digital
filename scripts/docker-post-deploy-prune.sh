@@ -5,7 +5,9 @@ set -eu
 # Keeps running containers and named volumes. Set PRUNE_VOLUMES=1 only when you
 # explicitly want Docker to remove unused volumes too.
 
-BUILD_CACHE_UNTIL="${BUILD_CACHE_UNTIL:-24h}"
+# Keep at most this much build cache. Old entries beyond this are evicted so the
+# cache never grows without bound across repeated deploys.
+BUILD_CACHE_KEEP="${BUILD_CACHE_KEEP:-10gb}"
 
 echo "[docker-prune] Disk before cleanup"
 df -h /
@@ -17,8 +19,8 @@ docker container prune -f
 echo "[docker-prune] Removing dangling and unused images"
 docker image prune -af
 
-echo "[docker-prune] Removing unused build cache older than ${BUILD_CACHE_UNTIL}"
-docker builder prune -af --filter "until=${BUILD_CACHE_UNTIL}"
+echo "[docker-prune] Capping build cache to ${BUILD_CACHE_KEEP}"
+docker builder prune -f --keep-storage="${BUILD_CACHE_KEEP}"
 
 echo "[docker-prune] Removing unused networks"
 docker network prune -f

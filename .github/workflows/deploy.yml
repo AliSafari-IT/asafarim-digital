@@ -126,6 +126,13 @@ jobs:
             FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
             export COMPOSE_PARALLEL_LIMIT=1
+            # Ensure Docker daemon caps build cache + rotates logs (bounds disk usage).
+            # Only reload dockerd when the config actually changes to avoid churn.
+            if ! sudo cmp -s infra/docker/daemon.json /etc/docker/daemon.json; then
+              echo "Installing/updating /etc/docker/daemon.json (builder GC + log rotation)..."
+              sudo install -m 644 infra/docker/daemon.json /etc/docker/daemon.json
+              sudo systemctl reload docker || sudo systemctl restart docker
+            fi
             sudo install -m 644 infra/nginx/portal.asafarim.com.conf /etc/nginx/sites-available/portal.asafarim.com.conf
             sudo install -m 644 infra/nginx/content-generator.asafarim.com.conf /etc/nginx/sites-available/content-generator.asafarim.com.conf
             sudo install -m 644 infra/nginx/ops-hub.asafarim.com.conf /etc/nginx/sites-available/ops-hub.asafarim.com.conf
@@ -151,18 +158,18 @@ jobs:
             docker compose rm -f db-migrate || true
             echo "Docker disk usage before cleanup:"
             docker system df || true
-            # Always prune build cache older than 48h — this is the main disk consumer
-            docker builder prune -f --filter "until=48h" || true
-            # Aggressive cleanup when disk is >75%
-            DISK_PCT=$(df / | awk 'NR==2 {gsub(/%/,""); print $5}')
-            if [ "${DISK_PCT:-0}" -gt 75 ] 2>/dev/null; then
-              echo "Disk usage ${DISK_PCT}%, running aggressive cleanup..."
-              docker builder prune -f --filter "until=24h" || true
-              docker image prune -af --filter "until=72h" || true
-              docker container prune -f || true
-              docker volume prune -f || true
-            else
-              echo "Disk usage ${DISK_PCT}% — routine pre-build cleanup done"
+            # Unconditional pre-build cleanup so the build never starts on a full disk.
+            # Running containers keep their images referenced, so image prune -af is safe.
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -f --keep-storage=10gb || true
+            # Free-space guard: fail fast (before a long build) if disk is critically low.
+            AVAIL_GB=$(df --output=avail -BG / | tail -1 | tr -dc '0-9')
+            echo "Available disk after pre-build cleanup: ${AVAIL_GB}GB"
+            if [ "${AVAIL_GB:-0}" -lt 8 ]; then
+              echo "::error::Only ${AVAIL_GB}GB free after cleanup. Aborting before build to avoid a broken deploy (502)."
+              docker system df || true
+              exit 1
             fi
             echo "Docker disk usage after cleanup:"
             docker system df || true
@@ -209,8 +216,17 @@ jobs:
             fi
 
             docker compose up -d --force-recreate portal content-generator ops-hub marketing-content edumatch vionto vionto-worker
-            docker system prune -f
+            # Thorough post-deploy cleanup. The new images are now referenced by the
+            # running containers, so these prunes only remove the superseded old images
+            # and excess build cache — keeping disk usage bounded across deploys.
+            echo "Post-deploy cleanup..."
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -f --keep-storage=10gb || true
+            docker network prune -f || true
             echo "Deployment complete!"
+            docker system df || true
+            df -h /
             docker compose ps
           ENDSSH
 
