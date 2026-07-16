@@ -126,6 +126,13 @@ jobs:
             FORCE_SEED="${1:-false}"
             cd /var/repos/asafarim-digital
             export COMPOSE_PARALLEL_LIMIT=1
+            # Refresh the compose root .env from the committed prod profile
+            # (.env.prod.age). Keeps production URLs/secrets in one encrypted source
+            # of truth. Skips gracefully if the age key or file is not present.
+            if [ -f .age/key.txt ] && [ -f .env.prod.age ]; then
+              echo "Refreshing .env from .env.prod.age (envage prod profile)..."
+              echo y | npx envage decrypt . --env prod && cp .env.prod .env
+            fi
             # Ensure Docker daemon caps build cache + rotates logs (bounds disk usage).
             # Only reload dockerd when the config actually changes to avoid churn.
             if ! sudo cmp -s infra/docker/daemon.json /etc/docker/daemon.json; then
