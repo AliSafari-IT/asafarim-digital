@@ -14,9 +14,20 @@ node_modules
 **/coverage
 **/tsconfig.tsbuildinfo
 
+# Env files at ANY depth — never ship dev/secret env into images.
+# Runtime env is provided by docker-compose; build-time NEXT_PUBLIC_* come
+# from build ARGs. Shipping e.g. apps/vionto/.env bakes dev values
+# (REDIS_URL=localhost:6380) that override the correct runtime env.
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
+
+# Age keys / encrypted env — must never be inside images
+.age
+**/.age
 
 *.log
 npm-debug.log*
